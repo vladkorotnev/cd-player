@@ -1,0 +1,13 @@
+{
+    "name": "libcddb",
+    "version": "1.3.2",
+    "keywords": "compact disc, metadata, cddb, freedb, music",
+    "description": "CDDB access library",
+    "platforms": "espressif32",
+    "build": {
+        "libArchive": false,
+		"flags": [
+			"-Iinclude"
+		]
+    }
+}
