@@ -1,10 +1,11 @@
 #include "Arduino.h"
 #include <esper-core/keypad.h>
-#include <esper-core/ide.h>
+#include <esper-cdp/atapi.h>
 
 Core::ThreadSafeI2C * i2c;
 Platform::Keypad * keypad;
 Platform::IDE * ide;
+ATAPI::Device * cdrom;
 
 // Arduino Setup
 void setup(void) {  
@@ -18,16 +19,10 @@ void setup(void) {
 
   keypad = new Platform::Keypad(i2c);
   ide = new Platform::IDE(i2c);
+  cdrom = new ATAPI::Device(ide);
 
-  ide->reset();
-  delay(5000);
-  auto rslt = ide->read(0xF4); // Cylinder Low
-  if(rslt.low == 0x14) {
-    rslt = ide->read(0xF5); // Cylinder Hi
-    if(rslt.low == 0xEB) {
-      Serial.println("Found ATAPI device!!");
-    }
-  }
+  cdrom->reset();
+  cdrom->wait_ready();
 }
 
 // Arduino loop - copy sound to out
@@ -38,6 +33,7 @@ void loop() {
     if(kp_new_sts != kp_sts) {
       ESP_LOGI("Test", "Key change: 0x%02x to 0x%02x", kp_sts, kp_new_sts);
       kp_sts = kp_new_sts;
+      cdrom->eject();
     }
   }
 }

@@ -21,7 +21,7 @@ namespace Platform {
         _addr_flags(address_flags),
         _addr_databus(address_databus) {}
 
-    IDE::data16 IDE::read(uint8_t reg) {
+    data16 IDE::read(uint8_t reg) {
         data16 rslt = { .value = 0xFFFF };
 
         // set data bus to input

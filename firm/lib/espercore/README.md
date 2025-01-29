@@ -1,3 +1,3 @@
 # ESPer-Core
 
-ESPer PCB related drivers et al
+ESPer PCB platform related drivers et al

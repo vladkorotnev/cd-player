@@ -1,15 +1,15 @@
 #pragma once
 #include "thread_safe_i2c.h"
 
-namespace Platform {
-    /// @brief IDE Bus accessor
+union data16 {
+    struct { uint8_t low; uint8_t high; };
+    uint16_t value;
+};
+
+namespace Platform {    
+    /// @brief IDE Bus accessor. Not thread safe!
     class IDE {
     public:
-        union data16 {
-            struct { uint8_t low; uint8_t high; };
-            uint16_t value;
-        };
-
         /// @brief Create an IDE bus accessor
         /// @param i2c I2C Bus on which the PCA9555 expanders are located
         /// @param address_flags Address of the expander with the port B connected to the flags pins of the IDE bus
