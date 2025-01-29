@@ -1,7 +1,39 @@
 #pragma once
 #include <esper-core/ide.h>
+#include <string>
+#include <vector>
+
+#define MAX_CHANGER_SLOTS 10
 
 namespace ATAPI {
+    struct DriveInfo {
+        std::string model;
+        std::string serial;
+        std::string firmware;
+    };
+
+    struct MechInfo {
+        enum class ChangerState {
+            Idle,
+            Preparing,
+            Changing_Disc
+        };
+
+        struct ChangerSlotState {
+            bool disc_in;
+            bool disc_changed;
+        };
+
+        uint8_t disc_count;
+        bool is_door_open;
+        bool is_playing;
+        bool is_fault;
+
+        uint8_t current_disc;
+        ChangerState changer_state;
+        ChangerSlotState changer_slots[MAX_CHANGER_SLOTS];
+    };
+
     class Device {
     public:
         Device(Platform::IDE * bus);
@@ -13,8 +45,15 @@ namespace ATAPI {
         void wait_ready();
         void eject();
 
+        const DriveInfo * get_info();
+        const MechInfo * query_state();
+
     private:
         Platform::IDE * ide;
+        DriveInfo info = { 
+            .model = "", .serial = "", .firmware = ""
+        };
+        MechInfo mech_sts = { 0 };
         int packet_size = 12;
 
         union StatusRegister {

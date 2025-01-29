@@ -36,4 +36,8 @@ void loop() {
       cdrom->eject();
     }
   }
+
+  delay(2000);
+
+  cdrom->query_state();
 }
