@@ -32,6 +32,7 @@ namespace ATAPI {
         ide->reset();
         delay(3000);
         wait_not_busy();
+        ide->write(IDE::Register::Command, {{.low = 0x91, .high = 0xFF}});
         check_atapi_compatible();
         self_test();
         init_task_file();
@@ -138,7 +139,7 @@ namespace ATAPI {
             audio_sts.position_in_disc = res.current_position_data.absolute_address;
             audio_sts.position_in_track = res.current_position_data.relative_address;
 
-            ESP_LOGI(LOG_TAG, "Audio Sts = %i, track = %i.%i, time = %02im%02is%02if, total = %02im%02is%02if", res.audio_status, audio_sts.track, audio_sts.index, audio_sts.position_in_disc.M, audio_sts.position_in_disc.S, audio_sts.position_in_disc.F, audio_sts.position_in_track.M, audio_sts.position_in_track.S, audio_sts.position_in_track.F);
+            ESP_LOGI(LOG_TAG, "Audio Sts = %i, track = %i.%i, total time = %02im%02is%02if, track time = %02im%02is%02if", res.audio_status, audio_sts.track, audio_sts.index, audio_sts.position_in_disc.M, audio_sts.position_in_disc.S, audio_sts.position_in_disc.F, audio_sts.position_in_track.M, audio_sts.position_in_track.S, audio_sts.position_in_track.F);
         }
 
         return &audio_sts;
@@ -262,32 +263,57 @@ namespace ATAPI {
         };
 
         Responses::ReadTOCResponseHeader res_hdr;
-        send_packet(&req, sizeof(req), true);
-        read_response(&res_hdr, sizeof(res_hdr), false);
-        res_hdr.data_length = be16toh(res_hdr.data_length);
-        ESP_LOGI(LOG_TAG, "Reported TOC size = %i (from track %i to %i)", res_hdr.data_length, res_hdr.first_track_no, res_hdr.last_track_no);
+        bool success = false;
+        int attempts = 3;
         DiscTOC toc;
+        Responses::NormalTOCEntry entry;
+
         toc.tracks = {};
 
-        Responses::NormalTOCEntry entry;
-        for(int i = res_hdr.first_track_no; i <= res_hdr.last_track_no + 1; i++) {
-            wait_drq();
-            read_response(&entry, sizeof(entry), false);
-            ESP_LOGI(LOG_TAG, " + track %i: %02im%02is%02if, preemph=%i, prot=%i, data=%i, quadro=%i", entry.track_no, entry.address.M, entry.address.S, entry.address.F, entry.pre_emphasis, entry.copy_protected, entry.data_track, entry.quadrophonic);
+        do {
+            toc.tracks.clear();
+            send_packet(&req, sizeof(req), true);
+            delay(50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
+            wait_not_busy();
 
-            if(entry.track_no == TRK_NUM_LEAD_OUT) {
-                toc.leadOut = entry.address;
+            read_response(&res_hdr, sizeof(res_hdr), false);
+            res_hdr.data_length = be16toh(res_hdr.data_length);
+            ESP_LOGI(LOG_TAG, "Reported TOC size = %i (from track %i to %i)", res_hdr.data_length, res_hdr.first_track_no, res_hdr.last_track_no);
+
+            if(res_hdr.data_length == (res_hdr.last_track_no - (res_hdr.first_track_no - 1) + 1) * sizeof(entry) + 2 && res_hdr.last_track_no >= res_hdr.first_track_no) {
+                ESP_LOGI(LOG_TAG, "TOC reading attempts = %i", attempts);
+                int last_trkno = res_hdr.first_track_no - 1;
+                for(int i = res_hdr.first_track_no; i <= res_hdr.last_track_no + 1; i++) {
+                    wait_drq();
+                    read_response(&entry, sizeof(entry), false);
+                    ESP_LOGI(LOG_TAG, " + track %i: %02im%02is%02if, preemph=%i, prot=%i, data=%i, quadro=%i", entry.track_no, entry.address.M, entry.address.S, entry.address.F, entry.pre_emphasis, entry.copy_protected, entry.data_track, entry.quadrophonic);
+
+                    if((entry.track_no != TRK_NUM_LEAD_OUT && entry.track_no != last_trkno + 1) || (last_trkno == TRK_NUM_LEAD_OUT)) {
+                        ESP_LOGE(LOG_TAG, "  ^--- this makes no sense! retry.");
+                        success = false;
+                        break;
+                    }
+
+                    if(entry.track_no == TRK_NUM_LEAD_OUT) {
+                        toc.leadOut = entry.address;
+                        success = true;
+                    } else {
+                        toc.tracks.push_back( DiscTrack {
+                            .number = entry.track_no,
+                            .position = entry.address,
+                            .is_data = entry.data_track,
+                            .preemphasis = entry.pre_emphasis
+                        } );
+                    }
+
+                    last_trkno = entry.track_no;
+                }
+                // flush anything if any
+                read_response(nullptr, 0, true);
             } else {
-                toc.tracks.push_back( DiscTrack {
-                    .number = entry.track_no,
-                    .position = entry.address,
-                    .is_data = entry.data_track,
-                    .preemphasis = entry.pre_emphasis
-                } );
+                ESP_LOGE(LOG_TAG, "  ^--- this makes no sense! retry.");
             }
-        }
-        // flush anything if any
-        read_response(nullptr, 0, true);
+        } while(!success && (attempts--) > 0);
         return toc;
     }
 
