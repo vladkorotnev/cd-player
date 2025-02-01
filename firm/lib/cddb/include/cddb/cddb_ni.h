@@ -81,8 +81,8 @@
 
 #define DEFAULT_USER        "anonymous"
 #define DEFAULT_HOST        "localhost"
-#define DEFAULT_SERVER      "freedb.org"
-#define DEFAULT_PORT        888
+#define DEFAULT_SERVER      "gnudb.gnudb.org"
+#define DEFAULT_PORT        8880
 #define DEFAULT_TIMEOUT     10
 #define DEFAULT_PATH_QUERY  "/~cddb/cddb.cgi"
 #define DEFAULT_PATH_SUBMIT "/~cddb/submit.cgi"

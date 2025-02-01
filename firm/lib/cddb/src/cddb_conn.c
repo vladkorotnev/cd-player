@@ -99,7 +99,7 @@ cddb_conn_t *cddb_new(void)
 
         c->use_cache = CACHE_ON;
         /* construct cache dir '$HOME/[DEFAULT_CACHE]' */
-        s = getenv("HOME");
+        s = "/cddb_cache";
         c->cache_dir = (char*)malloc(strlen(s) + 1 + sizeof(DEFAULT_CACHE) + 1);
         sprintf(c->cache_dir, "%s/%s", s, DEFAULT_CACHE);
         c->cache_read = FALSE;

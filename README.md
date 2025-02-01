@@ -1,4 +1,4 @@
-# TITLE: TBD
+# ESPer CDP
 
 ## Project goals
 
@@ -20,10 +20,6 @@
 * Bluetooth audio transmission
 * HTTP audio transmission
 * HTTP firmware updates
-
-### Nice to have
-
-* Reuse PIS-OS core?
 
 ### Out of scope
 

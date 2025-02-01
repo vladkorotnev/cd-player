@@ -1,59 +1,51 @@
 #pragma once
 #include <esper-core/ide.h>
-#include <string>
+#include "types.h"
 #include <vector>
 
-#define MAX_CHANGER_SLOTS 10
-
 namespace ATAPI {
-    struct DriveInfo {
-        std::string model;
-        std::string serial;
-        std::string firmware;
-    };
-
-    struct MechInfo {
-        enum class ChangerState {
-            Idle,
-            Preparing,
-            Changing_Disc
-        };
-
-        struct ChangerSlotState {
-            bool disc_in;
-            bool disc_changed;
-        };
-
-        uint8_t disc_count;
-        bool is_door_open;
-        bool is_playing;
-        bool is_fault;
-
-        uint8_t current_disc;
-        ChangerState changer_state;
-        ChangerSlotState changer_slots[MAX_CHANGER_SLOTS];
-    };
-
     class Device {
     public:
-        Device(Platform::IDE * bus);
+        Device(Platform::IDEBus * bus);
 
         void reset();
         bool check_atapi_compatible();
         bool self_test();
 
         void wait_ready();
-        void eject();
+
+        /// @brief Eject or close the tray
+        /// @param open_tray true = open tray, false = close tray
+        void eject(bool open_tray);
+        /// @brief Request the changer (if any) to switch to a specified slot and put the disc in play position
+        /// @note The changer might not move right away (e.g. TEAC CD-C68E does not). In this case maybe follow up the command with `eject(false)`.
+        void load_unload(SlotNumber slot);
+
+        /// @brief Request the player to play audio data
+        /// @param start Start of the played segment. Set to beginning of first track (usually M00S02F00, but can vary disc by disc)
+        /// @param end End of the played segment. Set to lead-out to play the whole track.
+        void play(MSF start, MSF end);
+        /// @brief Change the pause state of the player
+        /// @param pause true = pause playback, false = continue playback
+        void pause(bool pause);
+        /// @brief Stop the audio playback
+        void stop();
+        /// @brief Check the media status
+        MediaTypeCode check_media();
+
+        const DiscTOC read_toc();
 
         const DriveInfo * get_info();
         const MechInfo * query_state();
+        const AudioStatus * query_position();
 
     private:
-        Platform::IDE * ide;
+        Platform::IDEBus * ide;
         DriveInfo info = { 
             .model = "", .serial = "", .firmware = ""
         };
         MechInfo mech_sts = { 0 };
+        AudioStatus audio_sts = { 0 };
         int packet_size = 12;
 
         union StatusRegister {
@@ -122,10 +114,10 @@ namespace ATAPI {
             uint8_t value;
         };
 
-
+        StatusRegister read_sts_regi();
         void wait_sts_bit_set(StatusRegister bits);
         void wait_sts_bit_clr(StatusRegister bits);
-        void read_response(void * buf, size_t bufLen, bool flush);
+        bool read_response(void * buf, size_t bufLen, bool flush);
         void send_packet(const void * buf, size_t bufLen, bool pad = true);
 
         void wait_not_busy();

@@ -139,9 +139,9 @@ int cddb_cache_exists(cddb_conn_t *c, cddb_disc_t *disc)
     char *fn = NULL;
     struct stat buf;
 
-    cddb_log_debug("cddb_cache_exists()");
     /* try to stat cache file */
     fn = cddb_cache_file_name(c, disc);
+    cddb_log_debug("cddb_cache_exists('%s')", fn);
     if (fn) {
         if ((stat(fn, &buf) == -1) || !S_ISREG(buf.st_mode)) {
             cddb_log_debug("...not in cache");
