@@ -31,6 +31,12 @@ namespace ATAPI {
     bool MediaTypeCodeIsAudioCD(MediaTypeCode code) {
         return code == MTC_AUDIO_120MM || code == MTC_AUDIO_80MM || code == MTC_AUDIO_DATA_120MM || code == MTC_AUDIO_DATA_80MM ||
             code == MTC_CDR_AUDIO_120MM || code == MTC_CDR_AUDIO_80MM || code == MTC_CDR_AUDIO_DATA_120MM || code == MTC_CDR_AUDIO_DATA_80MM ||
-            code == MTC_CD_EXT_AUDIO_120MM || code == MTC_CD_EXT_AUDIO_80MM || code == MTC_CD_EXT_AUDIO_DATA_120MM || code == MTC_CD_EXT_AUDIO_DATA_80MM;
+            code == MTC_CD_EXT_AUDIO_120MM || code == MTC_CD_EXT_AUDIO_80MM || code == MTC_CD_EXT_AUDIO_DATA_120MM || code == MTC_CD_EXT_AUDIO_DATA_80MM
+#ifndef ESPERCDP_HYBRID_CD_IS_NOT_AUDIO
+            // Apparently some super old drives (the same C68E as always) report CD-Enhanced with a data session as hybrid CD (photo CD)
+            // example: EXIT TUNES QWCE-20004 is reported as MTC_PHOTO_120MM
+            || code == MTC_PHOTO_120MM || code == MTC_PHOTO_80MM || code == MTC_CDR_PHOTO_120MM || code == MTC_CDR_PHOTO_80MM || code == MTC_CD_EXT_PHOTO_120MM || code == MTC_CD_EXT_PHOTO_80MM
+#endif
+          ;
     }
 };
