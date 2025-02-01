@@ -2,7 +2,6 @@
 #include <esper-core/keypad.h>
 #include <esper-cdp/atapi.h>
 #include <esper-cdp/metadata.h>
-#include <cddb/cddb.h>
 #include <WiFi.h>
 
 Core::ThreadSafeI2C * i2c;

@@ -25,10 +25,9 @@ namespace CD {
             char buf[16] = { 0 };
 
             for(auto& track: toc.tracks) {
-                snprintf(buf, 16, "Track %i", track.number);
                 tracks.push_back({
                     .disc_position = track,
-                    .title = std::string(buf),
+                    .title = "",
                     .artist = ""
                 });
             }
@@ -46,7 +45,7 @@ namespace CD {
                 }
             }
 
-            return (title.length() == 0 || artist.length() == 0);
+            return (title.length() != 0 && artist.length() != 0);
         }
     };
 

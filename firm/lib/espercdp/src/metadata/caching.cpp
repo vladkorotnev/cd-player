@@ -7,6 +7,7 @@ namespace CD {
 
         for(auto &provider: providers) {
             provider->fetch_album(album);
+            if(album.is_metadata_complete()) break;
         }
 
         // TODO: update cache

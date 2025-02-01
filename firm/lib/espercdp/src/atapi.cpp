@@ -264,7 +264,7 @@ namespace ATAPI {
 
         Responses::ReadTOCResponseHeader res_hdr;
         bool success = false;
-        int attempts = 3;
+        int attempts = 20;
         DiscTOC toc;
         Responses::NormalTOCEntry entry;
 
@@ -314,6 +314,9 @@ namespace ATAPI {
                 ESP_LOGE(LOG_TAG, "  ^--- this makes no sense! retry.");
             }
         } while(!success && (attempts--) > 0);
+        
+        if(!success) toc.tracks.clear();
+
         return toc;
     }
 

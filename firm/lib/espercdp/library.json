@@ -8,5 +8,12 @@
 		"flags": [
 			"-Iinclude"
 		]
-    }
+    },
+    "dependencies": {
+        "bblanchon/ArduinoJson": "^7.3.0",
+        "HTTPClient": "^2.0.0",
+        "WiFiClientSecure": "^2.0.0",
+        "libcddb": "^1.3.2"
+    },
+    "frameworks": ["arduino"]
 }
