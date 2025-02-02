@@ -12,6 +12,7 @@ namespace ATAPI {
     };
     
     enum OperationCodes: uint8_t{
+        TEST_UNIT_READY = 0x00,
         REQUEST_SENSE = 0x03,
         START_STOP_UNIT = 0x1B,
         PREVENT_ALLOW_MEDIA_REMOVAL = 0x1E,
@@ -23,6 +24,7 @@ namespace ATAPI {
         MODE_SENSE = 0x5A,
         LOAD_UNLOAD = 0xA6,
         MECHANISM_STATUS = 0xBD,
+        READ_CD = 0xBE,
     };
 
     enum SubchannelFormat: uint8_t {
@@ -37,7 +39,8 @@ namespace ATAPI {
         TOC_FMT_SESSION_INFO = 1,
         TOC_FMT_FULL_TOC = 2, 
         TOC_FMT_PMA = 3,
-        TOC_FMT_ATIP = 4
+        TOC_FMT_ATIP = 4,
+        TOC_FMT_CD_TEXT = 5
     };
 
     enum SubchannelAdr: uint8_t {
@@ -236,6 +239,54 @@ namespace ATAPI {
             uint8_t reserved2: 6;
             
             ReqPktFooter footer;
+        };
+
+        struct ATAPI_PKT ReadCd {
+            enum SectorType: uint8_t {
+                SECT_TYPE_ANY = 0b000,
+                SECT_TYPE_CDDA = 0b001,
+                SECT_TYPE_MODE1 = 0b010,
+                SECT_TYPE_MODE2 = 0b011,
+                SECT_TYPE_MODE2FORM1 = 0b100,
+                SECT_TYPE_MODE2FORM2 = 0b101,
+            };
+
+            enum SubchannelDataSelection {
+                NO_SUBCHANNEL = 0b000,
+                RAW_SUBCHANNEL = 0b001,
+                SUBCHANNEL_Q = 0b010,
+                SUBCHANNEL_R_W = 0b100
+            };
+            
+            uint8_t opcode;
+
+            bool rel_addr: 1;
+            bool reserved0: 1;
+            SectorType sector_type: 3;
+            uint8_t lun: 3;
+            union {
+                struct {
+                    uint16_t lba_hi;
+                    uint16_t lba_low;
+                };
+                struct {
+                    uint8_t padding0;
+                    MSF msf; // is this valid here?
+                };
+            };
+            struct {
+                uint8_t high;
+                uint16_t low;
+            } transfer_length_blocks;
+
+            bool reserved1: 1;
+            uint8_t error_flags: 2;
+            bool edc_ecc: 1;
+            bool user: 1;
+            uint8_t headers: 2;
+            bool synch: 1;
+
+            SubchannelDataSelection subchannel: 3;
         };
     }
 

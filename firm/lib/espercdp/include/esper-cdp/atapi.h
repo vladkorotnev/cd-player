@@ -2,7 +2,6 @@
 #include <esper-core/ide.h>
 #include "types.h"
 #include <vector>
-
 namespace ATAPI {
     class Device {
     public:
@@ -32,8 +31,10 @@ namespace ATAPI {
         void stop();
         /// @brief Check the media status
         MediaTypeCode check_media();
-
+        /// @brief Read the audio CD TOC
         const DiscTOC read_toc();
+        /// @brief Read the raw CD text block in the TOC if the device supports it
+        const std::vector<uint8_t> read_cd_text_toc();
 
         const DriveInfo * get_info();
         const MechInfo * query_state();

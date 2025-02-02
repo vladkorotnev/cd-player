@@ -1,5 +1,6 @@
 #pragma once
 #include <esper-cdp/types.h>
+#include <esper-cdp/atapi.h>
 #include <string>
 #include <vector>
 #include <memory>
@@ -79,5 +80,16 @@ namespace CD {
 
         std::string server;
         std::string email;
+    };
+
+    class CDTextMetadataProvider: public MetadataProvider {
+    public: 
+        // TODO: Device needs to be thread safe!! at least in the CDText part
+        CDTextMetadataProvider(ATAPI::Device* drive): _dev(drive) {}
+
+        void fetch_album(Album&) override;
+
+    private:
+        ATAPI::Device * _dev;
     };
 };

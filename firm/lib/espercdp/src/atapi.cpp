@@ -255,10 +255,49 @@ namespace ATAPI {
         send_packet(&req, sizeof(req), true);
     }
 
+    const std::vector<uint8_t> Device::read_cd_text_toc() {
+        // just for fun let's try this
+        const Requests::ReadTOC req = {
+            .opcode = OperationCodes::READ_TOC_PMA_ATIP,
+            .msf = true,
+            .format = TocFormat::TOC_FMT_CD_TEXT,
+            .allocation_length = 0xFFFF // oughtta be enough!
+        };
+
+        send_packet(&req, sizeof(req), true);
+        delay(50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
+        wait_not_busy();
+
+        StatusRegister sr = read_sts_regi();
+        if(sr.ERR) {
+            ESP_LOGW(LOG_TAG, "Probably drive can't parse CD TEXT");
+        }
+
+        // This is not part of ATAPI spec, so hiding it here instead of the appropriate header
+        struct ATAPI_PKT {
+            uint16_t size;
+            uint16_t reserved;
+        } head;
+        read_response(&head, sizeof(head), false);
+
+        if(head.reserved != 0) {
+            ESP_LOGW(LOG_TAG, "CD text: expected bytes [2] and [3] to be 0 but they were 0x%04x, probably the device can't read CD Text, bailing out!", head.reserved);
+            read_response(nullptr, 0, true);
+            return {};
+        }
+        else {
+            head.size = be16toh(head.size);
+            std::vector<uint8_t> buffer(head.size);
+            read_response(&buffer[0], head.size, true);
+            return buffer;
+        }
+    }
+
     const DiscTOC Device::read_toc() {
         const Requests::ReadTOC req = {
             .opcode = OperationCodes::READ_TOC_PMA_ATIP,
             .msf = true,
+            .format = TocFormat::TOC_FMT_TOC,
             .allocation_length = 0xFFFF // oughtta be enough!
         };
 
@@ -469,6 +508,18 @@ namespace ATAPI {
         } while(res.sense_key == RequestSenseKey::SENSE_NOT_READY /*&& res.additional_sense_code == RequestSenseAsc::ASC_DEVICE_NOT_READY*/);
         ESP_LOGI(LOG_TAG, "Request sense ready with SK=0x%02x, ASC=0x%02x", res.sense_key, res.additional_sense_code);
 
+        const uint8_t req2 = OperationCodes::TEST_UNIT_READY;
+        send_packet(&req2, sizeof(req2), true);
+        StatusRegister sr = read_sts_regi();
+        while(sr.ERR || sr.BSY) {
+            if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
+                ESP_LOGW(LOG_TAG, "Waiting for TEST_UNIT_READY to stop raising ERR and/or BSY");
+                start_wait = xTaskGetTickCount();
+            }
+            send_packet(&req2, sizeof(req2), true);
+            sr = read_sts_regi();
+        }
+
         query_state();
         while(mech_sts.is_in_motion) {
             if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
@@ -477,5 +528,7 @@ namespace ATAPI {
             }
             query_state();
         }
+
+        ESP_LOGI(LOG_TAG, "The device appears to be ready");
     }
 }

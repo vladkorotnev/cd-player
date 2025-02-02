@@ -32,6 +32,21 @@ void setup(void) {
   cdrom->wait_ready();
 }
 
+void metaTest(const ATAPI::DiscTOC& toc) {
+    auto meta = CD::CachingMetadataAggregateProvider();
+    meta.providers.push_back(new CD::CDTextMetadataProvider(cdrom));
+    meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
+    meta.providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
+
+    auto album = CD::Album(toc);
+
+    meta.fetch_album(album);
+
+    ESP_LOGI("TEST", "Album: %s by %s", album.title.c_str(), album.artist.c_str());
+    for(int i = 0; i < album.tracks.size(); i++) {
+      ESP_LOGI("TEST", "  [%02i] %s - %s", i + 1, album.tracks[i].artist.c_str(), album.tracks[i].title.c_str());
+    }
+}
 
 // Arduino loop - copy sound to out
 long lastMs = 0;
@@ -59,6 +74,7 @@ void loop() {
 
         if(ATAPI::MediaTypeCodeIsAudioCD(mtc)) {
           auto toc = cdrom->read_toc();
+          metaTest(toc);
           if(toc.tracks.size() > 0) {
             cdrom->play( toc.tracks.front().position, toc.leadOut );
           }
@@ -94,6 +110,7 @@ void loop() {
 
           if(ATAPI::MediaTypeCodeIsAudioCD(mtc)) {
             auto toc = cdrom->read_toc();
+            metaTest(toc);
             if(toc.tracks.size() > 0) {
               cdrom->play( toc.tracks.front().position, toc.leadOut );
             }
@@ -109,18 +126,7 @@ void loop() {
         if(ATAPI::MediaTypeCodeIsAudioCD(mtc)) {
           auto toc = cdrom->read_toc();
           
-          auto meta = CD::CachingMetadataAggregateProvider();
-          meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
-          meta.providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
-
-          auto album = CD::Album(toc);
-
-          meta.fetch_album(album);
-
-          ESP_LOGI("TEST", "Album: %s by %s", album.title.c_str(), album.artist.c_str());
-          for(int i = 0; i < album.tracks.size(); i++) {
-            ESP_LOGI("TEST", "  [%02i] %s - %s", i, album.tracks[i].artist.c_str(), album.tracks[i].title.c_str());
-          }
+          metaTest(toc);
         }
       }
       else {
