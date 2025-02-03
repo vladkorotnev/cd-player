@@ -125,8 +125,26 @@ namespace CD {
                 case State::STOP:
                     break;
 
-                case State::PAUSE:
                 case State::PLAY:
+                    if(audio->state == ATAPI::AudioStatus::PlayState::Stopped) {
+                        sts = State::STOP;
+                        cur_track.track = 1;
+                        cur_track.index = 1;
+                        abs_ts = { .M = 0, .S = 0, .F = 0 };
+                        rel_ts = { .M = 0, .S = 0, .F = 0 };
+                    }
+                    else if(audio->state == ATAPI::AudioStatus::PlayState::Paused) {
+                        sts = State::PAUSE;
+                    }  
+                    else {
+                        cur_track.track = audio->track;
+                        cur_track.index = audio->index;
+                        abs_ts = audio->position_in_disc;
+                        rel_ts = audio->position_in_track;
+                    }
+                break;
+
+                case State::PAUSE:
                 case State::SEEK_FF:
                 case State::SEEK_REW:
                     cur_track.track = audio->track;
@@ -256,9 +274,11 @@ namespace CD {
                         {
                             auto album = slots[cur_slot].disc;
                             if(!album.tracks.empty()) {
-                                cur_track.track = std::min((int)album.tracks.size(), cur_track.track + 1);
-                                int desired_track_idx = (album.tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                cdrom->play(album.tracks[desired_track_idx].disc_position.position, album.duration);
+                                if(cur_track.track < album.tracks.size()) {
+                                    cur_track.track = std::min((int)album.tracks.size(), cur_track.track + 1);
+                                    int desired_track_idx = (album.tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
+                                    cdrom->play(album.tracks[desired_track_idx].disc_position.position, album.duration);
+                                }
                             }
                         }
                     break;
@@ -287,6 +307,18 @@ namespace CD {
                     default:
                     break;
                 }
+            break;
+
+            case State::PAUSE:
+                // TODO
+            break;
+
+            case State::SEEK_FF:
+                // TODO
+            break;
+
+            case State::SEEK_REW:
+                // TODO
             break;
         }
 

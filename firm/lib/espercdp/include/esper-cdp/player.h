@@ -20,8 +20,32 @@ namespace CD {
             PLAY,
             PAUSE,
             SEEK_FF,
-            SEEK_REW,
+            SEEK_REW
         };
+
+        static const char * PlayerStateString(State sts) {
+            switch(sts) {
+                case State::INIT: return "Initializing";
+                case State::LOAD: return "Loading";
+                case State::NO_DISC: return "No Disc";
+                case State::BAD_DISC: return "Bad Disc";
+                case State::OPEN: return "Open";
+                case State::CLOSE: return "Close";
+                case State::CHANGE_DISC: return "Change Disc";
+                case State::STOP: return "Stop";
+                case State::PLAY: return "Play";
+                case State::PAUSE: return "Pause";
+                case State::SEEK_FF: return "FFwd";
+                case State::SEEK_REW: return "Rew"; 
+                default:
+                    {
+                        static char tmp[8] = { 0 };
+                        snprintf(tmp, 8, "Unknown (%i)", sts);
+                        return tmp;
+                    }
+                    break;
+            }
+        }
 
         enum class Command {
             OPEN_CLOSE,

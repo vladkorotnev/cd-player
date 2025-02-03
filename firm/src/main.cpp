@@ -54,7 +54,7 @@ CD::Player::TrackNo last_trkno;
 void loop() {
   CD::Player::State sts = player->get_status();
   if(sts != last_sts) {
-    ESP_LOGI("Test", "State %i -> %i", last_sts, sts);
+    ESP_LOGI("Test", "State %s -> %s", CD::Player::PlayerStateString(last_sts), CD::Player::PlayerStateString(sts));
     last_sts = sts;
   }
   
