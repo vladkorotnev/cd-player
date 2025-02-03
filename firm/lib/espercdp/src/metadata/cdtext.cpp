@@ -26,7 +26,7 @@ namespace CD {
     void CDTextMetadataProvider::fetch_album(Album& album) {
         if(album.tracks.size() == 0) return; // probably not a CDA!
         
-        auto raw_data = _dev->read_cd_text_toc();
+        auto raw_data = album.toc_subchannel;
 
         if(raw_data.size() == 0) {
             ESP_LOGW(LOG_TAG, "No CD text data");
@@ -86,7 +86,7 @@ namespace CD {
         for(int i = 0; i < tmp_artists.size(); i++) {
             ESP_LOGV(LOG_TAG, "Artist %i: %s", i, tmp_artists[i].c_str());
 
-            if(i > 0 && album.tracks[i - 1].artist == "") {
+            if(i > 0 && album.tracks[i - 1].artist == "" && tmp_artists[0] != tmp_artists[i]) {
                 album.tracks[i - 1].artist = tmp_artists[i];
             }
         }

@@ -1,0 +1,89 @@
+#pragma once
+#include <esper-cdp/atapi.h>
+#include <esper-cdp/metadata.h>
+
+/// Defines the CD Player model as seen to the end user.
+/// You'd normally call this a "view model" but is it really in this context?
+
+namespace CD {
+    class Player {
+    public:
+        enum class State {
+            INIT,
+            LOAD,
+            NO_DISC,
+            BAD_DISC,
+            OPEN,
+            CLOSE,
+            CHANGE_DISC,
+            STOP,
+            PLAY,
+            PAUSE,
+            SEEK_FF,
+            SEEK_REW,
+        };
+
+        enum class Command {
+            OPEN_CLOSE,
+            PLAY,
+            PAUSE,
+            PLAY_PAUSE,
+            SEEK_FF,
+            SEEK_REW,
+            STOP,
+            NEXT_TRACK,
+            PREV_TRACK,
+            NEXT_DISC,
+            PREV_DISC
+        };
+
+        struct Slot {
+            bool disc_present;
+            bool active;
+            Album disc;
+        };
+
+        struct TrackNo {
+            uint8_t track;
+            uint8_t index;
+        };
+
+        Player(ATAPI::Device * device, MetadataProvider * meta_provider):
+            cdrom(device),
+            meta(meta_provider)
+        {
+            setup_tasks();
+        }
+
+        State get_status() { return sts; }
+        /// @brief Returns the changer slots statuses, even if the device is not a changer — in such case it will be just one slot. 
+        const std::vector<Slot> get_slots() { return slots; }
+        const MSF get_current_absolute_time() { return abs_ts; }
+        const MSF get_current_track_time() { return rel_ts; }
+        const TrackNo get_current_track_number() { return cur_track; }
+
+        void do_command(Command);
+
+        void poll_state();
+
+    private:
+        ATAPI::Device * cdrom;
+        MetadataProvider * meta;
+
+        TaskHandle_t _pollTask;
+        TaskHandle_t _metaTask;
+        SemaphoreHandle_t _cmdSemaphore;
+
+        MSF abs_ts = { .M = 0, .S = 0, .F = 0 };
+        MSF rel_ts = { .M = 0, .S = 0, .F = 0 };
+        TrackNo cur_track = { .track = 1, .index = 1 };
+        State sts = State::INIT;
+        std::vector<Slot> slots = {};
+        int next_expected_slot = 0;
+        int cur_slot = 0;
+        bool want_auto_play = false;
+
+        void setup_tasks();
+        void start_playing();
+    };
+}

@@ -72,8 +72,9 @@ namespace ATAPI {
     };
 
     struct DiscTOC {
-        MSF leadOut;
-        std::vector<DiscTrack> tracks;
+        const MSF leadOut;
+        const std::vector<DiscTrack> tracks;
+        const std::vector<uint8_t> toc_subchannel;
     };
 
     enum MediaTypeCode: uint8_t {
@@ -120,5 +121,4 @@ namespace ATAPI {
     };
 
     bool MediaTypeCodeIsAudioCD(MediaTypeCode code);
-    bool MediaTypeCodeIsDoorOpen(MediaTypeCode code);
 }

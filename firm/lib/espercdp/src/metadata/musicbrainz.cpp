@@ -86,8 +86,11 @@ namespace CD {
                                 for(int i = 0; i < std::min(tracks.size(), album.tracks.size()); i++) {
                                     if(album.tracks[i].title.length() == 0)
                                         album.tracks[i].title = tracks[i]["title"].as<std::string>();
-                                    if(album.tracks[i].artist.length() == 0)
-                                        album.tracks[i].artist = MBJsonToArtistName(tracks[i]);
+                                    if(album.tracks[i].artist.length() == 0) {
+                                        const std::string artist = MBJsonToArtistName(tracks[i]);
+                                        if(artist != album.artist)
+                                            album.tracks[i].artist = artist;
+                                    }
                                 }
                             } else {
                                 ESP_LOGW(LOG_TAG, "MediaIdx %i has no tracks!", mediaIdx);
@@ -130,7 +133,7 @@ namespace CD {
         sprintf(temp, "%02X", album.tracks.back().disc_position.number);
         mbedtls_sha1_update_ret(&ctx, (unsigned char*) temp, strlen(temp));
 
-        sprintf(temp, "%08X", MSF_TO_FRAMES(album.duration));
+        sprintf(temp, "%08X", MSF_TO_FRAMES(album.lead_out));
         mbedtls_sha1_update_ret(&ctx, (unsigned char*) temp, strlen(temp));
 
         for (int i = 0; i < 99; i++) {

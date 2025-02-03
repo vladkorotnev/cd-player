@@ -25,14 +25,20 @@ namespace ATAPI {
         // compile time sanity checks
         const StatusRegister tmp = StatusRegister { .value = (1 << 7) };
         assert(tmp.BSY);
+
+        semaphore = xSemaphoreCreateBinary();
+        xSemaphoreGive(semaphore);
     }
 
     void Device::reset() {
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Reset");
         ide->reset();
         delay(3000);
         wait_not_busy();
         ide->write(IDE::Register::Command, {{.low = 0x91, .high = 0xFF}});
+        xSemaphoreGive(semaphore);
+
         check_atapi_compatible();
         self_test();
         init_task_file();
@@ -52,12 +58,14 @@ namespace ATAPI {
             .allocation_length = htobe16( sizeof(hdr) + sizeof(Responses::MechanismStatusSlotTable) * MAX_CHANGER_SLOTS ) // <- oughtta be enough
         };
 
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+
         send_packet(&req, sizeof(req));
         read_response(&hdr, sizeof(hdr), false);
 
         hdr.slot_tbl_len = be16toh(hdr.slot_tbl_len);
 
-        ESP_LOGI(LOG_TAG, "Slot = %i, ChgSts = %i, Fault = %i, Door = %i, MechSts = %i, NumSlots = %i, SlotTblLen = %i, LBAPos = %02x%02x%02x", hdr.current_slot, hdr.changer_state, hdr.fault, hdr.door_open, hdr.mechanism_state, hdr.num_slots, hdr.slot_tbl_len, hdr.current_lba[0], hdr.current_lba[1], hdr.current_lba[2]);
+        ESP_LOGV(LOG_TAG, "Slot = %i, ChgSts = %i, Fault = %i, Door = %i, MechSts = %i, NumSlots = %i, SlotTblLen = %i, LBAPos = %02x%02x%02x", hdr.current_slot, hdr.changer_state, hdr.fault, hdr.door_open, hdr.mechanism_state, hdr.num_slots, hdr.slot_tbl_len, hdr.current_lba[0], hdr.current_lba[1], hdr.current_lba[2]);
 
         mech_sts.slot_count = std::max((uint8_t)1, (uint8_t)hdr.num_slots);
         mech_sts.is_door_open = hdr.door_open;
@@ -97,6 +105,8 @@ namespace ATAPI {
         }
 
         read_response(nullptr, 0, true);
+
+        xSemaphoreGive(semaphore);
         return &mech_sts;
     }
 
@@ -111,8 +121,12 @@ namespace ATAPI {
             .allocation_length = sizeof(res)
         };
 
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+
         send_packet(&req, sizeof(req), true);
         read_response(&res, sizeof(res), true);
+
+        xSemaphoreGive(semaphore);
 
         switch(res.audio_status) {
             case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_PLAYING:
@@ -132,14 +146,14 @@ namespace ATAPI {
         }
 
         if(res.data_format != SubchannelFormat::SUBCH_FMT_CD_POS) {
-            ESP_LOGE(LOG_TAG, "Read Subchannel response not of expected type (got 0x%x)", res.data_format);
+            ESP_LOGV(LOG_TAG, "Read Subchannel response not of expected type (got 0x%x)", res.data_format);
         } else {
             audio_sts.track = res.current_position_data.track_no;
             audio_sts.index = res.current_position_data.index_no;
             audio_sts.position_in_disc = res.current_position_data.absolute_address;
             audio_sts.position_in_track = res.current_position_data.relative_address;
 
-            ESP_LOGI(LOG_TAG, "Audio Sts = %i, track = %i.%i, total time = %02im%02is%02if, track time = %02im%02is%02if", res.audio_status, audio_sts.track, audio_sts.index, audio_sts.position_in_disc.M, audio_sts.position_in_disc.S, audio_sts.position_in_disc.F, audio_sts.position_in_track.M, audio_sts.position_in_track.S, audio_sts.position_in_track.F);
+            ESP_LOGV(LOG_TAG, "Audio Sts = %i, track = %i.%i, total time = %02im%02is%02if, track time = %02im%02is%02if", res.audio_status, audio_sts.track, audio_sts.index, audio_sts.position_in_disc.M, audio_sts.position_in_disc.S, audio_sts.position_in_disc.F, audio_sts.position_in_track.M, audio_sts.position_in_track.S, audio_sts.position_in_track.F);
         }
 
         return &audio_sts;
@@ -147,19 +161,25 @@ namespace ATAPI {
 
     bool Device::check_atapi_compatible() {
         data16 tmp;
+        bool rslt;
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
 
         // 5.18.3 Special Handling of ATA Read and Identify Drive Commands
         tmp = ide->read(IDE::Register::CylinderLow);
         if(tmp.low == 0x14) {
             tmp = ide->read(IDE::Register::CylinderHigh);
-            if(tmp.low == 0xEB) return true;
+            if(tmp.low == 0xEB) rslt = true;
         }
 
-        ESP_LOGW(LOG_TAG, "Not an ATAPI device or device faulty!");
-        return false;
+        if(!rslt) ESP_LOGW(LOG_TAG, "Not an ATAPI device or device faulty!");
+
+        xSemaphoreGive(semaphore);
+        return rslt;
     }
 
     void Device::init_task_file() {
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "init task file");
         ide->write(IDE::Register::Feature, {{ .low = (FeatureRegister {{ .DMA = false, .overlap = false }}).value, .high = 0xFF }});
 
@@ -172,25 +192,30 @@ namespace ATAPI {
 
         wait_not_busy();
         wait_drq_end();
+        xSemaphoreGive(semaphore);
     }
 
     bool Device::self_test() {
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Self-test");
         ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
         wait_not_busy();
         data16 rslt = ide->read(IDE::Register::Error);
         ESP_LOGI(LOG_TAG, "Error register = 0x%04x", rslt.value);
+        xSemaphoreGive(semaphore);
         return rslt.low == 0x01;
     }
 
     void Device::identify() {
         Responses::IdentifyPacket rslt;
         memset(&rslt, 0, sizeof(Responses::IdentifyPacket));
+        xSemaphoreTake(semaphore, portMAX_DELAY);
 
         ide->write(IDE::Register::Command, {{ .low = Command::IDENTIFY_PACKET_DEVICE, .high = 0xFF }});
         wait_not_busy();
         wait_drq();
         read_response(&rslt, sizeof(Responses::IdentifyPacket), true);
+        xSemaphoreGive(semaphore);
 
         char buf[41] = { 0 };
         strncpy(buf, rslt.model, 40);
@@ -215,8 +240,9 @@ namespace ATAPI {
             .start = !open,
             .load_eject = true
         };
-
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&req, sizeof(req));
+        xSemaphoreGive(semaphore);
     }
 
     void Device::load_unload(SlotNumber slot) {
@@ -227,7 +253,9 @@ namespace ATAPI {
             .slot = slot
         };
 
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&lul, sizeof(lul), false);
+        xSemaphoreGive(semaphore);
     }
 
     void Device::stop() {
@@ -235,7 +263,9 @@ namespace ATAPI {
             .opcode = OperationCodes::STOP_PLAY_SCAN
         };
 
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&req, sizeof(req), true);
+        xSemaphoreGive(semaphore);
     }
 
     void Device::pause(bool pause) {
@@ -243,7 +273,9 @@ namespace ATAPI {
             .opcode = OperationCodes::PAUSE_RESUME,
             .resume = !pause
         };
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&req, sizeof(req), true);
+        xSemaphoreGive(semaphore);
     }
 
     void Device::play(MSF start, MSF end) {
@@ -252,10 +284,12 @@ namespace ATAPI {
             .start_position = start,
             .end_position = end,
         };
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&req, sizeof(req), true);
+        xSemaphoreGive(semaphore);
     }
 
-    const std::vector<uint8_t> Device::read_cd_text_toc() {
+    const std::vector<uint8_t> Device::read_cd_text_toc_locked() {
         // just for fun let's try this
         const Requests::ReadTOC req = {
             .opcode = OperationCodes::READ_TOC_PMA_ATIP,
@@ -280,17 +314,20 @@ namespace ATAPI {
         } head;
         read_response(&head, sizeof(head), false);
 
+        std::vector<uint8_t> rslt = {};
+
         if(head.reserved != 0) {
             ESP_LOGW(LOG_TAG, "CD text: expected bytes [2] and [3] to be 0 but they were 0x%04x, probably the device can't read CD Text, bailing out!", head.reserved);
             read_response(nullptr, 0, true);
-            return {};
         }
         else {
             head.size = be16toh(head.size);
             std::vector<uint8_t> buffer(head.size);
             read_response(&buffer[0], head.size, true);
-            return buffer;
+            rslt = buffer;
         }
+
+        return rslt;
     }
 
     const DiscTOC Device::read_toc() {
@@ -304,13 +341,17 @@ namespace ATAPI {
         Responses::ReadTOCResponseHeader res_hdr;
         bool success = false;
         int attempts = 20;
-        DiscTOC toc;
+        std::vector<uint8_t> toc_subchannel = {};
+        std::vector<DiscTrack> tracks = {};
+        MSF leadOut = { .M = 0, .S = 0, .F = 0 };
         Responses::NormalTOCEntry entry;
 
-        toc.tracks = {};
+        tracks = {};
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
 
         do {
-            toc.tracks.clear();
+            tracks.clear();
             send_packet(&req, sizeof(req), true);
             delay(50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
             wait_not_busy();
@@ -334,10 +375,10 @@ namespace ATAPI {
                     }
 
                     if(entry.track_no == TRK_NUM_LEAD_OUT) {
-                        toc.leadOut = entry.address;
+                        leadOut = entry.address;
                         success = true;
                     } else {
-                        toc.tracks.push_back( DiscTrack {
+                        tracks.push_back( DiscTrack {
                             .number = entry.track_no,
                             .position = entry.address,
                             .is_data = entry.data_track,
@@ -354,9 +395,15 @@ namespace ATAPI {
             }
         } while(!success && (attempts--) > 0);
         
-        if(!success) toc.tracks.clear();
+        if(!success) tracks.clear();
+        else toc_subchannel = read_cd_text_toc_locked();
 
-        return toc;
+        xSemaphoreGive(semaphore);
+        return DiscTOC {
+            .leadOut = leadOut,
+            .tracks = tracks,
+            .toc_subchannel = toc_subchannel
+        };
     }
 
     MediaTypeCode Device::check_media() {
@@ -367,8 +414,10 @@ namespace ATAPI {
         };
         Responses::ModeSense res;
 
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&req, sizeof(req), true);
         read_response(&res, sizeof(res), true);
+        xSemaphoreGive(semaphore);
 
         ESP_LOGV(LOG_TAG, "Mode sense: media type 0x%02x", res.media_type);
         return res.media_type;
@@ -444,7 +493,7 @@ namespace ATAPI {
 
                 sts = read_sts_regi();
             }
-            if(flushed > 0) ESP_LOGV(LOG_TAG, "Flushed %i extra bytes", flushed);
+            if(flushed > 0) ESP_LOGD(LOG_TAG, "Flushed %i extra bytes", flushed);
             rslt = true;
         }
 
@@ -459,7 +508,7 @@ namespace ATAPI {
 
     void Device::wait_sts_bit_set(StatusRegister bits) {
         TickType_t start_wait = xTaskGetTickCount();
-        ESP_LOGV(LOG_TAG, "Wait for bit set 0x%02x", bits.value);
+        ESP_LOGD(LOG_TAG, "Wait for bit set 0x%02x", bits.value);
 
         do {
             if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
@@ -471,7 +520,7 @@ namespace ATAPI {
 
     void Device::wait_sts_bit_clr(StatusRegister bits) {
         TickType_t start_wait = xTaskGetTickCount();
-        ESP_LOGV(LOG_TAG, "Wait for bit clear 0x%02x", bits.value);
+        ESP_LOGD(LOG_TAG, "Wait for bit clear 0x%02x", bits.value);
 
         do {
             if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
@@ -490,6 +539,7 @@ namespace ATAPI {
 
     void Device::wait_ready() {
         ESP_LOGI(LOG_TAG, "Waiting for drive to become ready...");
+        xSemaphoreTake(semaphore, portMAX_DELAY);
         wait_sts_bit_set({{.DRDY = true}}); 
 
         const Requests::RequestSense req = {
@@ -507,18 +557,19 @@ namespace ATAPI {
             read_response(&res, sizeof(res), true);
         } while(res.sense_key == RequestSenseKey::SENSE_NOT_READY /*&& res.additional_sense_code == RequestSenseAsc::ASC_DEVICE_NOT_READY*/);
         ESP_LOGI(LOG_TAG, "Request sense ready with SK=0x%02x, ASC=0x%02x", res.sense_key, res.additional_sense_code);
+        xSemaphoreGive(semaphore);
 
-        const uint8_t req2 = OperationCodes::TEST_UNIT_READY;
-        send_packet(&req2, sizeof(req2), true);
-        StatusRegister sr = read_sts_regi();
-        while(sr.ERR || sr.BSY) {
-            if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
-                ESP_LOGW(LOG_TAG, "Waiting for TEST_UNIT_READY to stop raising ERR and/or BSY");
-                start_wait = xTaskGetTickCount();
-            }
-            send_packet(&req2, sizeof(req2), true);
-            sr = read_sts_regi();
-        }
+        // const uint8_t req2 = OperationCodes::TEST_UNIT_READY;
+        // send_packet(&req2, sizeof(req2), true);
+        // StatusRegister sr = read_sts_regi();
+        // while(sr.ERR || sr.BSY) {
+        //     if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
+        //         ESP_LOGW(LOG_TAG, "Waiting for TEST_UNIT_READY to stop raising ERR and/or BSY");
+        //         start_wait = xTaskGetTickCount();
+        //     }
+        //     send_packet(&req2, sizeof(req2), true);
+        //     sr = read_sts_regi();
+        // }
 
         query_state();
         while(mech_sts.is_in_motion) {

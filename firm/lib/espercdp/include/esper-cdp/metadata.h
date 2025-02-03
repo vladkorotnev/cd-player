@@ -3,7 +3,7 @@
 #include <esper-cdp/atapi.h>
 #include <string>
 #include <vector>
-#include <memory>
+#include <fstream>
 
 namespace CD {
     struct Track {
@@ -17,12 +17,21 @@ namespace CD {
         Album(): 
             tracks({}),
             duration( {.M = 0, .S = 0, .F = 0} ),
+            lead_out( {.M = 0, .S = 0, .F = 0} ),
             title(""),
-            artist("")
+            artist(""),
+            toc_subchannel({})
         {}
 
         Album(const ATAPI::DiscTOC& toc): Album() {
-            duration = toc.leadOut;
+            lead_out = toc.leadOut;
+            if(toc.tracks.back().is_data) {
+                // Normally data track is at the end
+                duration = toc.tracks.back().position;
+            } else {
+                duration = lead_out;
+            }
+            toc_subchannel = toc.toc_subchannel;
             char buf[16] = { 0 };
 
             for(auto& track: toc.tracks) {
@@ -34,10 +43,12 @@ namespace CD {
             }
         }
 
+        std::vector<uint8_t> toc_subchannel;
         std::string title;
         std::string artist;
         std::vector<Track> tracks;
         MSF duration;
+        MSF lead_out;
 
         bool is_metadata_complete() {
             for(auto& track: tracks) {
@@ -48,6 +59,16 @@ namespace CD {
 
             return (title.length() != 0 && artist.length() != 0);
         }
+
+        bool is_metadata_good_for_caching() {
+            for(auto& track: tracks) {
+                if(track.title.length() == 0) {
+                    return false;
+                }
+            }
+
+            return (title.length() != 0);
+        }
     };
 
     class MetadataProvider {
@@ -57,9 +78,14 @@ namespace CD {
 
     class CachingMetadataAggregateProvider: public MetadataProvider {
     public:
-        CachingMetadataAggregateProvider() {}
+        CachingMetadataAggregateProvider(const char * cache_path);
         void fetch_album(Album&) override;
         std::vector<MetadataProvider *> providers = {};
+    private:
+        std::string path;
+
+        bool populate_from_cache(Album&, const std::string);
+        void save_to_cache(const Album&, const std::string);
     };
 
     class MusicBrainzMetadataProvider: public MetadataProvider {
@@ -83,13 +109,9 @@ namespace CD {
     };
 
     class CDTextMetadataProvider: public MetadataProvider {
-    public: 
-        // TODO: Device needs to be thread safe!! at least in the CDText part
-        CDTextMetadataProvider(ATAPI::Device* drive): _dev(drive) {}
+    public:
+        CDTextMetadataProvider() {}
 
         void fetch_album(Album&) override;
-
-    private:
-        ATAPI::Device * _dev;
     };
 };

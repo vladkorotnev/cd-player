@@ -33,14 +33,13 @@ namespace ATAPI {
         MediaTypeCode check_media();
         /// @brief Read the audio CD TOC
         const DiscTOC read_toc();
-        /// @brief Read the raw CD text block in the TOC if the device supports it
-        const std::vector<uint8_t> read_cd_text_toc();
 
         const DriveInfo * get_info();
         const MechInfo * query_state();
         const AudioStatus * query_position();
 
     private:
+        SemaphoreHandle_t semaphore;
         Platform::IDEBus * ide;
         DriveInfo info = { 
             .model = "", .serial = "", .firmware = ""
@@ -114,6 +113,8 @@ namespace ATAPI {
             };
             uint8_t value;
         };
+
+        const std::vector<uint8_t> read_cd_text_toc_locked();
 
         StatusRegister read_sts_regi();
         void wait_sts_bit_set(StatusRegister bits);

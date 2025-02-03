@@ -28,7 +28,7 @@ namespace CD {
             goto bail;
         }
 
-        cddb_disc_set_length(disc, FRAMES_TO_SECONDS(MSF_TO_FRAMES(album.duration)));
+        cddb_disc_set_length(disc, FRAMES_TO_SECONDS(MSF_TO_FRAMES(album.lead_out)));
 
         for(int i = 0; i < album.tracks.size(); i++) {
             trk = cddb_track_new();
@@ -73,7 +73,7 @@ namespace CD {
                         }
                         if(album.tracks[i].artist.length() == 0) {
                             tmp = cddb_track_get_artist(trk);
-                            if(tmp != nullptr && !strcmp(tmp, album.artist.c_str())) album.tracks[i].artist = std::string(tmp);
+                            if(tmp != nullptr && strcmp(tmp, album.artist.c_str()) != 0) album.tracks[i].artist = std::string(tmp);
                         }
                         trk = cddb_disc_get_track_next(disc);
                     }

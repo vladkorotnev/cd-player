@@ -75,17 +75,16 @@ namespace Platform {
                 CLKDIV_128FS,
                 CLKDIV_64FS
             };
-            uint8_t value;
             struct {
                 uint8_t freq_mode_ro: 2;
                 bool frac_en: 1;
                 bool mclkdiv: 1;
                 ClkDiv clkout_div: 2;
             };
+            uint8_t value;
         };
 
         union PLL6Reg {
-            uint8_t value;
             struct {
                 uint8_t rx_in_select: 3;
                 uint8_t clkout_src: 1;
@@ -94,6 +93,7 @@ namespace Platform {
                 bool always_valid: 1;
                 uint8_t mclksrc: 1;
             };
+            uint8_t value;
         };
 
         union AIFRXReg {
@@ -108,8 +108,6 @@ namespace Platform {
                 WLEN_16BIT = 0,
                 WLEN_24BIT = 0b10
             };
-
-            uint8_t value;
             struct {
                 AIFRXFmt format: 2;
                 AIFRXWordLen word_len: 2;
@@ -118,10 +116,10 @@ namespace Platform {
                 bool master: 1;
                 bool sync: 1;
             };
+            uint8_t value;
         };
 
         union PWRDNReg {
-            uint8_t value;
             struct {
                 bool pll: 1;
                 bool spdif_rx: 1;
@@ -130,6 +128,7 @@ namespace Platform {
                 bool aif: 1;
                 bool triop: 1;
             };
+            uint8_t value;
         };
 
         union SPDSTATReg {
@@ -139,7 +138,6 @@ namespace Platform {
                 FS_48K_OR_44K1 = 2,
                 FS_32K = 3
             };
-            uint8_t value;
             struct {
                 bool no_audio: 1;
                 bool no_pcm: 1;
@@ -148,6 +146,7 @@ namespace Platform {
                 Frequency frequency: 2;
                 bool unlock: 1;
             };
+            uint8_t value;
         };
 
         TickType_t last_sts_refresh = 0;

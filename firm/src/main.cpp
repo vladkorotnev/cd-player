@@ -1,13 +1,15 @@
 #include "Arduino.h"
 #include <esper-core/keypad.h>
-#include <esper-cdp/atapi.h>
-#include <esper-cdp/metadata.h>
+#include <esper-cdp/player.h>
 #include <WiFi.h>
+#include <LittleFS.h>
 
 Core::ThreadSafeI2C * i2c;
 Platform::Keypad * keypad;
 Platform::IDEBus * ide;
 ATAPI::Device * cdrom;
+CD::Player * player;
+CD::CachingMetadataAggregateProvider * meta;
 
 // Arduino Setup
 void setup(void) {  
@@ -15,6 +17,9 @@ void setup(void) {
   Serial.begin(115200);
   while(!Serial);
   
+LittleFS.begin(true, "/littlefs");
+  ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
+
   WiFi.begin("Akasaka_SPK", "password");
   WiFi.waitForConnectResult();
   if(WiFi.isConnected()) Serial.println("WiFi ok");
@@ -28,30 +33,43 @@ void setup(void) {
   ide = new Platform::IDEBus(i2c);
   cdrom = new ATAPI::Device(ide);
 
-  cdrom->reset();
-  cdrom->wait_ready();
-}
+  meta = new CD::CachingMetadataAggregateProvider("/littlefs");
+  meta->providers.push_back(new CD::CDTextMetadataProvider());
+  meta->providers.push_back(new CD::MusicBrainzMetadataProvider());
+  meta->providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
 
-void metaTest(const ATAPI::DiscTOC& toc) {
-    auto meta = CD::CachingMetadataAggregateProvider();
-    meta.providers.push_back(new CD::CDTextMetadataProvider(cdrom));
-    meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
-    meta.providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
-
-    auto album = CD::Album(toc);
-
-    meta.fetch_album(album);
-
-    ESP_LOGI("TEST", "Album: %s by %s", album.title.c_str(), album.artist.c_str());
-    for(int i = 0; i < album.tracks.size(); i++) {
-      ESP_LOGI("TEST", "  [%02i] %s - %s", i + 1, album.tracks[i].artist.c_str(), album.tracks[i].title.c_str());
+  player = new CD::Player(cdrom, meta);
     }
-}
+
+
 
 // Arduino loop - copy sound to out
 long lastMs = 0;
 uint8_t kp_sts = 0;
+
+CD::Player::State last_sts;
+MSF last_msf;
+CD::Player::TrackNo last_trkno;
+
 void loop() {
+  CD::Player::State sts = player->get_status();
+  if(sts != last_sts) {
+    ESP_LOGI("Test", "State %i -> %i", last_sts, sts);
+    last_sts = sts;
+  }
+  
+  MSF msf = player->get_current_track_time();
+  if(msf.M != last_msf.M || msf.S != last_msf.S) {
+    ESP_LOGI("Test", "MSF: %02im%02is%02if", msf.M, msf.S, msf.F);
+    last_msf = msf;
+  }
+
+  CD::Player::TrackNo trk = player->get_current_track_number();
+  if(trk.track != last_trkno.track || trk.index != last_trkno.index) {
+    ESP_LOGI("Test", "Trk#: %i.%i -> %i.%i", last_trkno.track, last_trkno.index, trk.track, trk.index);
+    last_trkno = trk;
+  }
+
   uint8_t kp_new_sts = 0;
   if(keypad->read(&kp_new_sts)) {
     if(kp_new_sts != kp_sts) {
@@ -59,78 +77,28 @@ void loop() {
       kp_sts = kp_new_sts;
       
       if(kp_sts == 1) {
-        ATAPI::MediaTypeCode mtc = cdrom->check_media();
-        cdrom->eject(mtc != ATAPI::MediaTypeCode::MTC_DOOR_OPEN);
+        player->do_command(CD::Player::Command::OPEN_CLOSE);
       }
       else if(kp_sts == 2) {
-        if(cdrom->query_state()->is_door_open) {
-          cdrom->eject(false);
-        }
-        cdrom->wait_ready();
-        ATAPI::MediaTypeCode mtc = ATAPI::MediaTypeCode::MTC_NO_DISC;
-        do {
-          mtc = cdrom->check_media();
-        } while(mtc == ATAPI::MediaTypeCode::MTC_DOOR_OPEN || mtc == ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN);
-
-        if(ATAPI::MediaTypeCodeIsAudioCD(mtc)) {
-          auto toc = cdrom->read_toc();
-          metaTest(toc);
-          if(toc.tracks.size() > 0) {
-            cdrom->play( toc.tracks.front().position, toc.leadOut );
-          }
-        }
+        player->do_command(CD::Player::Command::PLAY_PAUSE);
       }
       else if(kp_sts == 4) { 
-        bool resume = cdrom->query_position()->state == ATAPI::AudioStatus::PlayState::Paused;
-        cdrom->pause(!resume);
+        player->do_command(CD::Player::Command::PREV_TRACK);
       }
       else if(kp_sts == 8) { 
-        cdrom->stop();
+        player->do_command(CD::Player::Command::NEXT_TRACK);
       }
       else if(kp_sts == 16) { 
-        auto mech_sts = cdrom->query_state();
-        int disc = 0;
-        for(int i = (mech_sts->current_disc + 1) % mech_sts->slot_count; i < mech_sts->slot_count; i++) {
-          if(mech_sts->changer_slots[i].disc_in) {
-            disc = i;
-            break;
-          }
-        }
-        if(disc == 0 && !mech_sts->changer_slots[disc].disc_in) {
-          ESP_LOGE("TEST", "empty changer");
-        }
-        else {
-          cdrom->load_unload(disc);
-          cdrom->wait_ready();
-
-          ATAPI::MediaTypeCode mtc = ATAPI::MediaTypeCode::MTC_NO_DISC;
-          do {
-            mtc = cdrom->check_media();
-          } while(mtc == ATAPI::MediaTypeCode::MTC_DOOR_OPEN || mtc == ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN);
-
-          if(ATAPI::MediaTypeCodeIsAudioCD(mtc)) {
-            auto toc = cdrom->read_toc();
-            metaTest(toc);
-            if(toc.tracks.size() > 0) {
-              cdrom->play( toc.tracks.front().position, toc.leadOut );
-            }
-          }
-        }
+        player->do_command(CD::Player::Command::PREV_DISC);
       }
       else if(kp_sts == 32) {
-        ATAPI::MediaTypeCode mtc = ATAPI::MediaTypeCode::MTC_NO_DISC;
-        do {
-          mtc = cdrom->check_media();
-        } while(mtc == ATAPI::MediaTypeCode::MTC_DOOR_OPEN || mtc == ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN);
-
-        if(ATAPI::MediaTypeCodeIsAudioCD(mtc)) {
-          auto toc = cdrom->read_toc();
-          
-          metaTest(toc);
-        }
+        player->do_command(CD::Player::Command::NEXT_DISC);
       }
-      else {
-        cdrom->query_position();
+      else if(kp_sts == 64) {
+        player->do_command(CD::Player::Command::SEEK_FF);
+      }
+      else if(kp_sts == 128) {
+        player->do_command(CD::Player::Command::SEEK_REW);
       }
     }
   }

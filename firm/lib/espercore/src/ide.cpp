@@ -41,7 +41,7 @@ namespace Platform {
         control_register |= CTL_DIOR; // DIOR high
         transact_out(_addr_flags, PCA_DATA_OUT_REGI_B, control_register);
 
-        ESP_LOGV(LOG_TAG, "read reg = 0x%02x, rslt low = 0x%02x, hi = 0x%02x", reg, rslt.low, rslt.high);
+        ESP_LOGD(LOG_TAG, "read reg = 0x%02x, rslt low = 0x%02x, hi = 0x%02x", reg, rslt.low, rslt.high);
 
         return rslt;
     }
@@ -60,7 +60,7 @@ namespace Platform {
         control_register |= CTL_DIOW;
         transact_out(_addr_flags, PCA_DATA_OUT_REGI_B, control_register);
 
-        ESP_LOGV(LOG_TAG, "write reg = 0x%02x, low = 0x%02x, hi = 0x%02x", reg, data.low, data.high);
+        ESP_LOGD(LOG_TAG, "write reg = 0x%02x, low = 0x%02x, hi = 0x%02x", reg, data.low, data.high);
 
         // enable data bus output
         transact_out(_addr_databus, PCA_CFG_REGI_A, 0x00);

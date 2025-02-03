@@ -14,38 +14,38 @@ namespace Platform {
         } else {
             write(Register::RST_DEVID1, 0); // reset the device
 
-            write(Register::PLL5, PLL5Reg {
+            write(Register::PLL5, PLL5Reg {{
                 .frac_en = true,
                 .mclkdiv = false,
                 .clkout_div = PLL5Reg::ClkDiv::CLKDIV_512FS,
-            }.value);
+            }}.value);
 
-            write(Register::PLL6, PLL6Reg {
+            write(Register::PLL6, PLL6Reg {{
                 .rx_in_select = 1, // RX1
                 .clkout_src = 0,
                 .clkout_dis = true,
                 .fill_mode = true,
                 .always_valid = false,
                 .mclksrc = 0
-            }.value);
+            }}.value);
 
-            write(Register::AIFRX, AIFRXReg {
+            write(Register::AIFRX, AIFRXReg {{
                 .format = AIFRXReg::AIFRXFmt::I2S_FORMAT,
                 .word_len = AIFRXReg::AIFRXWordLen::WLEN_16BIT,
                 .bclk_invert = false,
                 .lrck_polarity = false,
                 .master = true,
                 .sync = true
-            }.value);
+            }}.value);
 
-            write(Register::PWRDN, PWRDNReg {
+            write(Register::PWRDN, PWRDNReg {{
                 .pll = false,
                 .spdif_rx = false,
                 .spdif_tx = false,
                 .osc = false,
                 .aif = true, // keep i2s off until further notice
                 .triop = false
-            }.value);
+            }}.value);
 
             inited = true;
         }
@@ -54,14 +54,14 @@ namespace Platform {
     void WM8805::set_enabled(bool enabled) {
         if(!inited) return;
 
-        write(Register::PWRDN, PWRDNReg {
+        write(Register::PWRDN, PWRDNReg {{
             .pll = false,
             .spdif_rx = false,
             .spdif_tx = false,
             .osc = false,
             .aif = !enabled,
             .triop = false
-        }.value);
+        }}.value);
     }
 
     bool WM8805::need_deemphasis() {
@@ -87,7 +87,7 @@ namespace Platform {
             return;
         }
 
-        ESP_LOGV(LOG_TAG, "Write 0x%02x = 0x%02x", regi, val);
+        ESP_LOGD(LOG_TAG, "Write 0x%02x = 0x%02x", regi, val);
 
         auto wire = i2c->get();
         wire->beginTransmission(addr);
@@ -101,7 +101,7 @@ namespace Platform {
     uint8_t WM8805::read(uint8_t regi) {
         if(!i2c->lock()) {
             ESP_LOGE(LOG_TAG, "failed to acquire bus");
-            return;
+            return 255;
         }
 
         auto wire = i2c->get();
@@ -113,10 +113,10 @@ namespace Platform {
             return 255;
         }
 
-        if(wire->requestFrom(addr, 1) != 1) {
+        if(wire->requestFrom((int)addr, 1) != 1) {
             ESP_LOGE(LOG_TAG, "I2C request failed");
             i2c->release();
-            return;
+            return 255;
         }
 
         uint8_t data = wire->read();
@@ -129,7 +129,7 @@ namespace Platform {
 
         i2c->release();
 
-        ESP_LOGV(LOG_TAG, "Read 0x%02x = 0x%02x", regi, data);
+        ESP_LOGD(LOG_TAG, "Read 0x%02x = 0x%02x", regi, data);
 
         return data;
     }
