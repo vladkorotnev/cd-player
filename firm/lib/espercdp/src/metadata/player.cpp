@@ -1,4 +1,5 @@
 #include <esper-cdp/player.h>
+const uint8_t TRK_NUM_LEAD_OUT = 0xAA;
 
 namespace CD {
     static void pollTask(void* pvParameter) {
@@ -126,7 +127,7 @@ namespace CD {
                     break;
 
                 case State::PLAY:
-                    if(audio->state == ATAPI::AudioStatus::PlayState::Stopped) {
+                    if(audio->state == ATAPI::AudioStatus::PlayState::Stopped || audio->track == TRK_NUM_LEAD_OUT) {
                         sts = State::STOP;
                         cur_track.track = 1;
                         cur_track.index = 1;
