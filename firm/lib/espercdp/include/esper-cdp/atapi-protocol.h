@@ -24,6 +24,7 @@ namespace ATAPI {
         MODE_SENSE = 0x5A,
         LOAD_UNLOAD = 0xA6,
         MECHANISM_STATUS = 0xBD,
+        SCAN = 0xBA,
         READ_CD = 0xBE,
     };
 
@@ -287,6 +288,33 @@ namespace ATAPI {
             bool synch: 1;
 
             SubchannelDataSelection subchannel: 3;
+        };
+
+        struct ATAPI_PKT Scan {
+            enum ScanAddrType: uint8_t {
+                // ScanAddr_LBA = 0b00,
+                ScanAddr_AbsMSF = 0b01,
+                // ScanAddr_TrkNo = 0b10
+            };
+
+            uint8_t opcode;
+
+            bool rel_adr: 1;
+            uint8_t reserved0: 3;
+            bool direct: 1;
+            uint8_t lun: 3;
+
+            uint8_t padding0;
+            MSF msf;
+
+            uint8_t reserved1[3];
+            
+            uint8_t reserved2: 6;
+            ScanAddrType addr_type: 2;
+
+            uint8_t reserved3;
+
+            ReqPktFooter footer;
         };
     }
 

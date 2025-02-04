@@ -59,19 +59,19 @@ namespace CD {
             if(!success) {
                 ESP_LOGE(LOG_TAG, "Read failed: (%i) %s", cddb_errno(cddb), cddb_error_str(cddb_errno(cddb)));
             } else {
-                if(album.title.length() == 0) album.title = std::string(cddb_disc_get_title(disc));
-                if(album.artist.length() == 0) album.artist = std::string(cddb_disc_get_artist(disc));
+                if(album.title.empty()) album.title = std::string(cddb_disc_get_title(disc));
+                if(album.artist.empty()) album.artist = std::string(cddb_disc_get_artist(disc));
                 trk = cddb_disc_get_track_first(disc);
                 for(int i = 0; i < album.tracks.size(); i++) {
                     // Assuming album.tracks is in the track# order
                     if(trk != NULL) {
                         const char * tmp = nullptr;
 
-                        if(album.tracks[i].title.length() == 0) {
+                        if(album.tracks[i].title.empty()) {
                             tmp = cddb_track_get_title(trk);
                             if(tmp != nullptr) album.tracks[i].title = std::string(tmp);
                         }
-                        if(album.tracks[i].artist.length() == 0) {
+                        if(album.tracks[i].artist.empty()) {
                             tmp = cddb_track_get_artist(trk);
                             if(tmp != nullptr && strcmp(tmp, album.artist.c_str()) != 0) album.tracks[i].artist = std::string(tmp);
                         }
@@ -80,7 +80,6 @@ namespace CD {
                 }
             }
         }
-
     bail:
         if(disc) cddb_disc_destroy(disc);
         if(cddb) cddb_destroy(cddb);

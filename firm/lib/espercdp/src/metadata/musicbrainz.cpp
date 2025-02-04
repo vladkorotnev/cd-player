@@ -9,7 +9,7 @@
 
 static const char LOG_TAG[] = "MBRAINZ";
 
-static std::string MBJsonToArtistName(JsonObject info) {
+const std::string MBJsonToArtistName(const JsonObject& info) {
     std::string tmp_artist = "";
 
     if(info["artist-credit"].is<JsonArray>()) {
@@ -58,10 +58,10 @@ namespace CD {
                         ESP_LOGW(LOG_TAG, "%i releases found, can't proceed", releases.size());
                     } else {
                         auto info = releases[0].as<JsonObject>();
-                        if(album.title.length() == 0 && info["title"].is<JsonString>()) {
+                        if(album.title.empty() && info["title"].is<JsonString>()) {
                             album.title = info["title"].as<std::string>();
                         }
-                        if(album.artist.length() == 0) album.artist = MBJsonToArtistName(info);
+                        if(album.artist.empty()) album.artist = MBJsonToArtistName(info);
 
                         // now on to find which CD of the release this is
                         if(info["media"].is<JsonArray>()) {
@@ -84,9 +84,9 @@ namespace CD {
                                 auto tracks = info["media"][mediaIdx]["tracks"].as<JsonArray>();
 
                                 for(int i = 0; i < std::min(tracks.size(), album.tracks.size()); i++) {
-                                    if(album.tracks[i].title.length() == 0)
+                                    if(album.tracks[i].title.empty())
                                         album.tracks[i].title = tracks[i]["title"].as<std::string>();
-                                    if(album.tracks[i].artist.length() == 0) {
+                                    if(album.tracks[i].artist.empty()) {
                                         const std::string artist = MBJsonToArtistName(tracks[i]);
                                         if(artist != album.artist)
                                             album.tracks[i].artist = artist;

@@ -4,7 +4,6 @@
     "description": "ESPer CD playback drivers",
     "platforms": "espressif32",
     "build": {
-        "libArchive": false,
 		"flags": [
 			"-Iinclude"
 		]

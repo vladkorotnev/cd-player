@@ -23,12 +23,14 @@ namespace ATAPI {
         /// @brief Request the player to play audio data
         /// @param start Start of the played segment. Set to beginning of first track (usually M00S02F00, but can vary disc by disc)
         /// @param end End of the played segment. Set to lead-out to play the whole track.
-        void play(MSF start, MSF end);
+        void play(const MSF start, const MSF end);
         /// @brief Change the pause state of the player
         /// @param pause true = pause playback, false = continue playback
         void pause(bool pause);
         /// @brief Stop the audio playback
         void stop();
+        void scan(bool forward, const MSF from);
+
         /// @brief Check the media status
         MediaTypeCode check_media();
         /// @brief Read the audio CD TOC

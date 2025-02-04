@@ -81,19 +81,19 @@ namespace CD {
             }
         }
 
-        if(album.artist == "") album.artist = tmp_artists[0];
-        if(album.title == "") album.title = tmp_titles[0];
+        if(album.artist.empty()) album.artist = tmp_artists[0];
+        if(album.title.empty()) album.title = tmp_titles[0];
         for(int i = 0; i < tmp_artists.size(); i++) {
             ESP_LOGV(LOG_TAG, "Artist %i: %s", i, tmp_artists[i].c_str());
 
-            if(i > 0 && album.tracks[i - 1].artist == "" && tmp_artists[0] != tmp_artists[i]) {
+            if(i > 0 && album.tracks[i - 1].artist.empty() && tmp_artists[0] != tmp_artists[i]) {
                 album.tracks[i - 1].artist = tmp_artists[i];
             }
         }
         for(int i = 0; i < tmp_titles.size(); i++) {
             ESP_LOGV(LOG_TAG, "Title %i: %s", i, tmp_titles[i].c_str());
 
-            if(i > 0 && album.tracks[i - 1].title == "") {
+            if(i > 0 && album.tracks[i - 1].title.empty()) {
                 album.tracks[i - 1].title = tmp_titles[i];
             }
         }

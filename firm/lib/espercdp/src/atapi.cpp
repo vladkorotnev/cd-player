@@ -278,14 +278,27 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::play(MSF start, MSF end) {
-        const Requests::PlayAudioMSF req = {
+    void Device::play(const MSF start, const MSF end) {
+        Requests::PlayAudioMSF req = {
             .opcode = OperationCodes::PLAY_AUDIO_MSF,
             .start_position = start,
             .end_position = end,
         };
+
         xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&req, sizeof(req), true);
+        xSemaphoreGive(semaphore);
+    }
+
+    void Device::scan(bool forward, const MSF from) {
+        Requests::Scan req = {
+            .opcode = OperationCodes::SCAN,
+            .direct = !forward,
+            .msf = from,
+            .addr_type = Requests::Scan::ScanAddrType::ScanAddr_AbsMSF
+        };
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&req, sizeof(req), false);
         xSemaphoreGive(semaphore);
     }
 

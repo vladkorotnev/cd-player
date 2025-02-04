@@ -1,18 +1,29 @@
 #include <esper-cdp/player.h>
 const uint8_t TRK_NUM_LEAD_OUT = 0xAA;
+static char LOG_TAG[] = "CDP";
 
 namespace CD {
     static void pollTask(void* pvParameter) {
         Player* player = static_cast<Player*>(pvParameter);
         while(true) {
             player->poll_state();
-            vTaskDelay(pdMS_TO_TICKS(500));
+            vTaskDelay(pdMS_TO_TICKS(10));
+        }
+    }
+
+    static void metaTask(void* pvParameter) {
+        Player* player = static_cast<Player*>(pvParameter);
+        while(true) {
+            player->process_metadata_queue();
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
     }
 
     void Player::setup_tasks() {
-        vSemaphoreCreateBinary(_cmdSemaphore);
+        _cmdSemaphore = xSemaphoreCreateBinary();
         xSemaphoreGive(_cmdSemaphore);
+
+        _metaSemaphore = xSemaphoreCreateCounting(10, 0);
 
         xTaskCreate(
             pollTask,
@@ -22,6 +33,24 @@ namespace CD {
             2,
             &_pollTask
         );
+
+        xTaskCreate(
+            metaTask,
+            "CDMeta",
+            16000,
+            this,
+            2,
+            &_metaTask
+        );
+    }
+
+    void Player::process_metadata_queue() {
+        if(xSemaphoreTake(_metaSemaphore, portMAX_DELAY)) {
+            std::shared_ptr<Album> album_ptr = _metaQueue.front();
+            _metaQueue.pop();
+
+            meta->fetch_album(*album_ptr);
+        }
     }
 
     void Player::poll_state() {
@@ -42,7 +71,7 @@ namespace CD {
                     slots.push_back(Slot {
                         .disc_present = mech->changer_slots[i].disc_in,
                         .active = (mech->current_disc == i),
-                        .disc = Album(),
+                        .disc = std::make_shared<Album>(Album()),
                     });
                 }
             }
@@ -65,13 +94,19 @@ namespace CD {
             }
 
             if(media_type == ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
-                slots[cur_slot].disc = Album();
+                slots[cur_slot].disc = std::make_shared<Album>(Album());
                 sts = State::OPEN;
             }
 
             // Now here comes The State Machine
 
             switch(sts) {
+                case State::OPEN:
+                    if(media_type != ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
+                        sts = State::CLOSE;
+                    }
+                break;
+
                 case State::CLOSE:
                     // Closing the tray
                     cdrom->wait_ready();
@@ -87,18 +122,23 @@ namespace CD {
                         auto toc = cdrom->read_toc();
                         if(toc.tracks.empty()) {
                             // The CD is not really useful as we cannot seem to read or play it
+                            ESP_LOGE(LOG_TAG, "Empty TOC!");
                             sts = State::BAD_DISC;
-                            slots[cur_slot].disc = Album();
+                            slots[cur_slot].disc = std::make_shared<Album>(Album());
                             want_auto_play = false;
                         } else {
-                            slots[cur_slot].disc = Album(toc);
-                            // TODO: kick off the meta thread somewhere in here... how to ensure this is not deallocated by the time the thread completes?
+                            slots[cur_slot].disc = std::make_shared<Album>(Album(toc));
+                            
+                            // NB: std::queue is not thread safe, can this lead to a problem? realistically we shouldn't have more than one in the pipeline anyway...
+                            _metaQueue.push(slots[cur_slot].disc);
+                            xSemaphoreGive(_metaSemaphore); // let the background task go
+
                             cur_track.track = 1;
                             cur_track.index = 1;
                             if(want_auto_play) {
                                 want_auto_play = false;
                                 sts = State::PLAY;
-                                cdrom->play(slots[cur_slot].disc.tracks.front().disc_position.position, slots[cur_slot].disc.duration);
+                                cdrom->play(slots[cur_slot].disc->tracks.front().disc_position.position, slots[cur_slot].disc->duration);
                             } else {
                                 sts = State::STOP;
                             }
@@ -106,7 +146,10 @@ namespace CD {
                     } else {
                         // No disc or unreadable disc
                         sts = (media_type == ATAPI::MediaTypeCode::MTC_NO_DISC ? State::NO_DISC : State::BAD_DISC);
-                        slots[cur_slot].disc = Album();
+                        if(sts == State::BAD_DISC) {
+                            ESP_LOGE(LOG_TAG, "Bad media code %i", media_type);
+                        }
+                        slots[cur_slot].disc = std::make_shared<Album>(Album());
                         want_auto_play = false;
                     }
                 break;
@@ -118,9 +161,14 @@ namespace CD {
                     }
                     break;
 
-                case State::NO_DISC: // fallthrough
-                case State::BAD_DISC:
+                case State::NO_DISC:
                     // nothing to do
+                    break;
+                case State::BAD_DISC:
+                    if(ATAPI::MediaTypeCodeIsAudioCD(media_type)) {
+                        // what if the drive changes its mind
+                        sts = State::LOAD;
+                    }
                     break;
 
                 case State::STOP:
@@ -220,9 +268,9 @@ namespace CD {
                     case Command::PLAY:
                         {
                             auto album = slots[cur_slot].disc;
-                            if(!album.tracks.empty()) {
-                                int desired_track_idx = (album.tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                cdrom->play(album.tracks[desired_track_idx].disc_position.position, album.duration);
+                            if(!album->tracks.empty()) {
+                                int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
+                                cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
                                 sts = State::PLAY;
                             }
                         }
@@ -231,8 +279,8 @@ namespace CD {
                     case Command::NEXT_TRACK:
                         {
                             auto album = slots[cur_slot].disc;
-                            if(!album.tracks.empty()) {
-                                cur_track.track = std::min((int)album.tracks.size(), cur_track.track + 1);
+                            if(!album->tracks.empty()) {
+                                cur_track.track = std::min((int)album->tracks.size(), cur_track.track + 1);
                             }
                         }
                     break;
@@ -240,7 +288,7 @@ namespace CD {
                     case Command::PREV_TRACK:
                         {
                             auto album = slots[cur_slot].disc;
-                            if(!album.tracks.empty()) {
+                            if(!album->tracks.empty()) {
                                 cur_track.track = std::max(1, cur_track.track - 1);
                             }
                         }
@@ -259,11 +307,11 @@ namespace CD {
                     break;
 
                     case Command::SEEK_FF:
-                        // TODO
+                        start_seeking(true);
                     break;
 
                     case Command::SEEK_REW:
-                        // TODO
+                        start_seeking(false);
                     break;
 
                     case Command::STOP:
@@ -274,11 +322,11 @@ namespace CD {
                     case Command::NEXT_TRACK:
                         {
                             auto album = slots[cur_slot].disc;
-                            if(!album.tracks.empty()) {
-                                if(cur_track.track < album.tracks.size()) {
-                                    cur_track.track = std::min((int)album.tracks.size(), cur_track.track + 1);
-                                    int desired_track_idx = (album.tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                    cdrom->play(album.tracks[desired_track_idx].disc_position.position, album.duration);
+                            if(!album->tracks.empty()) {
+                                if(cur_track.track < album->tracks.size()) {
+                                    cur_track.track = std::min((int)album->tracks.size(), cur_track.track + 1);
+                                    int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
+                                    cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
                                 }
                             }
                         }
@@ -287,12 +335,12 @@ namespace CD {
                     case Command::PREV_TRACK:
                         {
                             auto album = slots[cur_slot].disc;
-                            if(!album.tracks.empty()) {
+                            if(!album->tracks.empty()) {
                                 if(rel_ts.M == 0 && rel_ts.S < 3) {
                                     cur_track.track = std::max(1, cur_track.track - 1);
                                 }
-                                int desired_track_idx = (album.tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                cdrom->play(album.tracks[desired_track_idx].disc_position.position, album.duration);
+                                int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
+                                cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
                             }
                         }
                     break;
@@ -311,18 +359,88 @@ namespace CD {
             break;
 
             case State::PAUSE:
-                // TODO
+                switch(cmd) {
+                    case Command::PLAY:
+                    case Command::PAUSE:
+                        sts = State::PLAY;
+                        cdrom->pause(false);
+                    break;
+
+                    case Command::SEEK_FF:
+                        start_seeking(true);
+                    break;
+
+                    case Command::SEEK_REW:
+                        start_seeking(false);
+                    break;
+
+                    case Command::STOP:
+                        sts = State::STOP;
+                        cdrom->stop();
+                    break;
+
+                    case Command::NEXT_TRACK:
+                        {
+                            auto album = slots[cur_slot].disc;
+                            if(!album->tracks.empty()) {
+                                if(cur_track.track < album->tracks.size()) {
+                                    cur_track.track = std::min((int)album->tracks.size(), cur_track.track + 1);
+                                    int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
+                                    cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
+                                    cdrom->pause(true);
+                                }
+                            }
+                        }
+                    break;
+
+                    case Command::PREV_TRACK:
+                        {
+                            auto album = slots[cur_slot].disc;
+                            if(!album->tracks.empty()) {
+                                if(rel_ts.M == 0 && rel_ts.S < 3) {
+                                    cur_track.track = std::max(1, cur_track.track - 1);
+                                }
+                                int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
+                                cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
+                                cdrom->pause(true);
+                            }
+                        }
+                    break;
+
+                    case Command::NEXT_DISC:
+                        // TODO
+                    break;
+
+                    case Command::PREV_DISC:
+                        // TODO
+                    break;
+
+                    default:
+                    break;
+                }
             break;
 
             case State::SEEK_FF:
-                // TODO
-            break;
-
             case State::SEEK_REW:
-                // TODO
+                if(cmd == Command::END_SEEK) {
+                    if(pre_seek_sts == State::PLAY) {
+                        cdrom->play(abs_ts, get_active_slot().disc->duration);
+                        sts = State::PLAY;
+                    }
+                    else {
+                        cdrom->pause(true);
+                        sts = State::PAUSE;
+                    }
+                }
             break;
         }
 
         xSemaphoreGive(_cmdSemaphore);
+    }
+
+    void Player::start_seeking(bool forward) {
+        pre_seek_sts = sts;
+        sts = forward ? State::SEEK_FF : State::SEEK_REW;
+        cdrom->scan(forward, abs_ts);
     }
 }

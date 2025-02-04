@@ -1,8 +1,11 @@
 #include "Arduino.h"
 #include <esper-core/keypad.h>
 #include <esper-cdp/player.h>
+#include <esper-cdp/lyrics.h>
 #include <WiFi.h>
 #include <LittleFS.h>
+
+static char LOG_TAG[] = "APL_MAIN";
 
 Core::ThreadSafeI2C * i2c;
 Platform::Keypad * keypad;
@@ -11,8 +14,11 @@ ATAPI::Device * cdrom;
 CD::Player * player;
 CD::CachingMetadataAggregateProvider * meta;
 
-// Arduino Setup
+// cppcheck-suppress unusedFunction
 void setup(void) {  
+#ifdef BOARD_HAS_PSRAM
+  heap_caps_malloc_extmem_enable(128);
+#endif
   // Open Serial 
   Serial.begin(115200);
   while(!Serial);
@@ -37,21 +43,34 @@ LittleFS.begin(true, "/littlefs");
   meta->providers.push_back(new CD::CDTextMetadataProvider());
   meta->providers.push_back(new CD::MusicBrainzMetadataProvider());
   meta->providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
+  meta->providers.push_back(new CD::LrcLibLyricProvider());
 
   player = new CD::Player(cdrom, meta);
     }
 
+static TickType_t memory_last_print = 0;
+static void print_memory() {
+    TickType_t now = xTaskGetTickCount();
+    if(now - memory_last_print > pdMS_TO_TICKS(30000)) {
+        ESP_LOGI(LOG_TAG, "HEAP: %d free of %d (%d minimum)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap());
+#ifdef BOARD_HAS_PSRAM
+        ESP_LOGI(LOG_TAG, "PSRAM: %d free of %d (%d minimum)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram());
+#endif
+        memory_last_print = now;
+    }
+}
 
-
-// Arduino loop - copy sound to out
-long lastMs = 0;
 uint8_t kp_sts = 0;
 
 CD::Player::State last_sts;
 MSF last_msf;
 CD::Player::TrackNo last_trkno;
+int last_lyric_idx = -1;
 
+// cppcheck-suppress unusedFunction
 void loop() {
+  print_memory();
+
   CD::Player::State sts = player->get_status();
   if(sts != last_sts) {
     ESP_LOGI("Test", "State %s -> %s", CD::Player::PlayerStateString(last_sts), CD::Player::PlayerStateString(sts));
@@ -59,15 +78,39 @@ void loop() {
   }
   
   MSF msf = player->get_current_track_time();
-  if(msf.M != last_msf.M || msf.S != last_msf.S) {
-    ESP_LOGI("Test", "MSF: %02im%02is%02if", msf.M, msf.S, msf.F);
-    last_msf = msf;
-  }
 
   CD::Player::TrackNo trk = player->get_current_track_number();
   if(trk.track != last_trkno.track || trk.index != last_trkno.index) {
     ESP_LOGI("Test", "Trk#: %i.%i -> %i.%i", last_trkno.track, last_trkno.index, trk.track, trk.index);
+    last_lyric_idx = -1;
+    auto slot = player->get_active_slot();
+    if(trk.track <= slot.disc->tracks.size() && trk.index == 1) {
+      auto meta = slot.disc->tracks[trk.track - 1];
+      if(meta.artist != "" || meta.title != "")
+        ESP_LOGI("Test", "... -> %s - %s", meta.artist.c_str(), meta.title.c_str());
+    }
     last_trkno = trk;
+  }
+
+  if((msf.M != last_msf.M || msf.S != last_msf.S || msf.F != last_msf.F) && trk.index == 1) {
+    auto slot = player->get_active_slot();
+    if(trk.track <= slot.disc->tracks.size()) {
+      auto meta = slot.disc->tracks[trk.track - 1];
+      if(!meta.lyrics.empty()) {
+        int cur_ms = MSF_TO_MILLIS(msf);
+        int idx = last_lyric_idx;
+        for(int i = 0; i < meta.lyrics.size(); i++) {
+          if(meta.lyrics[i].millisecond <= cur_ms && meta.lyrics[i + 1].millisecond > cur_ms) {
+            idx = i;
+            break;
+          }
+        }
+        if(idx != last_lyric_idx && idx != -1) {
+          last_lyric_idx = idx;
+          ESP_LOGI("Lyric", " %i | %i | e=%i\t -= %s =- ", cur_ms, meta.lyrics[idx].millisecond, (cur_ms - meta.lyrics[idx].millisecond), meta.lyrics[idx].line.c_str());
+        }
+      }
+    }
   }
 
   uint8_t kp_new_sts = 0;
@@ -98,7 +141,7 @@ void loop() {
         player->do_command(CD::Player::Command::SEEK_FF);
       }
       else if(kp_sts == 128) {
-        player->do_command(CD::Player::Command::SEEK_REW);
+        player->do_command(CD::Player::Command::END_SEEK);
       }
     }
   }

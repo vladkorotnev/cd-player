@@ -4,12 +4,19 @@
 #include <string>
 #include <vector>
 #include <fstream>
+#include <algorithm>
 
 namespace CD {
+    struct Lyric {
+        uint32_t millisecond;
+        std::string line;
+    };
+
     struct Track {
         ATAPI::DiscTrack disc_position;
         std::string title;
         std::string artist;
+        std::vector<Lyric> lyrics;
     };
 
     class Album {
@@ -32,7 +39,6 @@ namespace CD {
                 duration = lead_out;
             }
             toc_subchannel = toc.toc_subchannel;
-            char buf[16] = { 0 };
 
             for(auto& track: toc.tracks) {
                 tracks.push_back({
@@ -52,28 +58,29 @@ namespace CD {
 
         bool is_metadata_complete() {
             for(auto& track: tracks) {
-                if(track.artist.length() == 0 || track.title.length() == 0) {
+                if(track.title.empty() && !track.disc_position.is_data) {
                     return false;
                 }
             }
 
-            return (title.length() != 0 && artist.length() != 0);
+            return (!title.empty() && !artist.empty());
         }
 
         bool is_metadata_good_for_caching() {
             for(auto& track: tracks) {
-                if(track.title.length() == 0) {
+                if(track.title.empty() && !track.disc_position.is_data) {
                     return false;
                 }
             }
 
-            return (title.length() != 0);
+            return !title.empty();
         }
     };
 
     class MetadataProvider {
     public:
         virtual void fetch_album(Album&) {}
+        virtual bool cacheable() { return false; }
     };
 
     class CachingMetadataAggregateProvider: public MetadataProvider {
@@ -92,17 +99,19 @@ namespace CD {
     public:
         MusicBrainzMetadataProvider() {}
         void fetch_album(Album&) override;
+        bool cacheable() override { return true; }
         static const std::string generate_id(const Album&); // <- we will use it for cache key, thus exposing it
     };
 
     class CDDBMetadataProvider: public MetadataProvider {
     public:
-        CDDBMetadataProvider(std::string serverUrl, std::string authEmail):
+        CDDBMetadataProvider(const std::string& serverUrl, const std::string& authEmail):
             server(serverUrl),
             email(authEmail)
         {}
 
         void fetch_album(Album&) override;
+        bool cacheable() override { return true; }
 
         std::string server;
         std::string email;

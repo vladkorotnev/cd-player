@@ -50,7 +50,7 @@ static const char *CDDB_COMMANDS[CMD_LAST] = {
  * Small memory cache for querying local database.
  */
 #define QUERY_CACHE_SIZE 256
-static struct query_cache_entry {
+EXT_RAM_ATTR static struct query_cache_entry {
     unsigned int discid;
     cddb_cat_t category;
 } query_cache[QUERY_CACHE_SIZE];

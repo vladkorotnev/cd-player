@@ -21,15 +21,22 @@ namespace CD {
 
         if(populate_from_cache(album, id)) {
             ESP_LOGI(LOG_TAG, "Loaded from cache: %s", id.c_str());
-            return;
+        } else {
+            for(auto &provider: providers) {
+                if(!provider->cacheable()) continue;
+                provider->fetch_album(album);
+                if(album.is_metadata_complete()) break;
+            }
+
+            if(album.is_metadata_good_for_caching()) save_to_cache(album, id);
         }
 
+        // in the end query non cacheable providers such as CDTEXT or lyrics
         for(auto &provider: providers) {
-            provider->fetch_album(album);
-            if(album.is_metadata_complete()) break;
-        }
+            if(provider->cacheable()) continue;
 
-        if(album.is_metadata_good_for_caching()) save_to_cache(album, id);
+            provider->fetch_album(album);
+        }
     }
 
     bool CachingMetadataAggregateProvider::populate_from_cache(Album& album, const std::string id) {

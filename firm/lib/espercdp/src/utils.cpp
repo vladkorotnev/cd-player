@@ -27,6 +27,25 @@ char *rfc822_binary(void *src,unsigned long srcl,size_t *len)
   return ret;			/* return the resulting string */
 }
 
+const std::string urlEncode(const std::string& src) {
+    const char *hex = "0123456789ABCDEF";
+    std::string encodedMsg = "";
+    encodedMsg.reserve(src.length() * 2);
+    
+    for(const char c: src) {
+        if (('a' <= c && c <= 'z') || ('A' <= c && c <= 'Z') || ('0' <= c && c <= '9') || c == '-' || c == '_' || c == '.' || c == '~') {
+            encodedMsg += c;
+        } else if(' ' == c) {
+            encodedMsg += '+';
+        } else {
+            encodedMsg += '%';
+            encodedMsg += hex[(unsigned char)c >> 4];
+            encodedMsg += hex[c & 0xf];
+        }
+    }
+    return encodedMsg;
+}
+
 namespace ATAPI {
     bool MediaTypeCodeIsAudioCD(MediaTypeCode code) {
         return code == MTC_AUDIO_120MM || code == MTC_AUDIO_80MM || code == MTC_AUDIO_DATA_120MM || code == MTC_AUDIO_DATA_80MM ||
