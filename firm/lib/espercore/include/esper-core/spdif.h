@@ -16,9 +16,14 @@ namespace Platform {
 
     class WM8805: public SPDIFTransceiver {
     public: 
-        WM8805(Core::ThreadSafeI2C * bus, uint8_t address):
+        /// @brief Initialize a Wolfson 8805 driver
+        /// @param bus I2C bus to access the device
+        /// @param unlocked_gpio If a GPIO from the WM8805 indicating the SPDIF PLL lock state is connected to the ESP, provide the GPIO number here. This will reduce the load on the I2C bus when checking the PLL status. Otherwise set to `GPIO_NUM_NC`.
+        /// @param address I2C bus address of the device.
+        WM8805(Core::ThreadSafeI2C * bus, gpio_num_t unlocked_gpio = GPIO_NUM_25, uint8_t address = 0x3A):
             i2c(bus),
-            addr(address)
+            addr(address),
+            pll_not_locked_gpio(unlocked_gpio)
         {}
 
         void initialize() override;
@@ -30,6 +35,7 @@ namespace Platform {
         Core::ThreadSafeI2C * i2c;
         uint8_t addr;
         bool inited = false;
+        gpio_num_t pll_not_locked_gpio = GPIO_NUM_NC;
 
         void write(uint8_t regi, uint8_t val);
         uint8_t read(uint8_t regi);

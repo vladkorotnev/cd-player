@@ -4,22 +4,21 @@
 
 ### Main goals 
 
-* ESP-32 based CD player platform
-* Nice graphical display interface (using e.g. VFD display)
-* CDDB connectivity for metadata display
-* ATAPI CD player support
-* ATAPI CD Changer support
-* IR Remote control and physical button control
-* Play on power on (for audio timer)
-* Straight, Shuffle, Program playback
-* Internet radio playback
+* [x] ESP-32 based CD player platform
+* [ ] Nice graphical display interface (using e.g. VFD display)
+* [x] CDDB connectivity for metadata display
+* [x] ATAPI CD player support
+* [x] ATAPI CD Changer support
+* [ ] IR Remote control and physical button control
+* [ ] Straight, Shuffle, Program playback
+* [ ] Internet radio playback
 
 ### Stretch goals
 
-* Web remote control API
-* Bluetooth audio transmission
-* HTTP audio transmission
-* HTTP firmware updates
+* [ ] Web remote control API
+* [ ] Bluetooth audio transmission
+* [ ] HTTP audio transmission
+* [ ] HTTP firmware updates
 
 ### Out of scope
 

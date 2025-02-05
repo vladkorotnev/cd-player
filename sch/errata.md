@@ -4,3 +4,5 @@
 - `E (133) I2S: i2s_check_set_mclk(253): ESP32 only support to set GPIO0/GPIO1/GPIO3 as mclk signal, error GPIO number:4`: well that was a royal one. Since RxD is not used outside of programming anyway let's stick with GPIO3.
 - Address of IO expanders is 0x20 and 0x22, not 0x02 and 0x43
 - JTAG names are wrong on sch and silk, refer the table in [article](https://neocode.jp/2020/12/09/esp32debugger/) for correct wiring
+- Use something like [DIX9211](https://www.ti.com/lit/ds/symlink/dix9211.pdf) instead of the EOL WM8805
+- Also some SPDIF/TOSLINK IO would have been nice, since we have the inputs on board anyway, and toslink is basically SPDIF but through an LED

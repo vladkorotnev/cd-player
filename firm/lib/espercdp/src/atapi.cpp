@@ -98,7 +98,7 @@ namespace ATAPI {
             for(int i = 0; i < hdr.num_slots; i++) {
                 read_response(&slot_info, sizeof(slot_info), (i == hdr.num_slots - 1));
 
-                ESP_LOGI(LOG_TAG, " - SLOT#%i: Present = %i, Changed = %i", i, slot_info.disc_present, slot_info.disc_changed);
+                ESP_LOGD(LOG_TAG, " - SLOT#%i: Present = %i, Changed = %i", i, slot_info.disc_present, slot_info.disc_changed);
                 mech_sts.changer_slots[i].disc_changed = slot_info.disc_changed;
                 mech_sts.changer_slots[i].disc_in = slot_info.disc_present;
             }

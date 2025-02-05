@@ -21,7 +21,7 @@ namespace Platform {
             }}.value);
 
             write(Register::PLL6, PLL6Reg {{
-                .rx_in_select = 1, // RX1
+                .rx_in_select = 0, // RX0
                 .clkout_src = 0,
                 .clkout_dis = true,
                 .fill_mode = true,
@@ -47,6 +47,17 @@ namespace Platform {
                 .triop = false
             }}.value);
 
+            if(pll_not_locked_gpio != GPIO_NUM_NC) {
+                const gpio_config_t cfg = {
+                    .pin_bit_mask = 1 << pll_not_locked_gpio,
+                    .mode = GPIO_MODE_INPUT,
+                    .pull_up_en = GPIO_PULLUP_DISABLE,
+                    .pull_down_en = GPIO_PULLDOWN_DISABLE,
+                };
+
+                gpio_config(&cfg);
+            }
+
             inited = true;
         }
     }
@@ -69,6 +80,9 @@ namespace Platform {
     }
 
     bool WM8805::locked_on() {
+        if(pll_not_locked_gpio != GPIO_NUM_NC) {
+            return !gpio_get_level(pll_not_locked_gpio);
+        }
         return !get_fresh_status().unlock;
     }
 

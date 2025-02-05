@@ -54,17 +54,19 @@ namespace CD {
     }
 
     void Player::poll_state() {
+        int delay = 0;
         xSemaphoreTake(_cmdSemaphore, portMAX_DELAY);
 
         if(sts == State::INIT) {
             cdrom->reset();
             cdrom->wait_ready();
+            vTaskDelay(pdMS_TO_TICKS(500));
+            cdrom->eject(false); // <- close aka start unit, otherwise any disc is BAD_DISC on some drives
             sts = State::LOAD;
         }
         else {
             const ATAPI::MediaTypeCode media_type = cdrom->check_media();
             const ATAPI::MechInfo* mech = cdrom->query_state();
-            const ATAPI::AudioStatus* audio = cdrom->query_position();
             // Initial memory allocation for the slot statuses, even if it's just one
             if(mech->slot_count > slots.size()) {
                 for(int i = slots.size(); i < mech->slot_count; i++) {
@@ -104,6 +106,7 @@ namespace CD {
                 case State::OPEN:
                     if(media_type != ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
                         sts = State::CLOSE;
+                        delay = 2000;
                     }
                 break;
 
@@ -112,6 +115,8 @@ namespace CD {
                     cdrom->wait_ready();
                     if(media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN && media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN_ALT) {
                         sts = State::LOAD;
+                    } else {
+                        delay = 2000; //<- some drives cannot load while processing other commands
                     }
                 break;
 
@@ -175,36 +180,46 @@ namespace CD {
                     break;
 
                 case State::PLAY:
-                    if(audio->state == ATAPI::AudioStatus::PlayState::Stopped || audio->track == TRK_NUM_LEAD_OUT) {
-                        sts = State::STOP;
-                        cur_track.track = 1;
-                        cur_track.index = 1;
-                        abs_ts = { .M = 0, .S = 0, .F = 0 };
-                        rel_ts = { .M = 0, .S = 0, .F = 0 };
+                    {
+                        const ATAPI::AudioStatus* audio = cdrom->query_position();
+                        if(audio->state == ATAPI::AudioStatus::PlayState::Stopped || audio->track == TRK_NUM_LEAD_OUT) {
+                            sts = State::STOP;
+                            cur_track.track = 1;
+                            cur_track.index = 1;
+                            abs_ts = { .M = 0, .S = 0, .F = 0 };
+                            rel_ts = { .M = 0, .S = 0, .F = 0 };
+                        }
+                        else if(audio->state == ATAPI::AudioStatus::PlayState::Paused) {
+                            sts = State::PAUSE;
+                        }  
+                        else {
+                            cur_track.track = audio->track;
+                            cur_track.index = audio->index;
+                            abs_ts = audio->position_in_disc;
+                            rel_ts = audio->position_in_track;
+                        }
                     }
-                    else if(audio->state == ATAPI::AudioStatus::PlayState::Paused) {
-                        sts = State::PAUSE;
-                    }  
-                    else {
+                    
+                break;
+
+                case State::PAUSE:
+                case State::SEEK_FF:
+                case State::SEEK_REW:
+                    {
+                        const ATAPI::AudioStatus* audio = cdrom->query_position();
                         cur_track.track = audio->track;
                         cur_track.index = audio->index;
                         abs_ts = audio->position_in_disc;
                         rel_ts = audio->position_in_track;
                     }
                 break;
-
-                case State::PAUSE:
-                case State::SEEK_FF:
-                case State::SEEK_REW:
-                    cur_track.track = audio->track;
-                    cur_track.index = audio->index;
-                    abs_ts = audio->position_in_disc;
-                    rel_ts = audio->position_in_track;
-                    break;
             }
         }
 
         xSemaphoreGive(_cmdSemaphore);
+
+        if(delay > 0)
+            vTaskDelay(pdMS_TO_TICKS(delay)); //<- some drives go nuts due to other commands during load so give them some time
     }
 
     void Player::do_command(Command cmd) {
@@ -441,6 +456,6 @@ namespace CD {
     void Player::start_seeking(bool forward) {
         pre_seek_sts = sts;
         sts = forward ? State::SEEK_FF : State::SEEK_REW;
-        cdrom->scan(forward, abs_ts);
+        cdrom->scan(forward, abs_ts); //<- seems like not all drives support this (e.g. teac from 2004) -- can we use repeated Play MSF commands instead?
     }
 }
