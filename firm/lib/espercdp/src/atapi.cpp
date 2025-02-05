@@ -284,7 +284,6 @@ namespace ATAPI {
             .start_position = start,
             .end_position = end,
         };
-
         xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&req, sizeof(req), true);
         xSemaphoreGive(semaphore);

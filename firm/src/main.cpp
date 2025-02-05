@@ -3,6 +3,7 @@
 #include "AudioTools/AudioLibs/AudioSourceLittleFS.h"
 #include "AudioTools/AudioCodecs/CodecMP3Helix.h"
 
+#include <esper-core/service.h>
 #include <esper-core/keypad.h>
 #include <esper-core/spdif.h>
 #include <esper-cdp/player.h>
@@ -44,6 +45,8 @@ void setup(void) {
   WiFi.waitForConnectResult();
   if(WiFi.isConnected()) Serial.println("WiFi ok");
   else Serial.println("!! WIFI FAIL !!");
+
+  Core::Services::NTP::start();
   
   Wire.begin(32, 33, 100000);
   i2c = new Core::ThreadSafeI2C(&Wire);

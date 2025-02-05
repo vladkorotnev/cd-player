@@ -164,6 +164,7 @@ namespace CD {
                     if(next_expected_slot == mech->current_disc) {
                         sts = State::LOAD;
                     }
+                    delay = 1000;
                     break;
 
                 case State::NO_DISC:
@@ -252,6 +253,12 @@ namespace CD {
             case State::NO_DISC:
             case State::BAD_DISC:
                 // can't do shit other than eject it really
+                if(cmd == Command::NEXT_DISC) {
+                    change_discs(true);
+                }
+                else if(cmd == Command::PREV_DISC) {
+                    change_discs(false);
+                }
             break;
 
             case State::OPEN:
@@ -309,6 +316,14 @@ namespace CD {
                         }
                     break;
                     
+                    case Command::NEXT_DISC:
+                        change_discs(true);
+                    break;
+
+                    case Command::PREV_DISC:
+                        change_discs(false);
+                    break;
+
                     default:
                     break;
                 }
@@ -361,11 +376,11 @@ namespace CD {
                     break;
 
                     case Command::NEXT_DISC:
-                        // TODO
+                        change_discs(true);
                     break;
 
                     case Command::PREV_DISC:
-                        // TODO
+                        change_discs(false);
                     break;
 
                     default:
@@ -423,11 +438,11 @@ namespace CD {
                     break;
 
                     case Command::NEXT_DISC:
-                        // TODO
+                        change_discs(true);
                     break;
 
                     case Command::PREV_DISC:
-                        // TODO
+                        change_discs(false);
                     break;
 
                     default:
@@ -457,5 +472,28 @@ namespace CD {
         pre_seek_sts = sts;
         sts = forward ? State::SEEK_FF : State::SEEK_REW;
         cdrom->scan(forward, abs_ts); //<- seems like not all drives support this (e.g. teac from 2004) -- can we use repeated Play MSF commands instead?
+    }
+
+    void Player::change_discs(bool forward) {
+        if(sts == State::PLAY) {
+            cdrom->stop();
+        }
+
+        // TODO: drive might only support selecting slots with discs, what do?
+        if(forward) {
+            next_expected_slot = (cur_slot + 1) % slots.size();
+        }
+        else {
+            next_expected_slot = (cur_slot == 0 ? (slots.size()-1) : cur_slot - 1);
+        }
+
+        ESP_LOGI(LOG_TAG, "Change slot %i -> %i", cur_slot, next_expected_slot);
+
+        if(sts == State::PLAY && slots[next_expected_slot].disc_present) {
+            want_auto_play = true;
+        }
+
+        cdrom->load_unload(next_expected_slot);
+        sts = State::CHANGE_DISC;
     }
 }

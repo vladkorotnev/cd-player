@@ -125,5 +125,6 @@ namespace CD {
 
         void setup_tasks();
         void start_seeking(bool ffwd);
+        void change_discs(bool forward);
     };
 }
