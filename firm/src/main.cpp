@@ -3,6 +3,7 @@
 #include "AudioTools/AudioLibs/AudioSourceLittleFS.h"
 #include "AudioTools/AudioCodecs/CodecMP3Helix.h"
 
+#include <UTF8toSJIS.h>
 #include <esper-core/service.h>
 #include <esper-core/keypad.h>
 #include <esper-core/spdif.h>
@@ -21,14 +22,17 @@ ATAPI::Device * cdrom;
 CD::Player * player;
 CD::CachingMetadataAggregateProvider * meta;
 
-const char *startFilePath="/";
-const char* ext="mp3";
-AudioSourceLittleFS source(startFilePath, ext);
-AudioInfo info(44100, 2, 16);
-I2SStream out; 
-MP3DecoderHelix decoder;
-AudioPlayer mpp(source, out, decoder);
+HardwareSerial disp(1);
 
+inline void clrscr() { disp.write("\x1B\x0C"); disp.write("\x1B\x30"); disp.write(0);disp.write(0);disp.write(0); }
+void disp_write(const char * utf) {
+  static UTF8toSJIS u8ts;
+  uint8_t buf[128] = {0};
+  uint16_t out_size = 0;
+  u8ts.UTF8_to_SJIS_str_cnv("/Utf8Sjis.tbl", utf, buf, &out_size); //<- we won't use this once ESPerGUI is a thing
+  if(out_size >= 128) return;
+  disp.write(buf, out_size);
+}
 // cppcheck-suppress unusedFunction
 void setup(void) { 
 #ifdef BOARD_HAS_PSRAM
@@ -37,6 +41,14 @@ void setup(void) {
   // Open Serial 
   Serial.begin(115200);
   while(!Serial);
+
+  disp.begin(115200, SERIAL_8N1, 23, 22);
+  disp.write("\x1B\x0B"); // reset
+  disp.write("\x1B\x21\x01"); // power on
+  disp.write("\x1b\x20\x02"); // 50% brighness
+  disp.write("\x1b\x22"); disp.write(0); disp.write(0); // DSA = 0
+  disp.write("\x1B\x32\x02"); // lang = JA
+  disp.write("\x1B\x33\x01"); // font = 6x8
 
   LittleFS.begin(true, "/littlefs");
   ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
@@ -78,6 +90,7 @@ void setup(void) {
   meta->providers.push_back(new CD::LrcLibLyricProvider());
   
   player = new CD::Player(cdrom, meta);
+  disp.write("Hello!");
 }
 
 static TickType_t memory_last_print = 0;
@@ -110,19 +123,31 @@ void loop() {
   if(sts != last_sts) {
     ESP_LOGI("Test", "State %s -> %s", CD::Player::PlayerStateString(last_sts), CD::Player::PlayerStateString(sts));
     last_sts = sts;
+    if(sts != CD::Player::State::PLAY && sts != CD::Player::State::PAUSE) {
+      clrscr();
+      disp.write(CD::Player::PlayerStateString(sts));
+    }
   }
   
   MSF msf = player->get_current_track_time();
 
   CD::Player::TrackNo trk = player->get_current_track_number();
   if(trk.track != last_trkno.track || trk.index != last_trkno.index) {
+    static char buf[128];
+    buf[0] = 0;
+
     ESP_LOGI("Test", "Trk#: %i.%i -> %i.%i", last_trkno.track, last_trkno.index, trk.track, trk.index);
     last_lyric_idx = -1;
     auto slot = player->get_active_slot();
+
     if(trk.track <= slot.disc->tracks.size() && trk.index == 1) {
       auto meta = slot.disc->tracks[trk.track - 1];
-      if(meta.artist != "" || meta.title != "")
+      if(meta.title != "") {
         ESP_LOGI("Test", "... -> %s - %s", meta.artist.c_str(), meta.title.c_str());
+        snprintf(buf, 128, "#%d: %s", trk.track, meta.title.c_str());
+        clrscr();
+        disp_write(buf);
+      }
     }
 
     ESP_LOGI("Test", "SPDIF is %s", spdif->locked_on() ? "lock" : "UN LOCK !!");
@@ -145,6 +170,8 @@ void loop() {
         if(idx != last_lyric_idx && idx != -1) {
           last_lyric_idx = idx;
           ESP_LOGI("Lyric", " %i | %i | e=%i\t -= %s =- ", cur_ms, meta.lyrics[idx].millisecond, (cur_ms - meta.lyrics[idx].millisecond), meta.lyrics[idx].line.c_str());
+          clrscr();
+          disp_write(meta.lyrics[idx].line.c_str());
         }
       }
     }

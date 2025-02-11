@@ -6,3 +6,4 @@
 - JTAG names are wrong on sch and silk, refer the table in [article](https://neocode.jp/2020/12/09/esp32debugger/) for correct wiring
 - Use something like [DIX9211](https://www.ti.com/lit/ds/symlink/dix9211.pdf) instead of the EOL WM8805
 - Also some SPDIF/TOSLINK IO would have been nice, since we have the inputs on board anyway, and toslink is basically SPDIF but through an LED
+- Using a straight through JST 7pin cable explodes a transistor on the VFD display. The cables arrived from taobao are reversed!! Same issue with the keypad — solving by mounting keypad side connector upside down.
