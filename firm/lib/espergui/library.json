@@ -1,0 +1,14 @@
+{
+    "name": "ESPer-GUI",
+    "version": "1.0",
+    "description": "ESPer CD Player GUI",
+    "platforms": "espressif32",
+    "build": {
+		"flags": [
+			"-Iinclude"
+		]
+    },
+    "dependencies": {
+    },
+    "frameworks": ["arduino"]
+}

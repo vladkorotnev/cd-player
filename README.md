@@ -31,3 +31,7 @@
 * SPDIF to I2S: WM8805
 * DAC: PCM5102
 * IO Expander PCA9555PW
+
+## Tech Notes
+
+* On design of CDDB metadata in-flash cache system: https://github.com/littlefs-project/littlefs/issues/1067
