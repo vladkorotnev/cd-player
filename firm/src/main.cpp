@@ -9,6 +9,7 @@
 #include <esper-cdp/player.h>
 #include <esper-cdp/lyrics.h>
 #include <esper-gui/futaba_gp1232.h>
+#include <esper-gui/compositing.h>
 #include <WiFi.h>
 #include <LittleFS.h>
 
@@ -23,6 +24,19 @@ CD::Player * player;
 CD::CachingMetadataAggregateProvider * meta;
 Graphics::Hardware::FutabaGP1232ADriver * disp;
 
+class RectView: public Graphics::View {
+public:
+  RectView(): View() {
+    frame.size.width = 4;
+    frame.size.height = 4;
+  }
+
+  void render(Graphics::GraphBuf buffer) override {
+    memset(buffer, 0xFF, frame.size.width*std::max(1, frame.size.height/8));
+    View::render(buffer);
+  }
+};
+
 // cppcheck-suppress unusedFunction
 void setup(void) { 
 #ifdef BOARD_HAS_PSRAM
@@ -36,7 +50,7 @@ void setup(void) {
   disp->initialize();
   disp->set_brightness(Graphics::Hardware::Brightness::DISP_BRIGHTNESS_50);
   
-  uint8_t tmp[] = {
+  const uint8_t logo[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x00, 0x00, 0x3f, 0xf8, 0x00, 0x00, 0xe0, 0x0f, 0x00, 
     0x03, 0x8f, 0x83, 0x80, 0x06, 0x1f, 0xc0, 0xc0, 0x0c, 0x3f, 0xe0, 0xf0, 0x00, 0x7f, 0xf1, 0xf0, 
     0x00, 0x7f, 0xf3, 0xf8, 0x20, 0x7d, 0xf3, 0xec, 0x00, 0x7d, 0xf1, 0xe4, 0x40, 0x7c, 0xf8, 0x86, 
@@ -78,13 +92,48 @@ void setup(void) {
     0x00, 0x00, 0x00, 0x78, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x6c, 
     0x00, 0x00, 0x00, 0x7c, 0x00, 0x00, 0x00, 0x5c, 0x00, 0x00, 0x00, 0x58, 0x00, 0x00, 0x00, 0x00
   };
+  
+  Graphics::Compositor *compositor = new Graphics::Compositor(disp);
+  Graphics::View container = Graphics::View();
+  container.frame.origin = {0, 0};
+  container.frame.size = {160, 32};
 
-  Graphics::Hardware::BackingBuffer buf = {
-    .data = tmp,
-    .size = { .width = 160, .height = 32 }
-  };
-  disp->blit({.x = 0, .y = 0}, {.width = 160, .height = 32}, &buf);
+  auto rect = std::make_shared<RectView>(RectView());
+  auto rect2 = std::make_shared<RectView>(RectView());
+  auto rect3 = std::make_shared<RectView>(RectView());
+  auto rect4 = std::make_shared<RectView>(RectView());
 
+  rect->hidden = true;
+  rect2->hidden = true;
+
+  rect2->frame.origin.x = 4;
+  rect2->frame.origin.y = 4;
+  rect3->frame.origin.x = 4;
+  rect4->frame.origin.y = 4;
+
+  container.subviews.push_back(rect3);
+  container.subviews.push_back(rect4);
+  container.subviews.push_back(rect);
+  container.subviews.push_back(rect2);
+  
+  while(true) {
+    rect->hidden = !rect->hidden;
+    rect2->hidden = !rect2->hidden;
+    container.set_needs_display();
+    compositor->render(container);
+    delay(250);
+    
+    if(!rect->hidden) {
+      rect->frame.origin.y += 2;
+      rect2->frame.origin.y += 2;
+      rect3->frame.origin.y += 2;
+      rect4->frame.origin.y += 2;
+      rect->frame.origin.x += 2;
+      rect2->frame.origin.x += 2;
+      rect3->frame.origin.x += 2;
+      rect4->frame.origin.x += 2;
+    }
+  }
 
   LittleFS.begin(true, "/littlefs");
   ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());

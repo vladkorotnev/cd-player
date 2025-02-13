@@ -18,6 +18,7 @@ struct BackingBuffer {
 };
 
 class DisplayDriver {
+public:
     virtual void initialize() {}
     virtual void set_power(bool on) {}
     virtual void set_brightness(Brightness) {}

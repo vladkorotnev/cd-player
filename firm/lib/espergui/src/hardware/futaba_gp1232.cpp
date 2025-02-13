@@ -1,7 +1,10 @@
 #include <esper-gui/futaba_gp1232.h>
 #include <driver/uart.h>
+#include <algorithm>
 
 static const char LOG_TAG[] = "GP1232";
+
+static const char init_test_string[] = "ESPer-CDP";
 
 namespace Graphics::Hardware {
 
@@ -31,7 +34,7 @@ namespace Graphics::Hardware {
         uart_write_bytes(_port, "\x1B\x0C", 2); // clear
         set_power(true);
         set_brightness(Brightness::DISP_BRIGHTNESS_100);
-        uart_write_bytes(_port, "Hello! GP1232A", 15);
+        uart_write_bytes(_port, init_test_string, strlen(init_test_string));
     }
 
     void FutabaGP1232ADriver::set_power(bool on) {
@@ -50,18 +53,18 @@ namespace Graphics::Hardware {
         // NB: the pixels are arranged in a way so that the MSB is at the top in this display
         if(size.width == 0 || size.height == 0) return;
 
+        const uint16_t w = (size.width);
+        const uint8_t h = std::max(1, (size.height / 8) + ((address.y + size.height) % 8 != 0));
         const size_t stride = buffer->size.height / 8;
         const size_t start_idx_in_buffer = address.y / 8 + address.x * stride;
-        const uint16_t w = (size.width); // mistake in datasheet? that says data size is (sX+1)*(sY + 1) so I expected this to be width-1, apparently not? using width-1 leads to one byte too much transfered. Why does it work in wacca-vfd-arduino?
-        const uint8_t h = (size.height / 8 - 1);
 
-        const uint8_t cmd[] = {0x1B, 0x2E, (address.x >> 8), (address.x & 0xFF), (address.y / 8), (w >> 8), (w & 0xFF), h};
+        const uint8_t cmd[] = {0x1B, 0x2E, (address.x >> 8), (address.x & 0xFF), (address.y / 8), (w >> 8), (w & 0xFF), h - 1};
         uart_write_bytes(_port, (const void*) cmd, 8);
 
         ESP_LOGV(LOG_TAG, "Blitting address=(%i, %i) size=(%i, %i) stride=%i sidx=%i", address.x, address.y, size.width, size.height, stride, start_idx_in_buffer);
         size_t written = 0;
-        for(int col = 0; col < size.width; col++) {
-            int out = uart_write_bytes(_port, buffer->data + (start_idx_in_buffer + col * stride), size.height / 8);
+        for(int col = 0; col < w; col++) {
+            int out = uart_write_bytes(_port, buffer->data + (start_idx_in_buffer + col * stride), h);
             if(out <= 0) ESP_LOGE(LOG_TAG, "Blit tx error!");
             else written += out;
         }
