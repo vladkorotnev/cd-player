@@ -49,19 +49,19 @@ namespace Graphics::Hardware {
         uart_write_bytes(_port, (const void*) cmd, 3);
     }
 
-    void FutabaGP1232ADriver::blit(const EGPoint address, const EGSize size, const BackingBuffer * buffer) {
+    void FutabaGP1232ADriver::transfer(const EGPoint address, const EGSize size, const BackingBuffer * buffer) {
         // NB: the pixels are arranged in a way so that the MSB is at the top in this display
         if(size.width == 0 || size.height == 0) return;
 
         const uint16_t w = (size.width);
-        const uint8_t h = std::max(1, (size.height / 8) + ((address.y + size.height) % 8 != 0));
+        const uint8_t h = (size.height / 8) + (size.height % 8 != 0) + (address.y % 8 != 0);
         const size_t stride = buffer->size.height / 8;
         const size_t start_idx_in_buffer = address.y / 8 + address.x * stride;
 
         const uint8_t cmd[] = {0x1B, 0x2E, (address.x >> 8), (address.x & 0xFF), (address.y / 8), (w >> 8), (w & 0xFF), h - 1};
         uart_write_bytes(_port, (const void*) cmd, 8);
 
-        ESP_LOGV(LOG_TAG, "Blitting address=(%i, %i) size=(%i, %i) stride=%i sidx=%i", address.x, address.y, size.width, size.height, stride, start_idx_in_buffer);
+        ESP_LOGV(LOG_TAG, "Blitting address=(%i, %i) size=(%i, %i) stride=%i sidx=%i", address.x, address.y, w, h, stride, start_idx_in_buffer);
         size_t written = 0;
         for(int col = 0; col < w; col++) {
             int out = uart_write_bytes(_port, buffer->data + (start_idx_in_buffer + col * stride), h);

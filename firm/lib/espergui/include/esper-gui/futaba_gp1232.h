@@ -10,7 +10,7 @@ public:
     void initialize() override;
     void set_power(bool on) override;
     void set_brightness(Brightness) override;
-    void blit(const EGPoint address, const EGSize size, const BackingBuffer * buffer) override;
+    void transfer(const EGPoint address, const EGSize size, const BackingBuffer * buffer) override;
 private:
     uart_port_t _port;
 };

@@ -24,7 +24,7 @@ public:
     virtual void set_brightness(Brightness) {}
 
     /// NB: Reads from `buffer` are aligned to byte. E.g. writing (W=1 H=8) at (X=0 Y=4) will read from `buffer[0]` for the top half of the blitted bitmap and `buffer[1]` for the bottom half.
-    virtual void blit(const EGPoint address, const EGSize size, const BackingBuffer * buffer) {}
+    virtual void transfer(const EGPoint address, const EGSize size, const BackingBuffer * buffer) {}
 };
 
 }

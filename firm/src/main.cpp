@@ -9,6 +9,7 @@
 #include <esper-cdp/player.h>
 #include <esper-cdp/lyrics.h>
 #include <esper-gui/futaba_gp1232.h>
+#include <esper-gui/views/framework.h>
 #include <esper-gui/compositing.h>
 #include <WiFi.h>
 #include <LittleFS.h>
@@ -23,19 +24,6 @@ ATAPI::Device * cdrom;
 CD::Player * player;
 CD::CachingMetadataAggregateProvider * meta;
 Graphics::Hardware::FutabaGP1232ADriver * disp;
-
-class RectView: public Graphics::View {
-public:
-  RectView(): View() {
-    frame.size.width = 4;
-    frame.size.height = 4;
-  }
-
-  void render(Graphics::GraphBuf buffer) override {
-    memset(buffer, 0xFF, frame.size.width*std::max(1, frame.size.height/8));
-    View::render(buffer);
-  }
-};
 
 // cppcheck-suppress unusedFunction
 void setup(void) { 
@@ -94,45 +82,24 @@ void setup(void) {
   };
   
   Graphics::Compositor *compositor = new Graphics::Compositor(disp);
-  Graphics::View container = Graphics::View();
+  UI::View container = UI::View();
   container.frame.origin = {0, 0};
   container.frame.size = {160, 32};
 
-  auto rect = std::make_shared<RectView>(RectView());
-  auto rect2 = std::make_shared<RectView>(RectView());
-  auto rect3 = std::make_shared<RectView>(RectView());
-  auto rect4 = std::make_shared<RectView>(RectView());
+  auto spinner = std::make_shared<UI::BigSpinner>(UI::BigSpinner({ {142, 4}, {14, 14} }));
+  container.subviews.push_back(spinner);
 
-  rect->hidden = true;
-  rect2->hidden = true;
+  UI::Image logoimg = {
+    .format = UI::ImageFormat::IMFMT_NATIVE,
+    .size = {160, 32},
+    .data = logo
+  };
 
-  rect2->frame.origin.x = 4;
-  rect2->frame.origin.y = 4;
-  rect3->frame.origin.x = 4;
-  rect4->frame.origin.y = 4;
+  auto imgview = std::make_shared<UI::ImageView>(UI::ImageView(&logoimg, {EGPointZero, logoimg.size}));
+  container.subviews.push_back(imgview);
 
-  container.subviews.push_back(rect3);
-  container.subviews.push_back(rect4);
-  container.subviews.push_back(rect);
-  container.subviews.push_back(rect2);
-  
   while(true) {
-    rect->hidden = !rect->hidden;
-    rect2->hidden = !rect2->hidden;
-    container.set_needs_display();
     compositor->render(container);
-    delay(250);
-    
-    if(!rect->hidden) {
-      rect->frame.origin.y += 2;
-      rect2->frame.origin.y += 2;
-      rect3->frame.origin.y += 2;
-      rect4->frame.origin.y += 2;
-      rect->frame.origin.x += 2;
-      rect2->frame.origin.x += 2;
-      rect3->frame.origin.x += 2;
-      rect4->frame.origin.x += 2;
-    }
   }
 
   LittleFS.begin(true, "/littlefs");
