@@ -1,4 +1,4 @@
-#include <esper-gui/futaba_gp1232.h>
+#include <esper-gui/hardware/futaba_gp1232.h>
 #include <driver/uart.h>
 #include <algorithm>
 

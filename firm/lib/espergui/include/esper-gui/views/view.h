@@ -4,7 +4,6 @@
 #include <memory>
 #include <algorithm>
 
-typedef uint8_t* GraphBuf;
 namespace UI {
 
 class View {
@@ -15,7 +14,7 @@ public:
 
     View(EGRect f = EGRectZero): frame {f}, subviews{} {}
 
-    virtual void render(GraphBuf buffer) {
+    virtual void render(EGGraphBuf * buffer) {
         // NB: child classes must call super impl or the performance will degrade!
         clear_needs_display();
     }
@@ -51,8 +50,8 @@ private:
 class FilledRect: public View {
 public:
     FilledRect(): View() {}
-    void render(GraphBuf buffer) override {
-        memset(buffer, 0xFF, frame.size.width*std::max(1u, frame.size.height/8));
+    void render(EGGraphBuf * buffer) override {
+        memset(buffer->data, 0xFF, frame.size.width*std::max(1u, frame.size.height/8));
         View::render(buffer);
     }
 };

@@ -1,5 +1,5 @@
 #pragma once
-#include "display.h"
+#include <esper-gui/display.h>
 #include <esp32-hal-gpio.h>
 
 namespace Graphics::Hardware {

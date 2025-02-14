@@ -7,6 +7,8 @@ namespace UI {
 
 class BigSpinner: public View {
 public:
+    int interval_ms = 66;
+
     BigSpinner(EGRect f): View(f) {
         unsigned int bit_size = 2;
         auto rect = std::make_shared<FilledRect>(FilledRect());
@@ -52,27 +54,11 @@ public:
             subviews[pos]->hidden = true;
             last_tick = now;
         }
-        if(now - last_lfo_tick >= pdMS_TO_TICKS(33)) {
-            if(lfo_dir) {
-                if(interval_ms >= interval_ms_max) lfo_dir = false;
-                else interval_ms += 5;
-            }
-            else {
-                if(interval_ms <= interval_ms_min) lfo_dir = true;
-                else interval_ms -= 5;
-            }
-            last_lfo_tick = now;
-        }
         return View::needs_display();
     }
 
 private:
     TickType_t last_tick = 0;
-    TickType_t last_lfo_tick = 0;
-    bool lfo_dir = false;
-    int interval_ms_min = 75;
-    int interval_ms_max = 125;
-    int interval_ms = 125;
     int pos = 0;
 };
 

@@ -12,10 +12,7 @@ enum Brightness: uint8_t {
     DISP_BRIGHTNESS_100
 };
 
-struct BackingBuffer {
-    uint8_t * data;
-    EGSize size;
-};
+typedef EGGraphBuf BackingBuffer;
 
 class DisplayDriver {
 public:
