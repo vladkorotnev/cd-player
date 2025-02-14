@@ -1,10 +1,57 @@
 #include <esper-gui/text.h>
+#include <esper-gui/graphics.h>
 #include <esper-core/miniz_ext.h>
 #include <esp_heap_caps.h>
 #include <esp32-hal-log.h>
 #include <cerrno>
+#include <algorithm>
 
 static char LOG_TAG[] = "FONT";
+
+bool _EGStr_utf8_continuation_get(const char ** ptr, char32_t * dst) {
+    if((**ptr & 0b11000000) != 0b10000000) {
+        ESP_LOGE(LOG_TAG, "Malformed UTF8 sequence at 0x%x: expected continuation, got 0x%02x", *ptr, **ptr);
+        return false;
+    }
+    *dst <<= 6;
+    *dst |= (**ptr & 0b00111111);
+    (*ptr)++;
+    return true;
+}
+
+char16_t EGStr_utf8_iterate(const char ** ptr) {
+    if(*ptr == 0) return 0;
+
+    char32_t val = **ptr;
+
+    if(val <= 0x7F) {
+        // 1 byte case
+        (*ptr)++;
+    } else if((val & 0b11100000) == 0b11000000) {
+        // 2 byte case
+        val &= 0b00011111;
+        (*ptr)++;
+        if(!_EGStr_utf8_continuation_get(ptr, &val)) return 0;
+    } else if((val & 0b11110000) == 0b11100000) {
+        // 3 byte case
+        val &= 0b00001111;
+        (*ptr)++;
+        if(!_EGStr_utf8_continuation_get(ptr, &val)) return 0;
+        if(!_EGStr_utf8_continuation_get(ptr, &val)) return 0;
+    } else if((val & 0b11111000) == 0b11110000) {
+        // 4 byte case
+        val &= 0b00000111;
+        (*ptr)++;
+        if(!_EGStr_utf8_continuation_get(ptr, &val)) return 0;
+        if(!_EGStr_utf8_continuation_get(ptr, &val)) return 0;
+        if(!_EGStr_utf8_continuation_get(ptr, &val)) return 0;
+    } else {
+        ESP_LOGE(LOG_TAG, "Unsupported UTF8 sequence at 0x%x (value = 0x%02x)", *ptr, **ptr);
+        return 0;
+    }
+
+    return (val & 0xFFFF);
+}
 
 namespace Fonts {
     namespace MoFo {
@@ -20,7 +67,7 @@ namespace Fonts {
             const uint16_t version;
             const Encoding encoding;
             const EGBufferFormat glyph_format;
-            const char16_t cursor_character;
+            const char16_t cursor_character; //<- unused here
             const char16_t invalid_character;
             const uint8_t width;
             const uint8_t height;
@@ -60,10 +107,9 @@ namespace Fonts {
         
             dest->encoding = head.encoding;
             dest->glyph_format = head.glyph_format;
-            dest->cursor_character = head.cursor_character;
             dest->invalid_character = head.invalid_character;
-            dest->width = head.width;
-            dest->height = head.height;
+            dest->size.width = head.width;
+            dest->size.height = head.height;
         
             pos = ftell(f);
             r = fread(&sect, 1, sizeof(mofo_section_t), f);
@@ -161,7 +207,7 @@ namespace Fonts {
             dest->data = bitmap;
             dest->valid = true;
         
-            ESP_LOGI(LOG_TAG, "Got font: encoding=%x, glyphfmt=%x, cursor=%x, invalid=%x, w=%u, h=%u, range_cnt=%u, data=0x%x, ranges=0x%x", dest->encoding, dest->glyph_format, dest->cursor_character, dest->invalid_character, dest->width, dest->height, dest->range_count, dest->data, dest->ranges);
+            ESP_LOGI(LOG_TAG, "Got font: encoding=%x, glyphfmt=%x, cursor=%x, invalid=%x, w=%u, h=%u, range_cnt=%u, data=0x%x, ranges=0x%x", dest->encoding, dest->glyph_format, dest->cursor_character, dest->invalid_character, dest->size.width, dest->size.height, dest->range_count, dest->data, dest->ranges);
             return true;
         }
 
@@ -178,6 +224,57 @@ namespace Fonts {
             bool rslt = LoadFromHandle(f, dest);
             fclose(f);
             return rslt;
+        }
+    }
+
+    const EGRawGraphBuf EGFont_glyph_data_ptr(const Font* font, char16_t glyph) {
+        const uint8_t * glyph_ptr = nullptr;
+
+        int low = 0;
+        int high = font->range_count - 1;
+        while(low <= high) {
+            int mid = low + (high - low) / 2;
+            const Range * range = &font->ranges[mid];
+            if(glyph >= range->start && glyph <= range->end) {
+                int idx = 0;
+                switch(font->glyph_format) {
+                    case EG_FMT_HORIZONTAL:
+                        idx = range->data_offset + (glyph - range->start) * std::max((font->size.width / 8), 1u) * font->size.height;
+                        break;
+                    case EG_FMT_NATIVE:
+                    default:
+                        idx = range->data_offset + (glyph - range->start) * std::max((font->size.height / 8), 1u) * font->size.width;
+                        break;
+                }
+                glyph_ptr = &font->data[idx];
+                break;
+            } else if (glyph < range->start) {
+                high = mid - 1;
+            } else {
+                low = mid + 1;
+            }
+        }
+        return (const EGRawGraphBuf) glyph_ptr;
+    }
+
+    const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph) {
+        auto ptr = EGFont_glyph_data_ptr(font, glyph);
+        if(ptr == nullptr) {
+            ptr = EGFont_glyph_data_ptr(font, font->invalid_character);
+        }
+        return EGGraphBuf {
+            .fmt = font->glyph_format,
+            .size = font->size,
+            .data = EGFont_glyph_data_ptr(font, glyph)
+        };
+    }
+
+    void EGFont_put_string(const Font * font, const char * utf_string, EGPoint location, EGGraphBuf * dst) {
+        while(char16_t ch = EGStr_utf8_iterate(&utf_string)) {
+            auto tmp = EGFont_glyph(font, ch);
+            EGBlitBuffer(dst, location, &tmp);
+            location.x += tmp.size.width;
+            if(location.x >= dst->size.width) break;
         }
     }
 }

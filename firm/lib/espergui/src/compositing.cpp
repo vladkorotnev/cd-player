@@ -17,7 +17,9 @@ namespace Graphics {
             display->transfer(rect.origin, rect.size, &framebuffer);
         }
         TickType_t blit_end = xTaskGetTickCount();
-        ESP_LOGD(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
+
+        if(pdTICKS_TO_MS(blit_end - start) > 1)
+            ESP_LOGI(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
     }
 
     /// @brief Render a view and its children into the framebuffer and create a list of rects that need blitting
@@ -37,7 +39,7 @@ namespace Graphics {
             size_t surface_size = view.frame.size.width * view_stride;
             
             EGRawGraphBuf tmp_surface = nullptr;
-            if(!EGRectEqual(view.frame, {{0, 0}, framebuffer.size})) {
+            if(!EGRectEqual(view.frame, {EGPointZero, framebuffer.size})) {
                 tmp_surface = (EGRawGraphBuf) calloc(surface_size, 1);
             } else {
                 // save memory by rendering fullscreen views directly into the framebuffer

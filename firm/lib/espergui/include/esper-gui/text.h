@@ -33,10 +33,8 @@ namespace Fonts {
         char16_t cursor_character;
         /// @brief The character to draw when an unknown character is requested
         char16_t invalid_character;
-        /// @brief Width of the character in pixels
-        uint8_t width;
-        /// @brief Height of the character in pixels
-        uint8_t height;
+        /// @brief Size of the character in pixels
+        EGSize size;
         /// @brief Count of character ranges in the font
         uint32_t range_count;
         /// @brief Bitmap data of the fonts, laid out horizontally, aligned towards LSB.
@@ -50,7 +48,7 @@ namespace Fonts {
         bool LoadFromHandle(FILE * f, Fonts::Font * dest);
         bool Load(const char * path, Fonts::Font * dest);
     }
-}
 
-/// @brief Iterate over a UTF8 string's codepoints. Returns char16_t's and increments ptr until EOS or an error, otherwise returns 0.
-char16_t EGStr_utf8_iterate(const char ** ptr);
+    const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph);
+    void EGFont_put_string(const Font * font, const char * utf_string, EGPoint location, EGGraphBuf * dst);
+}

@@ -29,6 +29,8 @@ namespace UI {
                 };
                 EGBlitBuffer(buf, EGPointZero, &tmp_buf);
             }
+
+            View::render(buf);
         }
 
     protected:

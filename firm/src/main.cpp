@@ -25,6 +25,18 @@ CD::Player * player;
 CD::CachingMetadataAggregateProvider * meta;
 Graphics::Hardware::FutabaGP1232ADriver * disp;
 
+static TickType_t memory_last_print = 0;
+static void print_memory() {
+    TickType_t now = xTaskGetTickCount();
+    if(now - memory_last_print > pdMS_TO_TICKS(30000)) {
+        ESP_LOGI(LOG_TAG, "HEAP: %d free of %d (%d minimum)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap());
+#ifdef BOARD_HAS_PSRAM
+        ESP_LOGI(LOG_TAG, "PSRAM: %d free of %d (%d minimum)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram());
+#endif
+        memory_last_print = now;
+    }
+}
+
 // cppcheck-suppress unusedFunction
 void setup(void) { 
 #ifdef BOARD_HAS_PSRAM
@@ -41,6 +53,9 @@ void setup(void) {
   Wire.begin(32, 33, 100000);
   i2c = new Core::ThreadSafeI2C(&Wire);
   i2c->log_all_devices();
+
+  LittleFS.begin(true, "/littlefs");
+  ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
   
   const uint8_t logo[] = {
     0x00, 0x00, 0x00, 0x00, 0x00, 0x03, 0x80, 0x00, 0x00, 0x3f, 0xf8, 0x00, 0x00, 0xe0, 0x0f, 0x00, 
@@ -97,9 +112,7 @@ void setup(void) {
   };
   
   Graphics::Compositor *compositor = new Graphics::Compositor(disp);
-  UI::View container = UI::View();
-  container.frame.origin = {0, 0};
-  container.frame.size = {160, 32};
+  UI::View container = UI::View({EGPointZero, {160, 32}});
 
   auto spinner = std::make_shared<UI::BigSpinner>(UI::BigSpinner({ {142, 4}, {14, 14} }));
   container.subviews.push_back(spinner);
@@ -116,17 +129,48 @@ void setup(void) {
     .data = horz_test
   };
 
-  auto imgview = std::make_shared<UI::ImageView>(UI::ImageView(&logoimg, {EGPointZero, logoimg.size}));
-  container.subviews.push_back(imgview);
+  // auto imgview = std::make_shared<UI::ImageView>(UI::ImageView(&logoimg, {{0, 0}, logoimg.size}));
+  // container.subviews.push_back(imgview);
   auto imgview2 = std::make_shared<UI::ImageView>(UI::ImageView(&horztestimg, {{0, 0}, horztestimg.size}));
   container.subviews.push_back(imgview2);
 
-  while(true) {
-    compositor->render(container);
-  }
 
-  LittleFS.begin(true, "/littlefs");
-  ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
+  FILE * f = fopen("/littlefs/font/default.mofo", "rb");
+  fseek(f, 0, SEEK_SET);
+  Fonts::Font keyrus0808;
+  Fonts::Font keyrus0816;
+  Fonts::Font xnu;
+  Fonts::Font jiskan16;
+
+  if(!Fonts::MoFo::LoadFromHandle(f, &keyrus0808)) ESP_LOGE(LOG_TAG, "keyrus0808 err");
+  if(!Fonts::MoFo::LoadFromHandle(f, &keyrus0816)) ESP_LOGE(LOG_TAG, "keyrus0816 err");
+  if(!Fonts::MoFo::LoadFromHandle(f, &xnu)) ESP_LOGE(LOG_TAG, "xnu err");
+  fclose(f);
+
+  if(!Fonts::MoFo::Load("/littlefs/font/misaki_mincho.mofo", &jiskan16)) ESP_LOGE(LOG_TAG, "jiskan err");
+
+  auto lbl = std::make_shared<UI::Label>(UI::Label({{32, 0}, {100, 16}}, &xnu, "I'm Miku oo-ee-oo"));
+  container.subviews.push_back(lbl);
+
+  auto lbl2 = std::make_shared<UI::Label>(UI::Label({{32, 16}, {100, 16}}, &jiskan16, "世界で一番のお姫様"));
+  container.subviews.push_back(lbl2);
+
+  TickType_t fps_lock = xTaskGetTickCount();
+  TickType_t second = xTaskGetTickCount();
+  int i = 0;
+  while(true) {
+    print_memory();
+
+    TickType_t now = xTaskGetTickCount();
+    if(now - second >= pdMS_TO_TICKS(1000)) {
+      i = (i + 1) % 100;
+      lbl->set_value("I'm Miku " + std::to_string(i));
+      second = now;
+    }
+    
+    compositor->render(container);
+    xTaskDelayUntil(&fps_lock, pdMS_TO_TICKS(16)); // one frame every 16ms roughly
+  }
 
   WiFi.begin(WIFI_NAME, WIFI_PASS);
   WiFi.waitForConnectResult();
@@ -161,18 +205,6 @@ void setup(void) {
   meta->providers.push_back(new CD::LrcLibLyricProvider());
   
   player = new CD::Player(cdrom, meta);
-}
-
-static TickType_t memory_last_print = 0;
-static void print_memory() {
-    TickType_t now = xTaskGetTickCount();
-    if(now - memory_last_print > pdMS_TO_TICKS(30000)) {
-        ESP_LOGI(LOG_TAG, "HEAP: %d free of %d (%d minimum)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap());
-#ifdef BOARD_HAS_PSRAM
-        ESP_LOGI(LOG_TAG, "PSRAM: %d free of %d (%d minimum)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram());
-#endif
-        memory_last_print = now;
-    }
 }
 
 uint8_t kp_sts = 0;

@@ -21,7 +21,7 @@ struct EGRect {
     EGSize size;
 };
 
-enum EGBufferFormat {
+enum EGBufferFormat: uint8_t {
     /// A horizontally laid out pixel buffer
     /// @details I.e. a 14x2 image will consist of 4 bytes. 0th one will contain the leftmost 6 pixels of the top row aligned towards LSB, 
     ///          1st one will contain the rightmost 8 pixels, 2nd one will contain the leftmost 6px of the bottom row, and so forth.
