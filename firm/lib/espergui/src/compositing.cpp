@@ -15,6 +15,8 @@ namespace Graphics {
         TickType_t render_end = xTaskGetTickCount();
         for(auto& rect: rects) {
             // clamp rect to bounds of buffer, since screen driver cannot process negative coords
+            rect.size.width = std::min(rect.size.width, framebuffer.size.width);
+            rect.size.height = std::min(rect.size.height, framebuffer.size.height);
             rect.size.width -= std::max(0, -rect.origin.x);
             rect.origin.x = std::max(0, rect.origin.x);
             rect.size.height -= std::max(0, -rect.origin.y);
@@ -25,7 +27,7 @@ namespace Graphics {
         TickType_t blit_end = xTaskGetTickCount();
 
         if(pdTICKS_TO_MS(blit_end - start) > 1)
-            ESP_LOGI(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
+            ESP_LOGV(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
     }
 
     /// @brief Render a view and its children into the framebuffer and create a list of rects that need blitting

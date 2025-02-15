@@ -49,6 +49,8 @@ namespace Fonts {
         bool Load(const char * path, Fonts::Font * dest);
     }
 
-    const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph);
+    void EGFont_register(const Font);
+    const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph, bool allow_fallback = true);
     void EGFont_put_string(const Font * font, const char * utf_string, EGPoint location, EGGraphBuf * dst);
+    const Font FallbackWildcard(unsigned int height);
 }

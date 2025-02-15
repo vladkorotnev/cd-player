@@ -51,6 +51,8 @@ namespace CD {
 
         enum class Command {
             OPEN_CLOSE,
+            OPEN,
+            CLOSE,
             PLAY,
             PAUSE,
             PLAY_PAUSE,
@@ -82,6 +84,10 @@ namespace CD {
             setup_tasks();
         }
 
+        ~Player() {
+            teardown_tasks();
+        }
+
         State get_status() { return sts; }
         /// @brief Returns the changer slots statuses, even if the device is not a changer — in such case it will be just one slot. 
         const std::vector<Slot>& get_slots() { return slots; }
@@ -91,6 +97,7 @@ namespace CD {
         const TrackNo get_current_track_number() { return cur_track; }
 
         void do_command(Command);
+        void do_command_async(Command);
 
         void poll_state();
 
@@ -124,6 +131,7 @@ namespace CD {
         bool want_auto_play = false;
 
         void setup_tasks();
+        void teardown_tasks();
         void start_seeking(bool ffwd);
         void change_discs(bool forward);
     };

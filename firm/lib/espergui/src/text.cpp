@@ -5,6 +5,7 @@
 #include <esp32-hal-log.h>
 #include <cerrno>
 #include <algorithm>
+#include <vector>
 
 static char LOG_TAG[] = "FONT";
 
@@ -228,8 +229,9 @@ namespace Fonts {
     }
 
     const EGRawGraphBuf EGFont_glyph_data_ptr(const Font* font, char16_t glyph) {
-        const uint8_t * glyph_ptr = nullptr;
+        if(font == nullptr || !font->valid) return nullptr;
 
+        const uint8_t * glyph_ptr = nullptr;
         int low = 0;
         int high = font->range_count - 1;
         while(low <= high) {
@@ -257,15 +259,56 @@ namespace Fonts {
         return (const EGRawGraphBuf) glyph_ptr;
     }
 
-    const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph) {
+    static std::vector<Font> font_registry = {};
+
+    void EGFont_register(const Font f) {
+        font_registry.push_back(f);
+    }
+
+    const Font FallbackWildcard(unsigned int height) {
+        return Font {
+            .valid = false,
+            .encoding = Encoding::FONT_ENCODING_BESPOKE_ASCII,
+            .glyph_format = EG_FMT_NATIVE,
+            .cursor_character = 0,
+            .invalid_character = 0,
+            .size = {8, height},
+            .range_count = 0,
+            .data = nullptr,
+            .ranges = nullptr
+        };
+    }
+
+    const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph, bool allow_fallback) {
         auto ptr = EGFont_glyph_data_ptr(font, glyph);
+        if(ptr == nullptr && allow_fallback) {
+            for(auto subst: font_registry) {
+                if(subst.size.height == font->size.height) {
+                    ptr = EGFont_glyph_data_ptr(&subst, glyph);
+                    if(ptr) {
+                        return EGGraphBuf {
+                            .fmt = subst.glyph_format,
+                            .size = subst.size,
+                            .data = ptr
+                        };
+                    }
+                }
+            }
+        }
         if(ptr == nullptr) {
+            if(!font->valid) {
+                return EGGraphBuf {
+                    .fmt = EG_FMT_NATIVE,
+                    .size = EGSizeZero,
+                    .data = nullptr
+                };
+            }
             ptr = EGFont_glyph_data_ptr(font, font->invalid_character);
         }
         return EGGraphBuf {
             .fmt = font->glyph_format,
             .size = font->size,
-            .data = EGFont_glyph_data_ptr(font, glyph)
+            .data = ptr
         };
     }
 

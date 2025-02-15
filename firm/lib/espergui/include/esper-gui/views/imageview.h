@@ -2,6 +2,7 @@
 #include "view.h"
 
 namespace UI {
+    /// A constant image buffer
     struct Image {
         EGBufferFormat format;
         EGSize size;

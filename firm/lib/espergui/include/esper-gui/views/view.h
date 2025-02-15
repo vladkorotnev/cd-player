@@ -8,17 +8,21 @@ namespace UI {
 
 class View {
 public:
+    /// @brief Location of the view, relative to the parent, or the framebuffer if there is no parent
     EGRect frame;
+    /// @brief Whether the view and all of its subviews should be not be rendered
     bool hidden = false;
     std::vector<std::shared_ptr<View>> subviews;
 
     View(EGRect f = EGRectZero): frame {f}, subviews{} {}
 
+    /// @brief Render a representation of the view into the buffer. The buffer shall be of the size more than or equal to the view's `frame`.
     virtual void render(EGGraphBuf * buffer) {
         // NB: child classes must call super impl or the performance will degrade!
         clear_needs_display();
     }
 
+    /// @brief Whether the view needs to be drawn again
     virtual bool needs_display() {
         return dirty || (was_hidden != hidden) || need_layout();
     }
@@ -30,6 +34,7 @@ public:
         subview_count = subviews.size();
     }
 
+    /// @brief Mark the view as needing to be drawn during the next composition pass
     void set_needs_display() {
         dirty = true;
     }
@@ -40,6 +45,7 @@ private:
     EGRect was_frame = {{0, 0}, {0, 0}};
     int subview_count = 0;
 
+    /// @brief Whether the view or any of its children had changes to the geometry, requiring the whole view to be repainted 
     bool need_layout() {
         if(!EGRectEqual(was_frame, frame) || subview_count != subviews.size()) return true;
 

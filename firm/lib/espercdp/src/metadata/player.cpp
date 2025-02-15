@@ -44,6 +44,11 @@ namespace CD {
         );
     }
 
+    void Player::teardown_tasks() {
+        vTaskDelete(_pollTask);
+        vTaskDelete(_metaTask);
+    }
+
     void Player::process_metadata_queue() {
         if(xSemaphoreTake(_metaSemaphore, portMAX_DELAY)) {
             std::shared_ptr<Album> album_ptr = _metaQueue.front();
@@ -235,12 +240,19 @@ namespace CD {
             // Open/Close works in any state
             if(cmd == Command::OPEN_CLOSE) {
                 if(sts == State::OPEN) {
-                    cdrom->eject(false);
-                    sts = State::CLOSE;
+                    cmd = Command::CLOSE;
                 } else {
-                    cdrom->eject(true);
-                    sts = State::OPEN;
+                    cmd = Command::OPEN;
                 }
+            }
+
+            if(cmd == Command::CLOSE) {
+                sts = State::CLOSE;
+                cdrom->eject(false);
+            } 
+            else if(cmd == Command::OPEN) {
+                sts = State::OPEN;
+                cdrom->eject(true);
             }
         }
 
