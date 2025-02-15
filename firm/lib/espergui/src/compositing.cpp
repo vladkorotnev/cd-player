@@ -14,6 +14,12 @@ namespace Graphics {
         if(rects.empty()) return;
         TickType_t render_end = xTaskGetTickCount();
         for(auto& rect: rects) {
+            // clamp rect to bounds of buffer, since screen driver cannot process negative coords
+            rect.size.width -= std::max(0, -rect.origin.x);
+            rect.origin.x = std::max(0, rect.origin.x);
+            rect.size.height -= std::max(0, -rect.origin.y);
+            rect.origin.y = std::max(0, rect.origin.y);
+
             display->transfer(rect.origin, rect.size, &framebuffer);
         }
         TickType_t blit_end = xTaskGetTickCount();
@@ -60,7 +66,7 @@ namespace Graphics {
 
             // if hidden we will blit the empty tmp_surface, effectively cleaning the area
             if(!view.hidden) view.render(&buf);
-            else needed_display = true;
+            needed_display = true;
             view.clear_needs_display();
 
             if(tmp_surface != framebuffer.data) {
