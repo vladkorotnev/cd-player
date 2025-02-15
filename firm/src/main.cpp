@@ -1,18 +1,19 @@
 #include "Arduino.h"
+#include <WiFi.h>
+#include <LittleFS.h>
 #include "AudioTools.h"
 #include "AudioTools/AudioLibs/AudioSourceLittleFS.h"
 #include "AudioTools/AudioCodecs/CodecMP3Helix.h"
 
 #include <esper-core/service.h>
-#include <esper-core/keypad.h>
-#include <esper-core/spdif.h>
+#include <esper-core/platform.h>
+
 #include <esper-cdp/player.h>
 #include <esper-cdp/lyrics.h>
+
 #include <esper-gui/hardware/futaba_gp1232.h>
 #include <esper-gui/views/framework.h>
 #include <esper-gui/compositing.h>
-#include <WiFi.h>
-#include <LittleFS.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -131,8 +132,8 @@ void setup(void) {
 
   // auto imgview = std::make_shared<UI::ImageView>(UI::ImageView(&logoimg, {{0, 0}, logoimg.size}));
   // container.subviews.push_back(imgview);
-  auto imgview2 = std::make_shared<UI::ImageView>(UI::ImageView(&horztestimg, {{0, 0}, horztestimg.size}));
-  container.subviews.push_back(imgview2);
+  auto mek = std::make_shared<UI::ImageView>(UI::ImageView(&horztestimg, {{0, 0}, horztestimg.size}));
+  container.subviews.push_back(mek);
 
 
   FILE * f = fopen("/littlefs/font/default.mofo", "rb");
@@ -155,9 +156,13 @@ void setup(void) {
   auto lbl2 = std::make_shared<UI::Label>(UI::Label({{32, 16}, {100, 16}}, &jiskan16, "世界で一番のお姫様"));
   container.subviews.push_back(lbl2);
 
+  Platform::Nixierator nixie(i2c);
+  nixie.leading_zero = true;
+
   TickType_t fps_lock = xTaskGetTickCount();
   TickType_t second = xTaskGetTickCount();
   int i = 0;
+  bool miku_dir = false;
   while(true) {
     print_memory();
 
@@ -165,9 +170,17 @@ void setup(void) {
     if(now - second >= pdMS_TO_TICKS(1000)) {
       i = (i + 1) % 100;
       lbl->set_value("I'm Miku " + std::to_string(i));
+      nixie.set_value(i);
       second = now;
     }
-    
+
+    if(miku_dir) {
+      mek->frame.origin.y += 1;
+      if(mek->frame.origin.y == 1) miku_dir = false;
+    } else {
+      mek->frame.origin.y -= 1;
+      if(mek->frame.origin.y == -4) miku_dir = true;
+    }
     compositor->render(container);
     xTaskDelayUntil(&fps_lock, pdMS_TO_TICKS(16)); // one frame every 16ms roughly
   }

@@ -19,34 +19,21 @@ bool EGRectEqual(const EGRect& a, const EGRect& b) {
 void EGBlitNative2Native(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * src) {
     size_t dst_stride = dst->size.height/8;
     size_t src_stride = std::max(src->size.height/8, 1u);
-    uint8_t row_first = std::max(0, location.y) / 8;
-    uint8_t row_last = (location.y + src->size.height - 1) / 8;
-    uint8_t bit_offs = std::max(0, location.y) % 8;
 
     size_t src_start_col = std::max(0, -location.x);
+    int src_start_row = std::max(0, -location.y);
 
-    for(int src_col = src_start_col; src_col < std::min(src->size.width, (dst->size.width - location.x)); src_col++) {
-        for(int row = 0; row < dst_stride; row++) {
-            if(row >= row_first && row <= row_last) {
-                uint8_t dst_byte = 0;
-                uint8_t dst_mask = 0;
-                size_t src_idx = (src_col * src_stride) + (row - row_first);
-                if(row > row_first && bit_offs > 0) {
-                    dst_byte |= (src->data[src_idx - 1] << (8 - bit_offs));
-                    dst_mask |= (0xFF << (8 - bit_offs));
-                }
-                dst_byte |= (src->data[src_idx] >> bit_offs);
-                dst_mask |= (0xFF >> bit_offs);
-                int px_remain = src->size.height - (row - row_first)*(8 - bit_offs) - (row > row_first ? bit_offs : 0);
-                if(px_remain < 8 - bit_offs) {
-                    // we have less pixels remaining than we can fit in this byte, trim mask accordingly to not clip whatever we have in the same byte
-                    dst_mask &= 0xFF << (8 - (px_remain + bit_offs));
-                }
+    for(int src_col = src_start_col; src_col < std::min(src->size.width, (dst->size.width - std::max(0, location.x))); src_col++) {
+        for(int src_row = src_start_row; src_row < std::min(src->size.height, (dst->size.height - std::max(0, location.y))); src_row++) {
+            size_t src_byte_idx = (src_col * src_stride) + (src_row / 8);
+            int src_bit_idx = (src_row % 8);
 
-                size_t fb_idx = (std::max(0, location.x) + (src_col - src_start_col)) * dst_stride + row;
-                dst->data[fb_idx] &= ~dst_mask;
-                dst->data[fb_idx] |= (dst_byte & dst_mask);
-            }
+            int dst_row = std::max(0, location.y) + src_row - src_start_row;
+            size_t dst_byte_idx = ((location.x + src_col - src_start_col) * dst_stride) + (dst_row / 8);
+            int dst_bit_idx = (dst_row % 8);
+
+            dst->data[dst_byte_idx] &= ~(0x80 >> dst_bit_idx);
+            dst->data[dst_byte_idx] |= ((src->data[src_byte_idx] & (0x80 >> src_bit_idx)) != 0) << (7 - dst_bit_idx);
         }
     }
 }
