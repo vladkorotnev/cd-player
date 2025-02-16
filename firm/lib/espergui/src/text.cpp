@@ -444,10 +444,23 @@ namespace Fonts {
         };
     }
 
+    EGSize EGFont_measure_string(const Font * font, const char * utf_string) {
+        EGSize rslt = EGSizeZero;
+
+        while(char16_t ch = EGStr_utf8_iterate(&utf_string)) {
+            auto tmp = EGFont_glyph(font, ch);
+            rslt.height = std::max(rslt.height, tmp.size.height);
+            rslt.width += tmp.size.width;
+        }
+
+        return rslt;
+    }
+
     void EGFont_put_string(const Font * font, const char * utf_string, EGPoint location, EGGraphBuf * dst) {
         while(char16_t ch = EGStr_utf8_iterate(&utf_string)) {
             auto tmp = EGFont_glyph(font, ch);
-            EGBlitBuffer(dst, location, &tmp);
+            if(location.x < -tmp.size.width+1) // don't blit chars we don't see anyway
+                EGBlitBuffer(dst, location, &tmp);
             location.x += tmp.size.width;
             if(location.x >= dst->size.width) break;
         }

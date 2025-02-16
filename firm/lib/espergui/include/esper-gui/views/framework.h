@@ -2,3 +2,4 @@
 #include "spinner.h"
 #include "imageview.h"
 #include "label.h"
+#include "progress_bar.h"

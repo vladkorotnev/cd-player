@@ -117,6 +117,10 @@ namespace CD {
 
                 case State::CLOSE:
                     // Closing the tray
+                    cur_track.track = 1;
+                    cur_track.index = 1;
+                    abs_ts = { .M = 0, .S = 0, .F = 0 };
+                    rel_ts = { .M = 0, .S = 0, .F = 0 };
                     cdrom->wait_ready();
                     if(media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN && media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN_ALT) {
                         sts = State::LOAD;
@@ -183,6 +187,10 @@ namespace CD {
                     break;
 
                 case State::STOP:
+                    cur_track.track = 1;
+                    cur_track.index = 1;
+                    abs_ts = { .M = 0, .S = 0, .F = 0 };
+                    rel_ts = { .M = 0, .S = 0, .F = 0 };
                     break;
 
                 case State::PLAY:
@@ -483,7 +491,7 @@ namespace CD {
     void Player::start_seeking(bool forward) {
         pre_seek_sts = sts;
         sts = forward ? State::SEEK_FF : State::SEEK_REW;
-        cdrom->scan(forward, abs_ts); //<- seems like not all drives support this (e.g. teac from 2004) -- can we use repeated Play MSF commands instead?
+        cdrom->scan(forward, { .M = 0xFF, .S = 0xFF, .F = 0xFF }); //<- seems like not all drives support this (e.g. teac from 2004) -- can we use repeated Play MSF commands instead?
     }
 
     void Player::change_discs(bool forward) {

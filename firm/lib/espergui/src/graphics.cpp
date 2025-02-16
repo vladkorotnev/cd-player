@@ -86,3 +86,83 @@ void EGBlitBuffer(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * 
             break;
     }
 }
+
+void EGDrawPixel(EGGraphBuf * dst, const EGPoint& location, bool state) {
+    if(location.x < 0 || location.y < 0 || location.x >= dst->size.width || location.y >= dst->size.height) return;
+    int byte;
+    int bit;
+    if(dst->fmt == EG_FMT_NATIVE) {
+        size_t stride = std::max(1u, dst->size.height / 8);
+        byte = location.x * stride + location.y / 8;
+        bit = location.y % 8;
+    }
+    else if(dst->fmt == EG_FMT_HORIZONTAL) {
+        size_t stride = std::max(1u, dst->size.width / 8);
+        byte = location.y * stride + location.x / 8;
+        bit = location.x % 8;
+    }
+    else {
+        ESP_LOGE(LOG_TAG, "Unknown buffer format %i!!", dst->fmt);
+        return;
+    }
+
+    if(!state)
+        dst->data[byte] &= ~(0x80 >> bit);
+    else
+        dst->data[byte] |= (0x80 >> bit);
+}
+
+void EGDrawLine(EGGraphBuf * dst, const EGPoint& start, const EGPoint& end, bool state) {
+    int x1 = start.x;
+    int y1 = start.y;
+    int x2 = end.x;
+    int y2 = end.y;
+
+    int dx = abs(x2 - x1);
+    int dy = abs(y2 - y1);
+    int sx = x1 < x2 ? 1 : -1;
+    int sy = y1 < y2 ? 1 : -1;
+    int err = (dx > dy ? dx : -dy) / 2;
+
+    while (true) {
+        EGDrawPixel(dst, {x1, y1}, state);
+
+        if (x1 == x2 && y1 == y2) {
+            break;
+        }
+
+        int e2 = err;
+
+        if (e2 > -dx) {
+            err -= dy;
+            x1 += sx;
+        }
+
+        if (e2 < dy) {
+            err += dx;
+            y1 += sy;
+        }
+    }
+}
+
+void EGDrawRect(EGGraphBuf * dst, const EGRect rect, bool filled, bool state) {
+    if (filled) {
+        for (int i = rect.origin.x; i < rect.origin.x + rect.size.width; i++) {
+            for (int j = rect.origin.y; j < rect.size.height; j++) {
+                EGDrawPixel(dst, {i, j}, state);
+            }
+        }
+    } else {
+        EGDrawLine(dst, {rect.origin.x, rect.origin.y}, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y}, state);
+        EGDrawLine(dst, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y}, {rect.origin.x + (int)rect.size.width, rect.origin.y + (int)rect.size.height - 1}, state);
+        EGDrawLine(dst, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y + (int)rect.size.height - 1}, {rect.origin.x, rect.origin.y + (int)rect.size.height - 1}, state);
+        EGDrawLine(dst, {rect.origin.x, rect.origin.y + (int)rect.size.height - 1}, {rect.origin.x, rect.origin.y}, state);
+    }
+}
+
+EGRect EGRectInset(EGRect r, int dx, int dy) {
+    return {
+        .origin = { r.origin.x + dx, r.origin.y + dy },
+        .size = { r.size.width - dx, r.size.height - dy }
+    };
+}

@@ -44,5 +44,8 @@ const EGRect EGRectZero = {EGPointZero, EGSizeZero};
 bool EGPointEqual(const EGPoint& a, const EGPoint& b);
 bool EGSizeEqual(const EGSize& a, const EGSize& b);
 bool EGRectEqual(const EGRect& a, const EGRect& b);
+EGRect EGRectInset(EGRect, int dx, int dy);
 void EGBlitBuffer(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * src);
-
+void EGDrawPixel(EGGraphBuf * dst, const EGPoint& location, bool state);
+void EGDrawLine(EGGraphBuf * dst, const EGPoint& start, const EGPoint& end, bool state = true);
+void EGDrawRect(EGGraphBuf * dst, const EGRect rect, bool filled = false, bool state = true);
