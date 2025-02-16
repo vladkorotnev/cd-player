@@ -17,7 +17,7 @@ bool EGRectEqual(const EGRect& a, const EGRect& b) {
 }
 
 void EGBlitNative2Native(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * src) {
-    size_t dst_stride = dst->size.height/8;
+    size_t dst_stride = std::max(dst->size.height/8, 1u);
     size_t src_stride = std::max(src->size.height/8, 1u);
 
     size_t src_start_col = std::max(0, -location.x);

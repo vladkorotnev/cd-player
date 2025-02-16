@@ -31,11 +31,11 @@ namespace Platform {
         bool need_deemphasis() override;
         bool locked_on() override;
         
+        gpio_num_t pll_not_locked_gpio = GPIO_NUM_NC;
     private:
         Core::ThreadSafeI2C * i2c;
         uint8_t addr;
         bool inited = false;
-        gpio_num_t pll_not_locked_gpio = GPIO_NUM_NC;
 
         void write(uint8_t regi, uint8_t val);
         uint8_t read(uint8_t regi);

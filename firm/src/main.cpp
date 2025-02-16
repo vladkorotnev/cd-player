@@ -16,6 +16,8 @@ Core::ThreadSafeI2C * i2c;
 Platform::Keypad * keypad;
 Graphics::Hardware::FutabaGP1232ADriver * disp;
 Graphics::Compositor * compositor;
+Platform::AudioRouter * router;
+Platform::WM8805 * spdif;
 
 Mode * app;
 
@@ -85,9 +87,27 @@ void setup(void) {
 
   keypad = new Platform::Keypad(i2c);
 
+  spdif = new Platform::WM8805(i2c);
+  spdif->initialize();
+
+  router = new Platform::AudioRouter(
+    spdif,
+    {
+      .unmute = GPIO_NUM_18,
+      .demph = GPIO_NUM_26
+    },
+    {
+      .mck = GPIO_NUM_3,
+      .bck = GPIO_NUM_5,
+      .lrck = GPIO_NUM_2,
+      .data = GPIO_NUM_27
+    }
+  );
+
   app = new CDMode({
     .i2c = i2c,
-    .keypad = keypad
+    .keypad = keypad,
+    .router = router
   });
 
   app->setup();

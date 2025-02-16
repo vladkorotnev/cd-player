@@ -25,7 +25,6 @@ private:
     class CDPView;
     CDPView * rootView;
     Platform::IDEBus ide;
-    Platform::WM8805 spdif;
     ATAPI::Device cdrom;
     CD::Player player;
     CD::CachingMetadataAggregateProvider meta;

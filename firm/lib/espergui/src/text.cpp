@@ -55,6 +55,113 @@ char16_t EGStr_utf8_iterate(const char ** ptr) {
 }
 
 namespace Fonts {
+    static const uint8_t _TinyDigitFontData[] = {
+        0b00000000,
+        0b00000000,
+        0b01110000,
+        0b00000000,
+        0b00000000,
+
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00000000,
+        0b00100000,
+
+        0b00001000,
+        0b00010000,
+        0b00100000,
+        0b01000000,
+        0b10000000,
+
+        0b01110000,
+        0b01010000,
+        0b01010000,
+        0b01010000,
+        0b01110000,
+    
+        0b00100000,
+        0b00100000,
+        0b00100000,
+        0b00100000,
+        0b00100000,
+
+        0b01110000,
+        0b00010000,
+        0b01110000,
+        0b01000000,
+        0b01110000,
+
+        0b01110000,
+        0b00010000,
+        0b00110000,
+        0b00010000,
+        0b01110000,
+
+        0b01010000,
+        0b01010000,
+        0b01110000,
+        0b00010000,
+        0b00010000,
+
+        0b01110000,
+        0b01000000,
+        0b01110000,
+        0b00010000,
+        0b01110000,
+
+        0b01110000,
+        0b01000000,
+        0b01110000,
+        0b01010000,
+        0b01110000,
+
+        0b01110000,
+        0b00010000,
+        0b00010000,
+        0b00010000,
+        0b00010000,
+
+        0b01110000,
+        0b01010000,
+        0b01110000,
+        0b01010000,
+        0b01110000,
+
+        0b01110000,
+        0b01010000,
+        0b01110000,
+        0b00010000,
+        0b01110000,
+
+        0b00000000,
+        0b00100000,
+        0b00000000,
+        0b00100000,
+        0b00000000,
+    };
+    
+    static const Range _TinyDigitFontRanges[] = {
+        Range {
+            .start = '-',
+            .end = ':',
+            .data_offset = 0
+        }
+    };
+    static const Font _TinyDigitFont = {
+        .valid = true,
+        .encoding = FONT_ENCODING_BESPOKE_ASCII,
+        .glyph_format = EG_FMT_HORIZONTAL,
+        .cursor_character = 0x0,
+        .invalid_character = '0',
+        .size = {4, 5},
+        .range_count = 1,
+        .data = _TinyDigitFontData,
+        .ranges = _TinyDigitFontRanges
+    };
+
+    const Font* TinyDigitFont = &_TinyDigitFont;
+
     namespace MoFo {
         const uint16_t MONOFONT_CUR_VERSION = 0x0001;
         const uint32_t MONOFONT_MAGIC_HDR = 0x6F466F4D; // 'MoFo', MonoFont little endian
@@ -264,6 +371,31 @@ namespace Fonts {
     void EGFont_register(const Font f) {
         font_registry.push_back(f);
     }
+
+    static const Font _FallbackWildcard16px = {
+        .valid = false,
+        .encoding = Encoding::FONT_ENCODING_BESPOKE_ASCII,
+        .glyph_format = EG_FMT_NATIVE,
+        .cursor_character = 0,
+        .invalid_character = 0,
+        .size = {8, 16},
+        .range_count = 0,
+        .data = nullptr,
+        .ranges = nullptr
+    };
+    const Font* FallbackWildcard16px = &_FallbackWildcard16px;
+    static const Font _FallbackWildcard8px = {
+        .valid = false,
+        .encoding = Encoding::FONT_ENCODING_BESPOKE_ASCII,
+        .glyph_format = EG_FMT_NATIVE,
+        .cursor_character = 0,
+        .invalid_character = 0,
+        .size = {8, 8},
+        .range_count = 0,
+        .data = nullptr,
+        .ranges = nullptr
+    };
+    const Font* FallbackWildcard8px = &_FallbackWildcard8px;
 
     const Font FallbackWildcard(unsigned int height) {
         return Font {

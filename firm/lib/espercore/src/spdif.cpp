@@ -47,6 +47,10 @@ namespace Platform {
                 .triop = false
             }}.value);
 
+            // instead of unlock pin let's have a NON_AUDIO pin, cause otherwise we hear some noise on some drives when starting playback from stop position
+            // see DS p.44 (GENERAL PURPOSE OUTPUT (GPO) CONFIGURATION)
+            write(Register::GPO01, 0x80); 
+
             if(pll_not_locked_gpio != GPIO_NUM_NC) {
                 const gpio_config_t cfg = {
                     .pin_bit_mask = 1 << pll_not_locked_gpio,

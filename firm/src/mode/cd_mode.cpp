@@ -11,18 +11,19 @@ public:
 
     std::shared_ptr<UI::Label> lblStatus;
     std::shared_ptr<UI::Label> lblTrk;
+    std::shared_ptr<UI::Label> lblTime;
     
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
-        lblStatus = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 16}}, 16, "Status"));
-        lblTrk = std::make_shared<UI::Label>(UI::Label({{0, 16}, {160, 16}}, 16, "Track 0"));
-
+        lblStatus = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, "Status"));
+        lblTrk = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, "Track 0"));
+        lblTime = std::make_shared<UI::Label>(UI::Label({{0, 24}, {27, 5}}, Fonts::TinyDigitFont, "0:00"));
         subviews.push_back(lblStatus);
         subviews.push_back(lblTrk);
+        subviews.push_back(lblTime);
     }
 };
 
 CDMode::CDMode(const PlatformSharedResources res): 
-        spdif { Platform::WM8805(res.i2c) },
         ide { Platform::IDEBus(res.i2c) },
         cdrom { ATAPI::Device(&ide) },
         meta { CD::CachingMetadataAggregateProvider("/littlefs") },
@@ -32,37 +33,21 @@ CDMode::CDMode(const PlatformSharedResources res):
     meta.providers.push_back(new CD::CDTextMetadataProvider());
     meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
     meta.providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
-    meta.providers.push_back(new CD::LrcLibLyricProvider());
-
+    // meta.providers.push_back(new CD::LrcLibLyricProvider());
 
     rootView = new CDPView();
 }
 
 void CDMode::setup() {
-    spdif.initialize();
-    spdif.set_enabled(true);
-
-    // TODO move all this into audio router
-    pinMode(18 /* #mute */, OUTPUT);
-    pinMode(26 /* deemph */, OUTPUT);
-    digitalWrite(18, false); // set mute
-    digitalWrite(26, false); // no deemph
-  
-    // release i2s bus by setting hi-Z
-    pinMode(3 /* mck */, INPUT);
-    digitalWrite(3, LOW);
-    pinMode(27 /* data */, INPUT);
-    digitalWrite(27, LOW);
+    resources.router->activate_route(Platform::AudioRoute::ROUTE_SPDIF_CD_PORT);
 }
 
 void CDMode::loop() {
     static uint8_t kp_sts = 0;
-    // TBD: Maybe use motor control peripheral for this instead of software? Anyway, move into audio router when appropriate
-    digitalWrite(18, spdif.locked_on()); // only unmute when SPDIF locked
 
     auto trk = player.get_current_track_number();
     auto sts = player.get_status();
-    if(sts == CD::Player::State::PLAY && player.get_active_slot().disc->tracks.size() <= trk.track && trk.track > 0) {
+    if(sts == CD::Player::State::PLAY && player.get_active_slot().disc->tracks.size() >= trk.track && trk.track > 0) {
         auto metadata = player.get_active_slot().disc->tracks[trk.track - 1];
         rootView->lblStatus->set_value(metadata.artist);
         rootView->lblTrk->set_value(metadata.title);
@@ -71,6 +56,8 @@ void CDMode::loop() {
         rootView->lblTrk->set_value("Track #" + std::to_string(player.get_current_track_number().track));
     }
 
+    auto msf = player.get_current_track_time();
+    rootView->lblTime->set_value((trk.index == 0 ? "-":"") + std::to_string(msf.M) + ":" + (msf.S < 10 ? "0":"") + std::to_string(msf.S)); // performance of this is gonna be awful innit
     uint8_t kp_new_sts = 0;
     if(resources.keypad->read(&kp_new_sts)) {
         if(kp_new_sts != kp_sts) {
@@ -112,7 +99,7 @@ void CDMode::teardown() {
         player.do_command(Player::Command::STOP);
     }
 
-    spdif.set_enabled(false); // TBD move into audio router or something
+    resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
 
     while(!meta.providers.empty()) {
         delete meta.providers.back();

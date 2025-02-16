@@ -5,7 +5,7 @@
 namespace UI {
     class Label: public View {
     public:
-        Label(EGRect frame, int size, std::string str = ""): View(frame), value{str}, fontSize{size} {}
+        Label(EGRect frame, const Fonts::Font * font, std::string str = ""): View(frame), value{str}, fnt{font} {}
 
         void set_value(std::string str) {
             if(str != value) {
@@ -15,13 +15,12 @@ namespace UI {
         }
 
         void render(EGGraphBuf * buf) override {
-            Fonts::Font wildcard = Fonts::FallbackWildcard(fontSize);
-            Fonts::EGFont_put_string(&wildcard, value.c_str(), EGPointZero, buf);
+            Fonts::EGFont_put_string(fnt, value.c_str(), EGPointZero, buf);
             View::render(buf);
         }
 
     private:
         std::string value = "";
-        int fontSize = 8;
+        const Fonts::Font* fnt = nullptr;
     };
 }

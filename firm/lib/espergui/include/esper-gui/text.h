@@ -49,6 +49,13 @@ namespace Fonts {
         bool Load(const char * path, Fonts::Font * dest);
     }
 
+    /// @brief Faux font to allow fallback to any 16px tall font. Rendering with it will cause a crash.
+    extern const Font * FallbackWildcard16px;
+    /// @brief Faux font to allow fallback to any 8px tall font. Rendering with it will cause a crash.
+    extern const Font * FallbackWildcard8px;
+    /// @brief Tiny 4x5px font containing only digits, minus and colon
+    extern const Font * TinyDigitFont;
+
     void EGFont_register(const Font);
     const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph, bool allow_fallback = true);
     void EGFont_put_string(const Font * font, const char * utf_string, EGPoint location, EGGraphBuf * dst);
