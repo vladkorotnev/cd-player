@@ -15,7 +15,7 @@ namespace CD {
         Player* player = static_cast<Player*>(pvParameter);
         while(true) {
             player->process_metadata_queue();
-            vTaskDelay(pdMS_TO_TICKS(10));
+            vTaskDelay(pdMS_TO_TICKS(100));
         }
     }
 
@@ -52,9 +52,9 @@ namespace CD {
     void Player::process_metadata_queue() {
         if(xSemaphoreTake(_metaSemaphore, portMAX_DELAY)) {
             std::shared_ptr<Album> album_ptr = _metaQueue.front();
-            _metaQueue.pop();
 
             meta->fetch_album(*album_ptr);
+            _metaQueue.pop();
         }
     }
 
@@ -284,8 +284,8 @@ namespace CD {
                     // PLAY while open is like pressing eject to close, then play to play
                     case Command::PLAY:
                         want_auto_play = true;
-                        cdrom->eject(false);
                         sts = State::CLOSE;
+                        cdrom->eject(false);
                     break;
 
                     default:
@@ -363,6 +363,8 @@ namespace CD {
                     break;
 
                     case Command::STOP:
+                        cur_track.track = 1;
+                        cur_track.index = 1;
                         sts = State::STOP;
                         cdrom->stop();
                     break;
@@ -424,6 +426,8 @@ namespace CD {
 
                     case Command::STOP:
                         sts = State::STOP;
+                        cur_track.track = 1;
+                        cur_track.index = 1;
                         cdrom->stop();
                     break;
 
@@ -493,7 +497,9 @@ namespace CD {
     }
 
     void Player::change_discs(bool forward) {
-        if(sts == State::PLAY) {
+        State old_sts = sts;
+        sts = State::CHANGE_DISC;
+        if(old_sts == State::PLAY) {
             cdrom->stop();
         }
 
@@ -507,11 +513,10 @@ namespace CD {
 
         ESP_LOGI(LOG_TAG, "Change slot %i -> %i", cur_slot, next_expected_slot);
 
-        if(sts == State::PLAY && slots[next_expected_slot].disc_present) {
+        if(old_sts == State::PLAY && slots[next_expected_slot].disc_present) {
             want_auto_play = true;
         }
 
         cdrom->load_unload(next_expected_slot);
-        sts = State::CHANGE_DISC;
     }
 }

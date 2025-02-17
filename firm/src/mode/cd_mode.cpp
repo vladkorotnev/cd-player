@@ -11,17 +11,23 @@ using CD::Player;
 class CDMode::CDPView: public UI::View {
 public:
 
-    std::shared_ptr<UI::Label> lblStatus;
-    std::shared_ptr<UI::Label> lblTrk;
+    std::shared_ptr<UI::Label> lblSmallTop;
+    std::shared_ptr<UI::Label> lblBigMiddle;
     std::shared_ptr<TimeBar> timeBar;
-    
+    std::shared_ptr<UI::TinySpinner> loading;
+
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
-        lblStatus = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
-        lblTrk = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Left));
+        lblSmallTop = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
+        lblBigMiddle = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         timeBar = std::make_shared<TimeBar>(TimeBar({{0, 27}, {160, 5}}));
-        subviews.push_back(lblStatus);
-        subviews.push_back(lblTrk);
+
+        loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 1}, {5, 5}}));
+        loading->hidden = true;
+
+        subviews.push_back(lblSmallTop);
+        subviews.push_back(lblBigMiddle);
         subviews.push_back(timeBar);
+        subviews.push_back(loading);
     }
 };
 
@@ -50,23 +56,67 @@ void CDMode::loop() {
     auto trk = player.get_current_track_number();
     auto sts = player.get_status();
     auto msf_now = player.get_current_track_time();
-    auto tracklist = player.get_active_slot().disc->tracks;
-    // rootView->set_needs_display(); // TODO fix tile blitting
+    auto disc = player.get_active_slot().disc;
+    auto tracklist = disc->tracks;
 
-    if(sts == CD::Player::State::PLAY && tracklist.size() >= trk.track && trk.track > 0) {
-        auto metadata = tracklist[trk.track - 1];
-        rootView->lblStatus->set_value(metadata.artist);
-        rootView->lblTrk->set_value(metadata.title);
-        MSF next_pos = (trk.track == tracklist.size()) ? player.get_active_slot().disc->duration : tracklist[trk.track].disc_position.position;
-        rootView->timeBar->update_msf(metadata.disc_position.position, msf_now, next_pos, trk.index == 0);
-    }
-    else if(player.get_active_slot().disc->title != "") {
-        rootView->lblTrk->set_value(player.get_active_slot().disc->title);
-        rootView->lblStatus->set_value("Track #" + std::to_string(trk.track));
-    }
-    else {
-        rootView->lblStatus->set_value(CD::Player::PlayerStateString(sts));
-        rootView->lblTrk->set_value("Track #" + std::to_string(trk.track));
+    rootView->loading->hidden = !(sts == Player::State::INIT || sts == Player::State::LOAD || sts == Player::State::CLOSE || sts == Player::State::CHANGE_DISC || player.is_processing_metadata());
+    rootView->timeBar->hidden = !(sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW);
+    rootView->timeBar->trackbar->filled = (sts == Player::State::PLAY);
+
+    switch(sts) {
+        case Player::State::PLAY:
+        case Player::State::PAUSE:
+        case Player::State::SEEK_FF:
+        case Player::State::SEEK_REW:
+            if(tracklist.size() >= trk.track && trk.track > 0) {
+                auto metadata = tracklist[trk.track - 1];
+                if(metadata.artist != "" && metadata.artist != disc->artist) {
+                    rootView->lblSmallTop->set_value(metadata.artist);
+                    rootView->lblSmallTop->hidden = false;
+                } else {
+                    rootView->lblSmallTop->hidden = true;
+                }
+                if(metadata.title != "") {
+                    rootView->lblBigMiddle->set_value(metadata.title);
+                } else {
+                    if(trk.index < 2) {
+                        rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track));
+                    } else {
+                        rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + " index " + std::to_string(trk.index));
+                    }
+                }
+                MSF next_pos = (trk.track == tracklist.size()) ? disc->duration : tracklist[trk.track].disc_position.position;
+                rootView->timeBar->update_msf(metadata.disc_position.position, msf_now, next_pos, trk.index == 0);
+            }
+            break;
+
+        case Player::State::STOP:
+            if(disc->title != "") {
+                rootView->lblBigMiddle->set_value(disc->title);
+            } else {
+                rootView->lblBigMiddle->set_value(CD::Player::PlayerStateString(sts));
+            }
+            if(disc->artist != "") {
+                rootView->lblSmallTop->set_value(disc->artist);
+                rootView->lblSmallTop->hidden = false;
+            } else {
+                rootView->lblSmallTop->hidden = true;
+            }
+            break;
+
+        case Player::State::CHANGE_DISC:
+            break;
+
+        case Player::State::BAD_DISC:
+            sts = Player::State::NO_DISC;
+        case Player::State::NO_DISC:
+        case Player::State::OPEN:
+        case Player::State::CLOSE:
+        case Player::State::LOAD:
+        case Player::State::INIT:
+            rootView->lblSmallTop->hidden = true;
+            rootView->lblBigMiddle->set_value(CD::Player::PlayerStateString(sts));
+            break;
     }
 
     uint8_t kp_new_sts = 0;

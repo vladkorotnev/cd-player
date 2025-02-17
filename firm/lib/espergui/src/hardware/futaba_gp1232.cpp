@@ -49,6 +49,26 @@ namespace Graphics::Hardware {
         uart_write_bytes(_port, (const void*) cmd, 3);
     }
 
+    void FutabaGP1232ADriver::transfer(const std::vector<EGRect> changes, const BackingBuffer * buffer) {
+        for(auto& rect: changes) {
+            transfer(rect.origin, rect.size, buffer);
+        }
+
+        if(anti_tearing) {
+            flip_pages();
+            for(auto& rect: changes) {
+                transfer(rect.origin, rect.size, buffer);
+            }
+        }
+    }
+
+    void FutabaGP1232ADriver::flip_pages() {
+        int new_dsa = (visible_dsa == DSA_FIRST ? DSA_SECOND : DSA_FIRST);
+        const uint8_t cmd[] = {0x1B, 0x22, (new_dsa >> 8), (new_dsa & 0xFF)};
+        uart_write_bytes(_port, (const void*) cmd, 4);
+        visible_dsa = new_dsa;
+    }
+
     void FutabaGP1232ADriver::transfer(const EGPoint address, const EGSize size, const BackingBuffer * buffer) {
         // NB: the pixels are arranged in a way so that the MSB is at the top in this display
         if(size.width == 0 || size.height == 0) return;
@@ -58,7 +78,10 @@ namespace Graphics::Hardware {
         const size_t stride = buffer->size.height / 8;
         const size_t start_idx_in_buffer = address.y / 8 + address.x * stride;
 
-        const uint8_t cmd[] = {0x1B, 0x2E, (address.x >> 8), (address.x & 0xFF), (address.y / 8), (w >> 8), (w & 0xFF), h - 1};
+        int actual_x = address.x;
+        if(anti_tearing) actual_x += (visible_dsa == DSA_FIRST ? DSA_SECOND : DSA_FIRST);
+
+        const uint8_t cmd[] = {0x1B, 0x2E, (actual_x >> 8), (actual_x & 0xFF), (address.y / 8), (w >> 8), (w & 0xFF), h - 1};
         uart_write_bytes(_port, (const void*) cmd, 8);
 
         ESP_LOGV(LOG_TAG, "Blitting address=(%i, %i) size=(%i, %i) stride=%i sidx=%i", address.x, address.y, w, h, stride, start_idx_in_buffer);

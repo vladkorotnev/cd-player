@@ -148,7 +148,7 @@ void EGDrawLine(EGGraphBuf * dst, const EGPoint& start, const EGPoint& end, bool
 void EGDrawRect(EGGraphBuf * dst, const EGRect rect, bool filled, bool state) {
     if (filled) {
         for (int i = rect.origin.x; i < rect.origin.x + rect.size.width; i++) {
-            for (int j = rect.origin.y; j < rect.size.height; j++) {
+            for (int j = rect.origin.y; j < rect.origin.y + rect.size.height; j++) {
                 EGDrawPixel(dst, {i, j}, state);
             }
         }
@@ -163,6 +163,6 @@ void EGDrawRect(EGGraphBuf * dst, const EGRect rect, bool filled, bool state) {
 EGRect EGRectInset(EGRect r, int dx, int dy) {
     return {
         .origin = { r.origin.x + dx, r.origin.y + dy },
-        .size = { r.size.width - dx, r.size.height - dy }
+        .size = { r.size.width - 2*dx, r.size.height - 2*dy }
     };
 }

@@ -21,9 +21,8 @@ namespace Graphics {
             rect.origin.y = std::max(0, rect.origin.y);
             rect.size.width = std::min(rect.size.width, framebuffer.size.width - rect.origin.x);
             rect.size.height = std::min(rect.size.height, framebuffer.size.height - rect.origin.y);
-
-            display->transfer(rect.origin, rect.size, &framebuffer);
         }
+        display->transfer(rects, &framebuffer);
         TickType_t blit_end = xTaskGetTickCount();
 
         if(pdTICKS_TO_MS(blit_end - start) > 16)
