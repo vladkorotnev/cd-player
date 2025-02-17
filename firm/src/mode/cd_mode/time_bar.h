@@ -1,0 +1,73 @@
+#pragma once
+#include <esp32-hal-log.h>
+#include <esper-gui/views/framework.h>
+#include <esper-cdp/types.h>
+
+using UI::Label;
+using UI::ProgressBar;
+using std::shared_ptr;
+using std::make_shared;
+
+class TimeBar: public UI::View {
+public:
+    shared_ptr<Label> lblLeft;
+    shared_ptr<Label> lblRight;
+    shared_ptr<ProgressBar> trackbar;
+
+    TimeBar(EGRect frame): View(frame) {
+        lblLeft = make_shared<Label>(Label({{0, 0}, {16, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Right));
+        lblRight = make_shared<Label>(Label({{(int)frame.size.width - 16, 0}, {16, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Left));
+        trackbar = make_shared<ProgressBar>(ProgressBar({{(int)lblLeft->frame.size.width, 0},{frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width, frame.size.height}}));
+        
+        subviews.push_back(lblLeft);
+        subviews.push_back(lblRight);
+        subviews.push_back(trackbar);
+    }
+
+    void update_msf(MSF start, MSF cur, MSF next_pos, bool is_pos_negative) {
+        if(cur.M != cur_msf.M || cur.S != cur_msf.S || is_pos_negative != negative) {
+            char buf[8] = { 0 };
+            snprintf(buf, 8, "%d:%02d", cur.M, cur.S);
+            lblLeft->set_value((is_pos_negative ? "-" : "") + std::string(buf));
+            update_sizes();
+            trackbar->value = MSF_TO_FRAMES(cur);
+        }
+        cur_msf = cur;
+        negative = is_pos_negative;
+
+        if(next_pos.M != next_pos_msf.M || next_pos.S != next_pos_msf.S || start.M != start_pos_msf.M || start.S != start_pos_msf.S) {
+            int cur_starts_at = MSF_TO_FRAMES(start);
+            int next_starts_at = MSF_TO_FRAMES(next_pos);
+            int duration_frames = next_starts_at - cur_starts_at;
+            int duration_sec = (duration_frames / MSF::FRAMES_IN_SECOND) % 60;
+            int duration_min = (duration_frames / MSF::FRAMES_IN_SECOND) / 60;
+
+            trackbar->maximum = duration_frames;
+            trackbar->value = MSF_TO_FRAMES(cur_msf);
+            
+            char buf[8] = { 0 };
+            snprintf(buf, 8, "%d:%02d", duration_min, duration_sec);
+            lblRight->set_value(std::string(buf));
+            update_sizes();
+        }
+        
+        start_pos_msf = start;
+        next_pos_msf = next_pos;
+    }
+
+protected:
+    MSF start_pos_msf;
+    MSF cur_msf;
+    MSF next_pos_msf;
+    bool negative;
+private:
+    void update_sizes() {
+        lblLeft->frame.size.width = lblLeft->str_size.width;
+        lblRight->frame.size.width = lblRight->str_size.width;
+
+        lblRight->frame.origin.x = frame.size.width - lblRight->str_size.width;
+
+        trackbar->frame.origin.x = lblLeft->frame.size.width + 1;
+        trackbar->frame.size.width = frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width - 2;
+    }
+};

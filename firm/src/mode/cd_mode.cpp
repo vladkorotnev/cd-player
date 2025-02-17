@@ -1,4 +1,5 @@
 #include <mode.h>
+#include "cd_mode/time_bar.h"
 #include <esper-cdp/lyrics.h>
 #include <esper-gui/views/framework.h>
 #include "Arduino.h"
@@ -12,21 +13,15 @@ public:
 
     std::shared_ptr<UI::Label> lblStatus;
     std::shared_ptr<UI::Label> lblTrk;
-    std::shared_ptr<UI::Label> lblTimeElapsed;
-    std::shared_ptr<UI::Label> lblTimeRemaining;
-    std::shared_ptr<UI::ProgressBar> trackbar;
+    std::shared_ptr<TimeBar> timeBar;
     
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
         lblStatus = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
         lblTrk = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Left));
-        lblTimeElapsed = std::make_shared<UI::Label>(UI::Label({{0, 27}, {27, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right));
-        lblTimeRemaining = std::make_shared<UI::Label>(UI::Label({{160-27, 27}, {27, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left));
-        trackbar = std::make_shared<UI::ProgressBar>(UI::ProgressBar({{28, 27}, {160-28-26, 5}}));
+        timeBar = std::make_shared<TimeBar>(TimeBar({{0, 27}, {160, 5}}));
         subviews.push_back(lblStatus);
         subviews.push_back(lblTrk);
-        subviews.push_back(lblTimeElapsed);
-        subviews.push_back(lblTimeRemaining);
-        subviews.push_back(trackbar);
+        subviews.push_back(timeBar);
     }
 };
 
@@ -55,20 +50,15 @@ void CDMode::loop() {
     auto trk = player.get_current_track_number();
     auto sts = player.get_status();
     auto msf_now = player.get_current_track_time();
+    auto tracklist = player.get_active_slot().disc->tracks;
+    // rootView->set_needs_display(); // TODO fix tile blitting
 
-    if(sts == CD::Player::State::PLAY && player.get_active_slot().disc->tracks.size() >= trk.track && trk.track > 0) {
-        auto metadata = player.get_active_slot().disc->tracks[trk.track - 1];
+    if(sts == CD::Player::State::PLAY && tracklist.size() >= trk.track && trk.track > 0) {
+        auto metadata = tracklist[trk.track - 1];
         rootView->lblStatus->set_value(metadata.artist);
         rootView->lblTrk->set_value(metadata.title);
-        int cur_starts_at = MSF_TO_FRAMES(metadata.disc_position.position);
-        int next_starts_at = MSF_TO_FRAMES(player.get_active_slot().disc->tracks[trk.track].disc_position.position);
-        int duration_frames = next_starts_at - cur_starts_at; // TODO: FRAMES_TO_MSF not converting correctly
-        int duration_sec = (duration_frames / MSF::FRAMES_IN_SECOND) % 60;
-        int duration_min = (duration_frames / MSF::FRAMES_IN_SECOND) / 60;
-        rootView->lblTimeElapsed->set_value((trk.index == 0 ? "-":"") + std::to_string(msf_now.M) + ":" + (msf_now.S < 10 ? "0":"") + std::to_string(msf_now.S)); // performance of this is gonna be awful innit
-        rootView->lblTimeRemaining->set_value(std::to_string(duration_min) + ":" + (duration_sec < 10 ? "0":"") + std::to_string(duration_sec)); // performance of this is gonna be awful innit
-        rootView->trackbar->maximum = duration_frames;
-        rootView->trackbar->value = MSF_TO_FRAMES(msf_now);
+        MSF next_pos = (trk.track == tracklist.size()) ? player.get_active_slot().disc->duration : tracklist[trk.track].disc_position.position;
+        rootView->timeBar->update_msf(metadata.disc_position.position, msf_now, next_pos, trk.index == 0);
     }
     else if(player.get_active_slot().disc->title != "") {
         rootView->lblTrk->set_value(player.get_active_slot().disc->title);
@@ -78,9 +68,6 @@ void CDMode::loop() {
         rootView->lblStatus->set_value(CD::Player::PlayerStateString(sts));
         rootView->lblTrk->set_value("Track #" + std::to_string(trk.track));
     }
-
-
-    rootView->set_needs_display(); // TODO: fix me and remove: tiled blitting bugs out when theres something in the last pixels of framebuffer
 
     uint8_t kp_new_sts = 0;
     if(resources.keypad->read(&kp_new_sts)) {

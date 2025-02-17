@@ -459,10 +459,12 @@ namespace Fonts {
     void EGFont_put_string(const Font * font, const char * utf_string, EGPoint location, EGGraphBuf * dst) {
         while(char16_t ch = EGStr_utf8_iterate(&utf_string)) {
             auto tmp = EGFont_glyph(font, ch);
-            if(location.x < -tmp.size.width+1) // don't blit chars we don't see anyway
+            if(location.x >= 0) // don't blit chars we don't see anyway
                 EGBlitBuffer(dst, location, &tmp);
             location.x += tmp.size.width;
-            if(location.x >= dst->size.width) break;
+            if(location.x >= dst->size.width) {
+                break;
+            }
         }
     }
 }

@@ -95,6 +95,7 @@ namespace CD {
         const MSF get_current_absolute_time() { return abs_ts; }
         const MSF get_current_track_time() { return rel_ts; }
         const TrackNo get_current_track_number() { return cur_track; }
+        bool is_processing_metadata() { return !_metaQueue.empty(); }
 
         void do_command(Command);
         void do_command_async(Command);

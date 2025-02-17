@@ -54,7 +54,7 @@ namespace Graphics::Hardware {
         if(size.width == 0 || size.height == 0) return;
 
         const uint16_t w = (size.width);
-        const uint8_t h = (size.height / 8) + (size.height % 8 != 0) + (address.y % 8 != 0);
+        const uint8_t h = (size.height / 8) + (size.height % 8 != 0);
         const size_t stride = buffer->size.height / 8;
         const size_t start_idx_in_buffer = address.y / 8 + address.x * stride;
 

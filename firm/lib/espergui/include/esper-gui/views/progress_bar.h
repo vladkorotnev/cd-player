@@ -26,12 +26,12 @@ namespace UI {
             EGDrawRect(buf, outer_frame);
 
             EGRect indicator_base = EGRectInset(outer_frame, 2, 2);
-            indicator_base.size.width = std::min(indicator_base.size.width - 4, pix_width);
+            indicator_base.size.width = std::min(indicator_base.size.width - 1, pix_width);
 
             if(filled) {
                 EGDrawRect(buf, indicator_base, true);
             } else {
-                EGDrawLine(buf, {indicator_base.origin.x + (int)indicator_base.size.width, 0}, {indicator_base.origin.x + (int)indicator_base.size.width, (int)frame.size.height});
+                EGDrawLine(buf, {indicator_base.origin.x + (int)indicator_base.size.width, 1}, {indicator_base.origin.x + (int)indicator_base.size.width, (int)frame.size.height - 2});
             }
             View::render(buf);
         }
@@ -39,7 +39,9 @@ namespace UI {
         unsigned int pix_width = 0;
 
         int calc_pix_width() {
-            return (((frame.size.width - 4) * (value - minimum)) / (maximum - minimum));
+            if(value <= minimum) return 0;
+            if(value >= maximum) return frame.size.width - 2;
+            return (((frame.size.width - 2) * (value - minimum)) / (maximum - minimum));
         }
     };
 }

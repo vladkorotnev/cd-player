@@ -1,4 +1,5 @@
 #pragma once
+#include <esp32-hal-log.h>
 #include <esper-gui/graphics.h>
 #include <vector>
 #include <memory>
@@ -45,9 +46,13 @@ private:
     EGRect was_frame = {{0, 0}, {0, 0}};
     int subview_count = 0;
 
+protected:
     /// @brief Whether the view or any of its children had changes to the geometry, requiring the whole view to be repainted 
     bool need_layout() {
-        if(!EGRectEqual(was_frame, frame) || subview_count != subviews.size()) return true;
+        if(!EGRectEqual(was_frame, frame) || subview_count != subviews.size()) {
+            ESP_LOGW("Layout", "View(0x%x) needs a layout pass! Hidden=(%i -> %i) Frame=(%i %i %i %i -> %i %i %i %i) Subviews=(%i -> %i)", this, was_hidden, hidden, was_frame.origin.x, was_frame.origin.y, was_frame.size.width, was_frame.size.height, frame.origin.x, frame.origin.y, frame.size.width, frame.size.height, subview_count, subviews.size());
+            return true;
+        }
 
         return std::any_of(subviews.cbegin(), subviews.cend(), [](std::shared_ptr<View> v) { return v->need_layout(); });
     }

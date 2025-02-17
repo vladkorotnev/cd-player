@@ -154,7 +154,7 @@ void EGDrawRect(EGGraphBuf * dst, const EGRect rect, bool filled, bool state) {
         }
     } else {
         EGDrawLine(dst, {rect.origin.x, rect.origin.y}, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y}, state);
-        EGDrawLine(dst, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y}, {rect.origin.x + (int)rect.size.width, rect.origin.y + (int)rect.size.height - 1}, state);
+        EGDrawLine(dst, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y}, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y + (int)rect.size.height - 1}, state);
         EGDrawLine(dst, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y + (int)rect.size.height - 1}, {rect.origin.x, rect.origin.y + (int)rect.size.height - 1}, state);
         EGDrawLine(dst, {rect.origin.x, rect.origin.y + (int)rect.size.height - 1}, {rect.origin.x, rect.origin.y}, state);
     }

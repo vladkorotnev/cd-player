@@ -187,8 +187,6 @@ namespace CD {
                     break;
 
                 case State::STOP:
-                    cur_track.track = 1;
-                    cur_track.index = 1;
                     abs_ts = { .M = 0, .S = 0, .F = 0 };
                     rel_ts = { .M = 0, .S = 0, .F = 0 };
                     break;

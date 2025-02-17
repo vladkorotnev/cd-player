@@ -15,19 +15,19 @@ namespace Graphics {
         TickType_t render_end = xTaskGetTickCount();
         for(auto& rect: rects) {
             // clamp rect to bounds of buffer, since screen driver cannot process negative coords
-            rect.size.width = std::min(rect.size.width, framebuffer.size.width);
-            rect.size.height = std::min(rect.size.height, framebuffer.size.height);
             rect.size.width -= std::max(0, -rect.origin.x);
             rect.origin.x = std::max(0, rect.origin.x);
             rect.size.height -= std::max(0, -rect.origin.y);
             rect.origin.y = std::max(0, rect.origin.y);
+            rect.size.width = std::min(rect.size.width, framebuffer.size.width - rect.origin.x);
+            rect.size.height = std::min(rect.size.height, framebuffer.size.height - rect.origin.y);
 
             display->transfer(rect.origin, rect.size, &framebuffer);
         }
         TickType_t blit_end = xTaskGetTickCount();
 
-        if(pdTICKS_TO_MS(blit_end - start) > 1)
-            ESP_LOGV(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
+        if(pdTICKS_TO_MS(blit_end - start) > 16)
+            ESP_LOGI(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
     }
 
     /// @brief Render a view and its children into the framebuffer and create a list of rects that need blitting
@@ -40,7 +40,6 @@ namespace Graphics {
         ESP_LOGD(LOG_TAG, "Rendering %s view @ (%i, %i) [absolute (%i, %i)] size (%i, %i)", view.hidden ? "HIDDEN" : "visible", view.frame.origin.x, view.frame.origin.y, abs_origin.x, abs_origin.y, view.frame.size.width, view.frame.size.height);
 
         bool blit_the_dam_thing = false;
-        bool needed_display = false;
 
         if(view.needs_display() || parent_needs_display) {
             size_t view_stride = std::max(view.frame.size.height/8, 1u);
@@ -68,7 +67,6 @@ namespace Graphics {
 
             // if hidden we will blit the empty tmp_surface, effectively cleaning the area
             if(!view.hidden) view.render(&buf);
-            needed_display = true;
             view.clear_needs_display();
 
             if(tmp_surface != framebuffer.data) {
@@ -88,7 +86,7 @@ namespace Graphics {
 
         if(!view.hidden) {
             for(auto subview: view.subviews) {
-                render_into_buffer(*subview, blit_the_dam_thing ? nullptr : rects, abs_origin, needed_display);
+                render_into_buffer(*subview, blit_the_dam_thing ? nullptr : rects, abs_origin, blit_the_dam_thing);
             }
         }
     }

@@ -11,6 +11,9 @@ namespace UI {
             Right
         };
 
+        bool auto_scroll = false;
+        EGSize str_size = EGSizeZero;
+
         Alignment alignment = Alignment::Left;
 
         Label(EGRect frame, const Fonts::Font * font, Alignment align, std::string str = ""): View(frame), fnt{font}, alignment{align} {
@@ -22,25 +25,52 @@ namespace UI {
                 value = str;
                 str_size = Fonts::EGFont_measure_string(fnt, value.c_str());
                 set_needs_display();
+                last_scroll_tick = xTaskGetTickCount();
+                scroll_offset = 0;
             }
         }
 
         void render(EGGraphBuf * buf) override {
             EGPoint origin = EGPointZero;
-            if(alignment != Alignment::Left) {
-                if(alignment == Alignment::Center) {
-                    origin.x = buf->size.width / 2 - str_size.width / 2;
-                } else {
-                    origin.x = buf->size.width - str_size.width;
+            if(auto_scroll && str_size.width > frame.size.width) {
+                origin.x = -scroll_offset;
+            } else {
+                if(alignment != Alignment::Left) {
+                    if(alignment == Alignment::Center) {
+                        origin.x = buf->size.width / 2 - str_size.width / 2;
+                    } else {
+                        origin.x = buf->size.width - str_size.width;
+                    }
                 }
             }
             Fonts::EGFont_put_string(fnt, value.c_str(), origin, buf);
             View::render(buf);
         }
 
+        bool needs_display() override {
+            TickType_t now = xTaskGetTickCount();
+            if(auto_scroll && str_size.width > frame.size.width && (now - last_scroll_tick >= pdMS_TO_TICKS(33))) {
+                last_scroll_tick = now;
+
+                // if(scroll_holdoff == 0 || scroll_offset != 0) {
+                    scroll_offset++;
+                    scroll_holdoff = 120;
+                    if(scroll_offset >= str_size.width + 16) {
+                        scroll_offset = -frame.size.width;
+                    }
+                    return true;
+                // } else {
+                //     scroll_holdoff--;
+                // }
+            }
+            return View::needs_display();
+        }
+
     private:
         std::string value = "";
-        EGSize str_size = EGSizeZero;
         const Fonts::Font* fnt = nullptr;
+        int scroll_offset = 0;
+        int scroll_holdoff = 120;
+        TickType_t last_scroll_tick = 0;
     };
 }
