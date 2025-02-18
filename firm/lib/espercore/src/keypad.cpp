@@ -30,11 +30,11 @@ namespace Platform {
             } else {
                 if(wire->requestFrom(_addr, (uint8_t)1) != 1) {
                     ESP_LOGE(LOG_TAG, "Error when reading inPort");
-                    return false;
                 }
-
-                *outVal = ~wire->read();
-                rslt = true;
+                else {
+                    *outVal = ~wire->read();
+                    rslt = true;
+                }
             }
         }
 

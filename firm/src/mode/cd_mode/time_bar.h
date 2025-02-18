@@ -16,8 +16,8 @@ public:
 
     TimeBar(EGRect frame): View(frame) {
         lblLeft = make_shared<Label>(Label({{0, 0}, {16, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Right));
-        lblRight = make_shared<Label>(Label({{(int)frame.size.width - 16, 0}, {16, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Left));
-        trackbar = make_shared<ProgressBar>(ProgressBar({{(int)lblLeft->frame.size.width, 0},{frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width, frame.size.height}}));
+        lblRight = make_shared<Label>(Label({{frame.size.width - 16, 0}, {16, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Left));
+        trackbar = make_shared<ProgressBar>(ProgressBar({{lblLeft->frame.size.width, 0},{frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width, frame.size.height}}));
         
         subviews.push_back(lblLeft);
         subviews.push_back(lblRight);
@@ -51,6 +51,10 @@ public:
             update_sizes();
         }
         
+        if(is_pos_negative) {
+            trackbar->value = trackbar->minimum;
+        }
+
         start_pos_msf = start;
         next_pos_msf = next_pos;
     }

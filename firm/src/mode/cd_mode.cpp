@@ -19,6 +19,8 @@ public:
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
         lblSmallTop = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
         lblBigMiddle = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
+        lblSmallTop->auto_scroll = true;
+        lblBigMiddle->auto_scroll = true;
         timeBar = std::make_shared<TimeBar>(TimeBar({{0, 27}, {160, 5}}));
 
         loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 1}, {5, 5}}));

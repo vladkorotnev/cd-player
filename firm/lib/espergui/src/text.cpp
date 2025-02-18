@@ -348,11 +348,11 @@ namespace Fonts {
                 int idx = 0;
                 switch(font->glyph_format) {
                     case EG_FMT_HORIZONTAL:
-                        idx = range->data_offset + (glyph - range->start) * std::max((font->size.width / 8), 1u) * font->size.height;
+                        idx = range->data_offset + (glyph - range->start) * std::max((font->size.width / 8), 1) * font->size.height;
                         break;
                     case EG_FMT_NATIVE:
                     default:
-                        idx = range->data_offset + (glyph - range->start) * std::max((font->size.height / 8), 1u) * font->size.width;
+                        idx = range->data_offset + (glyph - range->start) * std::max((font->size.height / 8), 1) * font->size.width;
                         break;
                 }
                 glyph_ptr = &font->data[idx];
@@ -396,20 +396,6 @@ namespace Fonts {
         .ranges = nullptr
     };
     const Font* FallbackWildcard8px = &_FallbackWildcard8px;
-
-    const Font FallbackWildcard(unsigned int height) {
-        return Font {
-            .valid = false,
-            .encoding = Encoding::FONT_ENCODING_BESPOKE_ASCII,
-            .glyph_format = EG_FMT_NATIVE,
-            .cursor_character = 0,
-            .invalid_character = 0,
-            .size = {8, height},
-            .range_count = 0,
-            .data = nullptr,
-            .ranges = nullptr
-        };
-    }
 
     const EGGraphBuf EGFont_glyph(const Font* font, char16_t glyph, bool allow_fallback) {
         auto ptr = EGFont_glyph_data_ptr(font, glyph);
@@ -459,11 +445,11 @@ namespace Fonts {
     void EGFont_put_string(const Font * font, const char * utf_string, EGPoint location, EGGraphBuf * dst) {
         while(char16_t ch = EGStr_utf8_iterate(&utf_string)) {
             auto tmp = EGFont_glyph(font, ch);
-            if(location.x >= 0) // don't blit chars we don't see anyway
+            if(location.x >= -tmp.size.width) // don't blit chars we don't see anyway
                 EGBlitBuffer(dst, location, &tmp);
             location.x += tmp.size.width;
             if(location.x >= dst->size.width) {
-                break;
+                continue;
             }
         }
     }

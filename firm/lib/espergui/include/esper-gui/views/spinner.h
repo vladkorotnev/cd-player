@@ -7,7 +7,7 @@ namespace UI {
 
 class TinySpinner: public View {
 public:
-    int interval_ms = 16;
+    int interval_ms = 250;
     TinySpinner(EGRect f): View(f) {}
 
     bool needs_display() override {
@@ -31,7 +31,7 @@ public:
             {0, 2},
             {0, 1}
         };
-        unsigned int bit_size = frame.size.height / 3;
+        int bit_size = frame.size.height / 3;
         for(int i = 0; i < 8; i++) {
             EGPoint p = offsets[i];
             p.x *= 2*bit_size;
@@ -51,39 +51,39 @@ public:
     int interval_ms = 66;
 
     BigSpinner(EGRect f): View(f) {
-        unsigned int bit_size = 2;
+        int bit_size = 2;
         auto rect = std::make_shared<FilledRect>(FilledRect());
         rect->frame = {{0, 0}, {bit_size, bit_size}}; // top left
         subviews.push_back(rect);
 
         rect = std::make_shared<FilledRect>(FilledRect());
-        rect->frame = {{(int)(f.size.width / 2 - bit_size / 2), 0}, {bit_size, bit_size}}; // top middle
+        rect->frame = {{(f.size.width / 2 - bit_size / 2), 0}, {bit_size, bit_size}}; // top middle
         rect->hidden = true;
         pos = 1;
         subviews.push_back(rect);
 
         rect = std::make_shared<FilledRect>(FilledRect());
-        rect->frame = {{(int)(f.size.width - bit_size), 0}, {bit_size, bit_size}}; // top right
+        rect->frame = {{(f.size.width - bit_size), 0}, {bit_size, bit_size}}; // top right
         subviews.push_back(rect);
 
         rect = std::make_shared<FilledRect>(FilledRect());
-        rect->frame = {{(int)(f.size.width - bit_size), (int)(f.size.height / 2 - bit_size / 2)}, {bit_size, bit_size}}; // middle right
+        rect->frame = {{(f.size.width - bit_size), (f.size.height / 2 - bit_size / 2)}, {bit_size, bit_size}}; // middle right
         subviews.push_back(rect);
 
         rect = std::make_shared<FilledRect>(FilledRect());
-        rect->frame = {{(int)(f.size.width - bit_size), (int)(f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom right
+        rect->frame = {{(f.size.width - bit_size), (f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom right
         subviews.push_back(rect);
 
         rect = std::make_shared<FilledRect>(FilledRect());
-        rect->frame = {{(int)(f.size.width / 2 - bit_size / 2), (int)(f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom middle
+        rect->frame = {{(f.size.width / 2 - bit_size / 2), (f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom middle
         subviews.push_back(rect);
 
         rect = std::make_shared<FilledRect>(FilledRect());
-        rect->frame = {{0, (int)(f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom left
+        rect->frame = {{0, (f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom left
         subviews.push_back(rect);
 
         rect = std::make_shared<FilledRect>(FilledRect());
-        rect->frame = {{0, (int)(f.size.height / 2 - bit_size / 2)}, {bit_size, bit_size}}; // middle left
+        rect->frame = {{0, (f.size.height / 2 - bit_size / 2)}, {bit_size, bit_size}}; // middle left
         subviews.push_back(rect);
     }
 

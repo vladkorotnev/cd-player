@@ -17,8 +17,8 @@ bool EGRectEqual(const EGRect& a, const EGRect& b) {
 }
 
 void EGBlitNative2Native(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * src) {
-    size_t dst_stride = std::max(dst->size.height/8, 1u);
-    size_t src_stride = std::max(src->size.height/8, 1u);
+    size_t dst_stride = std::max(dst->size.height/8, 1);
+    size_t src_stride = std::max(src->size.height/8, 1);
 
     size_t src_start_col = std::max(0, -location.x);
     int src_start_row = std::max(0, -location.y);
@@ -40,9 +40,9 @@ void EGBlitNative2Native(EGGraphBuf * dst, const EGPoint& location, const EGGrap
 
 void EGBlitHorizontal2Native(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * src) {
     // Does this have ass performance? Who knows...
-    size_t view_stride = std::max(src->size.width/8, 1u);
+    size_t view_stride = std::max(src->size.width/8, 1);
 
-    uint8_t tmp_col_buf[std::max(src->size.height/8, 1u)];
+    uint8_t tmp_col_buf[std::max(src->size.height/8, 1)];
     EGGraphBuf tmp_col_src = {
         .fmt = EG_FMT_NATIVE,
         .size = { .width = 1, .height = src->size.height },
@@ -92,12 +92,12 @@ void EGDrawPixel(EGGraphBuf * dst, const EGPoint& location, bool state) {
     int byte;
     int bit;
     if(dst->fmt == EG_FMT_NATIVE) {
-        size_t stride = std::max(1u, dst->size.height / 8);
+        size_t stride = std::max(1, dst->size.height / 8);
         byte = location.x * stride + location.y / 8;
         bit = location.y % 8;
     }
     else if(dst->fmt == EG_FMT_HORIZONTAL) {
-        size_t stride = std::max(1u, dst->size.width / 8);
+        size_t stride = std::max(1, dst->size.width / 8);
         byte = location.y * stride + location.x / 8;
         bit = location.x % 8;
     }
@@ -153,10 +153,10 @@ void EGDrawRect(EGGraphBuf * dst, const EGRect rect, bool filled, bool state) {
             }
         }
     } else {
-        EGDrawLine(dst, {rect.origin.x, rect.origin.y}, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y}, state);
-        EGDrawLine(dst, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y}, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y + (int)rect.size.height - 1}, state);
-        EGDrawLine(dst, {rect.origin.x + (int)rect.size.width - 1, rect.origin.y + (int)rect.size.height - 1}, {rect.origin.x, rect.origin.y + (int)rect.size.height - 1}, state);
-        EGDrawLine(dst, {rect.origin.x, rect.origin.y + (int)rect.size.height - 1}, {rect.origin.x, rect.origin.y}, state);
+        EGDrawLine(dst, {rect.origin.x, rect.origin.y}, {rect.origin.x + rect.size.width - 1, rect.origin.y}, state);
+        EGDrawLine(dst, {rect.origin.x + rect.size.width - 1, rect.origin.y}, {rect.origin.x + rect.size.width - 1, rect.origin.y + rect.size.height - 1}, state);
+        EGDrawLine(dst, {rect.origin.x + rect.size.width - 1, rect.origin.y + rect.size.height - 1}, {rect.origin.x, rect.origin.y + rect.size.height - 1}, state);
+        EGDrawLine(dst, {rect.origin.x, rect.origin.y + rect.size.height - 1}, {rect.origin.x, rect.origin.y}, state);
     }
 }
 

@@ -52,16 +52,16 @@ namespace UI {
             if(auto_scroll && str_size.width > frame.size.width && (now - last_scroll_tick >= pdMS_TO_TICKS(33))) {
                 last_scroll_tick = now;
 
-                // if(scroll_holdoff == 0 || scroll_offset != 0) {
+                if(scroll_holdoff == 0 || scroll_offset != 0) {
                     scroll_offset++;
                     scroll_holdoff = 120;
                     if(scroll_offset >= str_size.width + 16) {
                         scroll_offset = -frame.size.width;
                     }
                     return true;
-                // } else {
-                //     scroll_holdoff--;
-                // }
+                } else {
+                    scroll_holdoff--;
+                }
             }
             return View::needs_display();
         }

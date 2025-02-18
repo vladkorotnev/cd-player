@@ -12,8 +12,8 @@ struct EGPoint {
 
 /// @brief Hardware surface size
 struct EGSize {
-    unsigned int width;
-    unsigned int height;
+    int width;
+    int height;
 };
 
 struct EGRect {

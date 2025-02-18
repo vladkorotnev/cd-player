@@ -31,17 +31,17 @@ namespace UI {
             if(filled) {
                 EGDrawRect(buf, indicator_base, true);
             } else {
-                EGDrawLine(buf, {indicator_base.origin.x + (int)indicator_base.size.width, 1}, {indicator_base.origin.x + (int)indicator_base.size.width, (int)frame.size.height - 2});
+                EGDrawLine(buf, {indicator_base.origin.x + indicator_base.size.width, 1}, {indicator_base.origin.x + indicator_base.size.width, frame.size.height - 2});
             }
             View::render(buf);
         }
     private:
-        unsigned int pix_width = 0;
+        int pix_width = 0;
 
         int calc_pix_width() {
             if(value <= minimum) return 0;
             if(value >= maximum) return frame.size.width - 2;
-            return (((frame.size.width - 2) * (value - minimum)) / (maximum - minimum));
+            return (((frame.size.width - 2) * (value - minimum)) / (maximum - minimum)) + ((((frame.size.width - 2) * (value - minimum)) / (maximum - minimum)) != 0);
         }
     };
 }

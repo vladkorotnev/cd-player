@@ -41,7 +41,7 @@ namespace Graphics {
         bool blit_the_dam_thing = false;
 
         if(view.needs_display() || parent_needs_display) {
-            size_t view_stride = std::max(view.frame.size.height/8, 1u);
+            size_t view_stride = std::max(view.frame.size.height/8, 1);
             size_t surface_size = view.frame.size.width * view_stride;
             
             EGRawGraphBuf tmp_surface = nullptr;
