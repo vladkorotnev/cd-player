@@ -100,7 +100,7 @@ namespace CD {
                 cur_slot = 0;
             }
 
-            if(media_type == ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
+            if((media_type == ATAPI::MediaTypeCode::MTC_DOOR_OPEN || mech->is_door_open) && sts != State::CLOSE) {
                 slots[cur_slot].disc = std::make_shared<Album>(Album());
                 sts = State::OPEN;
             }

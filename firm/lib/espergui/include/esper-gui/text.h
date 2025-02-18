@@ -5,6 +5,8 @@
 #include <stdio.h>
 
 // NB: this is mostly ported from PIS-OS, just changing the code style to match the project
+char16_t EGStr_utf8_iterate(const char ** ptr);
+size_t EGStr_utf8_strlen(const char * str);
 
 namespace Fonts {
     enum Encoding : uint8_t {
@@ -51,6 +53,8 @@ namespace Fonts {
 
     /// @brief Faux font to allow fallback to any 16px tall font. Rendering with it will cause a crash.
     extern const Font * FallbackWildcard16px;
+    /// @brief Faux font to allow fallback to any 16px tall font. Rendering with it will cause a crash.
+    extern const Font * FallbackWildcard12px;
     /// @brief Faux font to allow fallback to any 8px tall font. Rendering with it will cause a crash.
     extern const Font * FallbackWildcard8px;
     /// @brief Tiny 4x5px font containing only digits, minus and colon

@@ -1,5 +1,6 @@
 #pragma once
 #include "platform.h"
+#include "../src/mode/cd_mode/lyric_player.h" // TODO move?
 #include <esper-cdp/player.h>
 #include <esper-core/spdif.h>
 
@@ -23,6 +24,7 @@ public:
     void teardown() override;
 private:
     class CDPView;
+    LyricPlayer lrc;
     CDPView * rootView;
     Platform::IDEBus ide;
     ATAPI::Device cdrom;

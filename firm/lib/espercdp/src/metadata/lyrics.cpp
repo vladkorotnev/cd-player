@@ -45,7 +45,8 @@ namespace CD {
                         break;
                     }
                     else {
-                        content += c;
+                        if(!content.empty() || c != ' ')
+                            content += c;
                     }
                 }
                 else if(skip_token) {
@@ -104,7 +105,7 @@ namespace CD {
         sort_lines(container);
 
         for(auto &l: container) {
-            ESP_LOGI(LOG_TAG, "RSLT: (%i ms) %s", l.millisecond, l.line.c_str());
+            ESP_LOGV(LOG_TAG, "RSLT: (%i ms) %s", l.millisecond, l.line.c_str());
         }
     }
 

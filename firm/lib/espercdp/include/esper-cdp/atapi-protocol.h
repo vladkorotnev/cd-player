@@ -25,6 +25,7 @@ namespace ATAPI {
         LOAD_UNLOAD = 0xA6,
         MECHANISM_STATUS = 0xBD,
         SCAN = 0xBA,
+        PLAY_CD = 0xBC,
         READ_CD = 0xBE,
     };
 
@@ -104,6 +105,29 @@ namespace ATAPI {
             uint8_t reserved1;
             MSF start_position;
             MSF end_position;
+            ReqPktFooter footer;
+        };
+
+        struct ATAPI_PKT PlayCD {
+            uint8_t opcode;
+
+            bool reserved0: 1;
+            bool is_msf: 1;
+            uint8_t expected_sector_type: 3;
+            uint8_t lun: 3;
+
+            uint8_t reserved1;
+            MSF start_position;
+            MSF end_position;
+            uint8_t reserved2;
+
+            bool audio: 1;
+            bool composite: 1;
+            bool port1: 1;
+            bool port2: 1;
+            uint8_t reserved3: 3;
+            bool speed: 1;
+
             ReqPktFooter footer;
         };
 

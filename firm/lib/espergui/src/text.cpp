@@ -54,6 +54,12 @@ char16_t EGStr_utf8_iterate(const char ** ptr) {
     return (val & 0xFFFF);
 }
 
+size_t EGStr_utf8_strlen(const char * str) {
+    size_t rslt = 0;
+    while(EGStr_utf8_iterate(&str)) rslt++;
+    return rslt;
+}
+
 namespace Fonts {
     static const uint8_t _TinyDigitFontData[] = {
         0b00000000,
@@ -384,6 +390,18 @@ namespace Fonts {
         .ranges = nullptr
     };
     const Font* FallbackWildcard16px = &_FallbackWildcard16px;
+    static const Font _FallbackWildcard12px = {
+        .valid = false,
+        .encoding = Encoding::FONT_ENCODING_BESPOKE_ASCII,
+        .glyph_format = EG_FMT_NATIVE,
+        .cursor_character = 0,
+        .invalid_character = 0,
+        .size = {8, 12},
+        .range_count = 0,
+        .data = nullptr,
+        .ranges = nullptr
+    };
+    const Font* FallbackWildcard12px = &_FallbackWildcard12px;
     static const Font _FallbackWildcard8px = {
         .valid = false,
         .encoding = Encoding::FONT_ENCODING_BESPOKE_ASCII,
@@ -448,9 +466,7 @@ namespace Fonts {
             if(location.x >= -tmp.size.width) // don't blit chars we don't see anyway
                 EGBlitBuffer(dst, location, &tmp);
             location.x += tmp.size.width;
-            if(location.x >= dst->size.width) {
-                continue;
-            }
+            if(location.x >= dst->size.width) break;
         }
     }
 }

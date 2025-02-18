@@ -52,6 +52,9 @@ void load_all_fonts() {
   if(!Fonts::MoFo::Load("/littlefs/font/jiskan16.mofo", &tmp)) ESP_LOGE(LOG_TAG, "jiskan err");
   else Fonts::EGFont_register(tmp);
 
+  if(!Fonts::MoFo::Load("/littlefs/font/k8x12.mofo", &tmp)) ESP_LOGE(LOG_TAG, "k8x12 err");
+  else Fonts::EGFont_register(tmp);
+
   fclose(f);
 }
 
@@ -111,12 +114,19 @@ void setup(void) {
   });
 
   app->setup();
+  app->main_view().set_needs_display();
 }
 
+TickType_t lastRender = 0;
 
 // cppcheck-suppress unusedFunction
 void loop() {
   print_memory();
   app->loop();
-  compositor->render(app->main_view());
+  TickType_t now = xTaskGetTickCount();
+  if(now - lastRender >= pdMS_TO_TICKS(33)) {
+    // around 30 fps, if you're lucky... maybe make rendering and blitting async perhaps?
+    lastRender = now;
+    compositor->render(app->main_view());
+  }
 }

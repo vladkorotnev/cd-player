@@ -49,12 +49,12 @@ namespace UI {
 
         bool needs_display() override {
             TickType_t now = xTaskGetTickCount();
-            if(auto_scroll && str_size.width > frame.size.width && (now - last_scroll_tick >= pdMS_TO_TICKS(33))) {
+            if(auto_scroll && str_size.width > frame.size.width && (now - last_scroll_tick >= pdMS_TO_TICKS(66))) {
                 last_scroll_tick = now;
 
                 if(scroll_holdoff == 0 || scroll_offset != 0) {
-                    scroll_offset++;
-                    scroll_holdoff = 120;
+                    scroll_offset += 4;
+                    scroll_holdoff = 60;
                     if(scroll_offset >= str_size.width + 16) {
                         scroll_offset = -frame.size.width;
                     }
@@ -70,7 +70,7 @@ namespace UI {
         std::string value = "";
         const Fonts::Font* fnt = nullptr;
         int scroll_offset = 0;
-        int scroll_holdoff = 120;
+        int scroll_holdoff = 60;
         TickType_t last_scroll_tick = 0;
     };
 }

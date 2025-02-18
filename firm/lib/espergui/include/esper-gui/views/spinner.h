@@ -12,7 +12,7 @@ public:
 
     bool needs_display() override {
         TickType_t now = xTaskGetTickCount();
-        if(now - last_tick >= pdMS_TO_TICKS(interval_ms)) {
+        if(now - last_tick >= pdMS_TO_TICKS(interval_ms) && !hidden) {
             pos = (pos + 1) % 8;
             last_tick = now;
             return true;

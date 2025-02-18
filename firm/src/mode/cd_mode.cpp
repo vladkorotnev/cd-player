@@ -1,6 +1,6 @@
 #include <mode.h>
 #include "cd_mode/time_bar.h"
-#include <esper-cdp/lyrics.h>
+#include "cd_mode/lyric_label.h"
 #include <esper-gui/views/framework.h>
 #include "Arduino.h"
 #include <string>
@@ -8,29 +8,62 @@
 static const char LOG_TAG[] = "APL_CDP";
 using CD::Player;
 
+
 class CDMode::CDPView: public UI::View {
 public:
 
     std::shared_ptr<UI::Label> lblSmallTop;
     std::shared_ptr<UI::Label> lblBigMiddle;
+    std::shared_ptr<LyricLabel> lblLyric;
+    std::shared_ptr<UI::View> allButLyric;
     std::shared_ptr<TimeBar> timeBar;
     std::shared_ptr<UI::TinySpinner> loading;
 
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
+        allButLyric = std::make_shared<UI::View>(UI::View({{0, 0}, {160, 27}}));
         lblSmallTop = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
         lblBigMiddle = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
+
+        lblLyric = std::make_shared<LyricLabel>(LyricLabel({{0, 0}, {160, 27}}));
+        lblLyric->hidden = true;
         timeBar = std::make_shared<TimeBar>(TimeBar({{0, 27}, {160, 5}}));
 
         loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 1}, {5, 5}}));
         loading->hidden = true;
 
-        subviews.push_back(lblSmallTop);
-        subviews.push_back(lblBigMiddle);
+        allButLyric->subviews.push_back(lblSmallTop);
+        allButLyric->subviews.push_back(lblBigMiddle);
+        allButLyric->subviews.push_back(loading);
+
         subviews.push_back(timeBar);
-        subviews.push_back(loading);
+        subviews.push_back(lblLyric);
+        subviews.push_back(allButLyric);
     }
+
+    bool needs_display() override {
+        if(xTaskGetTickCount() - last_lyric_time >= pdMS_TO_TICKS(lyric_len)) {
+            set_lyric_show(false, lyric_len);
+        }
+        return View::needs_display();
+    }
+
+    void set_lyric_show(bool is_lyric, int len) {
+        if(is_lyric) last_lyric_time = xTaskGetTickCount();
+
+        if(now_is_lyric != is_lyric) {
+            lyric_len = len;
+            lblLyric->hidden = !is_lyric;
+            allButLyric->hidden = is_lyric;
+            set_needs_display();
+            now_is_lyric = is_lyric;
+        }
+    }
+private:
+    bool now_is_lyric = false;
+    int lyric_len = 0;
+    TickType_t last_lyric_time = 0;
 };
 
 CDMode::CDMode(const PlatformSharedResources res): 
@@ -43,7 +76,7 @@ CDMode::CDMode(const PlatformSharedResources res):
     meta.providers.push_back(new CD::CDTextMetadataProvider());
     meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
     meta.providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
-    // meta.providers.push_back(new CD::LrcLibLyricProvider());
+    meta.providers.push_back(new CD::LrcLibLyricProvider());
 
     rootView = new CDPView();
 }
@@ -93,6 +126,7 @@ void CDMode::loop() {
             break;
 
         case Player::State::STOP:
+            rootView->set_lyric_show(false, 0);
             if(disc->title != "") {
                 rootView->lblBigMiddle->set_value(disc->title);
             } else {
@@ -121,14 +155,29 @@ void CDMode::loop() {
             break;
     }
 
+    if(sts != Player::State::PLAY) {
+        rootView->set_lyric_show(false, 0);
+        lrc.reset();
+    } else if(tracklist.size() >= trk.track && trk.track > 0) {
+        auto metadata = tracklist[trk.track - 1];
+        lrc.feed_track(trk, metadata);
+        int line_len = 0;
+        auto line = lrc.feed_position(msf_now, &line_len);
+        if(!line.empty()) {
+            rootView->lblLyric->set_value(line);
+            rootView->set_lyric_show(true, line_len + 5000);
+        }
+    }
+
     uint8_t kp_new_sts = 0;
     if(resources.keypad->read(&kp_new_sts)) {
         if(kp_new_sts != kp_sts) {
             ESP_LOGI("Test", "Key change: 0x%02x to 0x%02x", kp_sts, kp_new_sts);
+            rootView->set_lyric_show(false, 0);
             kp_sts = kp_new_sts;
             
             if(kp_sts == 1) {
-                player.do_command(CD::Player::Command::OPEN_CLOSE);
+                player.do_command((sts == Player::State::STOP || sts == Player::State::OPEN) ? Player::Command::OPEN_CLOSE : Player::Command::STOP);
             }
             else if(kp_sts == 2) {
                 player.do_command(CD::Player::Command::PLAY_PAUSE);

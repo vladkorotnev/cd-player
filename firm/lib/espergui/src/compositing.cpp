@@ -41,7 +41,7 @@ namespace Graphics {
         bool blit_the_dam_thing = false;
 
         if(view.needs_display() || parent_needs_display) {
-            size_t view_stride = std::max(view.frame.size.height/8, 1);
+            size_t view_stride = view.frame.size.height/8 + ((view.frame.size.height%8) != 0);
             size_t surface_size = view.frame.size.width * view_stride;
             
             EGRawGraphBuf tmp_surface = nullptr;
@@ -68,8 +68,10 @@ namespace Graphics {
             if(!view.hidden) view.render(&buf);
             view.clear_needs_display();
 
-            if(tmp_surface != framebuffer.data) {
+            if(!view.hidden)
                 EGBlitBuffer(&framebuffer, abs_origin, &buf);
+
+            if(tmp_surface != framebuffer.data) {
                 free(tmp_surface);
             }
 

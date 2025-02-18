@@ -17,8 +17,8 @@ bool EGRectEqual(const EGRect& a, const EGRect& b) {
 }
 
 void EGBlitNative2Native(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * src) {
-    size_t dst_stride = std::max(dst->size.height/8, 1);
-    size_t src_stride = std::max(src->size.height/8, 1);
+    size_t dst_stride = dst->size.height/8 + ((dst->size.height%8) != 0);
+    size_t src_stride = src->size.height/8 + ((src->size.height%8) != 0);
 
     size_t src_start_col = std::max(0, -location.x);
     int src_start_row = std::max(0, -location.y);
@@ -42,7 +42,7 @@ void EGBlitHorizontal2Native(EGGraphBuf * dst, const EGPoint& location, const EG
     // Does this have ass performance? Who knows...
     size_t view_stride = std::max(src->size.width/8, 1);
 
-    uint8_t tmp_col_buf[std::max(src->size.height/8, 1)];
+    uint8_t tmp_col_buf[src->size.height/8 + ((src->size.height%8) != 0)];
     EGGraphBuf tmp_col_src = {
         .fmt = EG_FMT_NATIVE,
         .size = { .width = 1, .height = src->size.height },
