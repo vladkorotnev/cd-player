@@ -30,13 +30,13 @@ public:
         lblLyric->hidden = true;
         timeBar = std::make_shared<TimeBar>(TimeBar({{0, 27}, {160, 5}}));
 
-        loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 1}, {5, 5}}));
+        loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 32 - 6}, {5, 5}}));
         loading->hidden = true;
 
         allButLyric->subviews.push_back(lblSmallTop);
         allButLyric->subviews.push_back(lblBigMiddle);
-        allButLyric->subviews.push_back(loading);
 
+        subviews.push_back(loading);
         subviews.push_back(timeBar);
         subviews.push_back(lblLyric);
         subviews.push_back(allButLyric);

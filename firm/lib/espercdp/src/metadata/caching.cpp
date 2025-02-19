@@ -105,7 +105,7 @@ namespace CD {
         size_t total = 0;
         size_t r = 0;
         void * decomp_data = nullptr;
-        void * decomp_data_ptr = nullptr;
+        uint8_t * decomp_data_ptr = nullptr;
 
         f = fopen(path.c_str(), "rb");
         if(!f) return false;
@@ -143,7 +143,7 @@ namespace CD {
         }
 
         decomp_data = decompress_emplace(comp_data, total, hdr.raw_size);
-        decomp_data_ptr = decomp_data;
+        decomp_data_ptr = (uint8_t*) decomp_data;
         comp_data = nullptr;
 
         if(decomp_data == nullptr) {

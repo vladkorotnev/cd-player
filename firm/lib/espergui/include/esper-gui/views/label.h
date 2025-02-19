@@ -49,11 +49,11 @@ namespace UI {
 
         bool needs_display() override {
             TickType_t now = xTaskGetTickCount();
-            if(auto_scroll && str_size.width > frame.size.width && (now - last_scroll_tick >= pdMS_TO_TICKS(66))) {
+            if(auto_scroll && str_size.width > frame.size.width && (now - last_scroll_tick >= pdMS_TO_TICKS(16))) {
                 last_scroll_tick = now;
 
                 if(scroll_holdoff == 0 || scroll_offset != 0) {
-                    scroll_offset += 4;
+                    scroll_offset += 2;
                     scroll_holdoff = 60;
                     if(scroll_offset >= str_size.width + 16) {
                         scroll_offset = -frame.size.width;

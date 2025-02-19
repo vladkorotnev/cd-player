@@ -58,6 +58,16 @@ void load_all_fonts() {
   fclose(f);
 }
 
+TickType_t lastRender = 0;
+TaskHandle_t renderTaskHandle = 0;
+void renderTask(void*) {
+  while(true) {
+    compositor->render(app->main_view());
+    xTaskDelayUntil(&lastRender, pdMS_TO_TICKS(33));
+  }
+}
+
+
 // cppcheck-suppress unusedFunction
 void setup(void) { 
 #ifdef BOARD_HAS_PSRAM
@@ -115,18 +125,20 @@ void setup(void) {
 
   app->setup();
   app->main_view().set_needs_display();
+
+  xTaskCreate(
+    renderTask,
+    "RENDER",
+    16000,
+    nullptr,
+    2,
+    &renderTaskHandle
+  );
 }
 
-TickType_t lastRender = 0;
 
 // cppcheck-suppress unusedFunction
 void loop() {
   print_memory();
   app->loop();
-  TickType_t now = xTaskGetTickCount();
-  if(now - lastRender >= pdMS_TO_TICKS(33)) {
-    // around 30 fps, if you're lucky... maybe make rendering and blitting async perhaps?
-    lastRender = now;
-    compositor->render(app->main_view());
-  }
 }

@@ -48,7 +48,7 @@ private:
 
 class BigSpinner: public View {
 public:
-    int interval_ms = 66;
+    int interval_ms = 33;
 
     BigSpinner(EGRect f): View(f) {
         int bit_size = 2;

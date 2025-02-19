@@ -30,7 +30,7 @@ namespace CD {
             "CDPoll",
             8000,
             this,
-            2,
+            5,
             &_pollTask
         );
 
@@ -39,7 +39,7 @@ namespace CD {
             "CDMeta",
             16000,
             this,
-            2,
+            1,
             &_metaTask
         );
     }
