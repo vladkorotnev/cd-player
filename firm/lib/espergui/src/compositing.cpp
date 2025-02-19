@@ -26,7 +26,7 @@ namespace Graphics {
         TickType_t blit_end = xTaskGetTickCount();
 
         if(pdTICKS_TO_MS(blit_end - start) > 16)
-            ESP_LOGI(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
+            ESP_LOGV(LOG_TAG, "Render: %i ms, Blit: %i ms, Total: %i ms, Tiles: %i", pdTICKS_TO_MS(render_end - start), pdTICKS_TO_MS(blit_end - render_end), pdTICKS_TO_MS(blit_end - start), rects.size());
     }
 
     /// @brief Render a view and its children into the framebuffer and create a list of rects that need blitting
@@ -68,8 +68,7 @@ namespace Graphics {
             if(!view.hidden) view.render(&buf);
             view.clear_needs_display();
 
-            if(!view.hidden)
-                EGBlitBuffer(&framebuffer, abs_origin, &buf);
+            EGBlitBuffer(&framebuffer, abs_origin, &buf);
 
             if(tmp_surface != framebuffer.data) {
                 free(tmp_surface);
@@ -86,8 +85,14 @@ namespace Graphics {
         }
 
         if(!view.hidden) {
+            // first wipe out the hidden ones then render the non hidden ones
             for(auto subview: view.subviews) {
-                render_into_buffer(*subview, blit_the_dam_thing ? nullptr : rects, abs_origin, blit_the_dam_thing);
+                if(subview->hidden)
+                    render_into_buffer(*subview, blit_the_dam_thing ? nullptr : rects, abs_origin, blit_the_dam_thing);
+            }
+            for(auto subview: view.subviews) {
+                if(!subview->hidden)
+                    render_into_buffer(*subview, blit_the_dam_thing ? nullptr : rects, abs_origin, blit_the_dam_thing);
             }
         }
     }

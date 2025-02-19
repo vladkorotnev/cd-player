@@ -36,7 +36,8 @@ public:
 protected:
     void typeset() {
         if(!try_typesetting_with_font(Fonts::FallbackWildcard16px, value.c_str())) {
-            if(!try_typesetting_with_font(Fonts::FallbackWildcard12px, value.c_str())) {
+            // 12px font we have only looks good with CJK, don't typeset other scripts with it
+            if(!string_has_cjk(value.c_str()) || !try_typesetting_with_font(Fonts::FallbackWildcard12px, value.c_str())) {
                 try_typesetting_with_font(Fonts::FallbackWildcard8px, value.c_str());
             }
         }
@@ -86,6 +87,22 @@ protected:
         ESP_LOGD(LOG_TAG, "Wrapped final line %i: %hs", lines.size(), buffer.c_str());
 
         return true;
+    }
+
+    bool string_has_cjk(const char * str) {
+        while(char16_t ch = EGStr_utf8_iterate(&str)) {
+            if( 
+                (ch >= 0x4E00 && ch <= 0x9FFF) || // CJK Unified Ideographs
+                (ch >= 0x3040 && ch <= 0x30FF) || // hiragana + katakana
+                (ch >= 0x31F0 && ch <= 0x31FF) || // Katakana Phonetic Extensions
+                (ch >= 0xFF00 && ch <= 0xFFEF) || // Halfwidth and Fullwidth Forms
+                (ch >= 0x1100 && ch <= 0x11FF) || // Hangul Jamo
+                (ch >= 0x3130 && ch <= 0x318F) || // Hangul Compatibility Jamo
+                (ch >= 0xAC00 && ch <= 0xD7AF)    // Hangul Syllables
+            )
+                return true;
+        }
+        return false;
     }
 
     const Fonts::Font* font_to_use = Fonts::FallbackWildcard16px;

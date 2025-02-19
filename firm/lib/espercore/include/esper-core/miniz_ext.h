@@ -53,9 +53,11 @@ int mz_uncompress(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char
 int mz_uncompress2(unsigned char *pDest, mz_ulong *pDest_len, const unsigned char *pSource, mz_ulong *pSource_len);
 const char *mz_error(int err);
 
-// Convenience funcs copied from PIS-OS
-
+// Convenience func copied from PIS-OS
 // Decompress a buffer, freeing the original
 void * decompress_emplace(void * compressed_data, uint32_t src_size, uint32_t decomp_size);
-// Compress a buffer in place, freeing the original
-void * compress_emplace(void * src_data, uint32_t src_size, uint32_t * comp_size);
+
+int mz_deflateInit(mz_streamp pStream, int level);
+int mz_deflateInit2(mz_streamp pStream, int level, int method, int window_bits, int mem_level, int strategy);
+int mz_deflate(mz_streamp pStream, int flush);
+int mz_deflateEnd(mz_streamp pStream);

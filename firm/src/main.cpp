@@ -35,7 +35,7 @@ static void print_memory() {
 
 void load_all_fonts() {
   Fonts::Font tmp;
-  FILE * f = fopen("/littlefs/font/default.mofo", "rb");
+  FILE * f = fopen("/mnt/font/default.mofo", "rb");
   fseek(f, 0, SEEK_SET);
   if(!Fonts::MoFo::LoadFromHandle(f, &tmp)) ESP_LOGE(LOG_TAG, "keyrus0808 err");
   else Fonts::EGFont_register(tmp);
@@ -46,13 +46,13 @@ void load_all_fonts() {
   if(!Fonts::MoFo::LoadFromHandle(f, &tmp)) ESP_LOGE(LOG_TAG, "xnu err");
   else Fonts::EGFont_register(tmp);
 
-  if(!Fonts::MoFo::Load("/littlefs/font/misaki_mincho.mofo", &tmp)) ESP_LOGE(LOG_TAG, "misaki err");
+  if(!Fonts::MoFo::Load("/mnt/font/misaki_mincho.mofo", &tmp)) ESP_LOGE(LOG_TAG, "misaki err");
   else Fonts::EGFont_register(tmp);
 
-  if(!Fonts::MoFo::Load("/littlefs/font/jiskan16.mofo", &tmp)) ESP_LOGE(LOG_TAG, "jiskan err");
+  if(!Fonts::MoFo::Load("/mnt/font/jiskan16.mofo", &tmp)) ESP_LOGE(LOG_TAG, "jiskan err");
   else Fonts::EGFont_register(tmp);
 
-  if(!Fonts::MoFo::Load("/littlefs/font/k8x12.mofo", &tmp)) ESP_LOGE(LOG_TAG, "k8x12 err");
+  if(!Fonts::MoFo::Load("/mnt/font/k8x12.mofo", &tmp)) ESP_LOGE(LOG_TAG, "k8x12 err");
   else Fonts::EGFont_register(tmp);
 
   fclose(f);
@@ -77,7 +77,7 @@ void setup(void) {
   i2c = new Core::ThreadSafeI2C(&Wire);
   i2c->log_all_devices();
 
-  LittleFS.begin(true, "/littlefs");
+  LittleFS.begin(true, "/mnt");
   ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
   load_all_fonts();
   

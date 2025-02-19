@@ -42,7 +42,7 @@ public:
             int duration_sec = (duration_frames / MSF::FRAMES_IN_SECOND) % 60;
             int duration_min = (duration_frames / MSF::FRAMES_IN_SECOND) / 60;
 
-            trackbar->maximum = duration_frames;
+            trackbar->maximum = duration_frames - 2*MSF::FRAMES_IN_SECOND; // add some leeway for the bar to appear full on the last 2 seconds
             trackbar->value = MSF_TO_FRAMES(cur_msf);
             
             char buf[8] = { 0 };

@@ -25,7 +25,7 @@ public:
 
     /// @brief Whether the view needs to be drawn again
     virtual bool needs_display() {
-        return dirty || need_layout();
+        return dirty || was_hidden != hidden || need_layout();
     }
 
     void clear_needs_display() {
@@ -50,7 +50,7 @@ protected:
     /// @brief Whether the view or any of its children had changes to the geometry, requiring the whole view to be repainted 
     bool need_layout() {
         if(hidden) return false;
-        if(!EGRectEqual(was_frame, frame) || subview_count != subviews.size() || was_hidden != hidden) {
+        if(!EGRectEqual(was_frame, frame) || subview_count != subviews.size()) {
             ESP_LOGW("Layout", "View(0x%x) needs a layout pass! Hidden=(%i -> %i) Frame=(%i %i %i %i -> %i %i %i %i) Subviews=(%i -> %i)", this, was_hidden, hidden, was_frame.origin.x, was_frame.origin.y, was_frame.size.width, was_frame.size.height, frame.origin.x, frame.origin.y, frame.size.width, frame.size.height, subview_count, subviews.size());
             return true;
         }

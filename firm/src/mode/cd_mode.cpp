@@ -69,7 +69,7 @@ private:
 CDMode::CDMode(const PlatformSharedResources res): 
         ide { Platform::IDEBus(res.i2c) },
         cdrom { ATAPI::Device(&ide) },
-        meta { CD::CachingMetadataAggregateProvider("/littlefs") },
+        meta { CD::CachingMetadataAggregateProvider("/mnt/cddb") },
         player { Player(&cdrom, &meta) },
         Mode(res) {
 
@@ -83,6 +83,34 @@ CDMode::CDMode(const PlatformSharedResources res):
 
 void CDMode::setup() {
     resources.router->activate_route(Platform::AudioRoute::ROUTE_SPDIF_CD_PORT);
+}
+
+void CDMode::update_title(std::shared_ptr<CD::Album> disc, const CD::Track metadata, Player::TrackNo trk) {
+    if(metadata.artist != "" && metadata.artist != disc->artist) {
+        rootView->lblSmallTop->set_value(metadata.artist);
+        rootView->lblSmallTop->hidden = false;
+    } else {
+        if(metadata.title != "") {
+            rootView->lblSmallTop->hidden = false;
+            if(trk.index < 2) {
+                rootView->lblSmallTop->set_value("Track " + std::to_string(trk.track));
+            } else {
+                rootView->lblSmallTop->set_value("Track " + std::to_string(trk.track) + "-" + std::to_string(trk.index));
+            }
+        }
+        else {
+            rootView->lblSmallTop->hidden = true;
+        }
+    }
+    if(metadata.title != "") {
+        rootView->lblBigMiddle->set_value(metadata.title);
+    } else {
+        if(trk.index < 2) {
+            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track));
+        } else {
+            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + " - " + std::to_string(trk.index));
+        }
+    }
 }
 
 void CDMode::loop() {
@@ -105,42 +133,35 @@ void CDMode::loop() {
         case Player::State::SEEK_REW:
             if(tracklist.size() >= trk.track && trk.track > 0) {
                 auto metadata = tracklist[trk.track - 1];
-                if(metadata.artist != "" && metadata.artist != disc->artist) {
-                    rootView->lblSmallTop->set_value(metadata.artist);
-                    rootView->lblSmallTop->hidden = false;
-                } else {
-                    rootView->lblSmallTop->hidden = true;
-                }
-                if(metadata.title != "") {
-                    rootView->lblBigMiddle->set_value(metadata.title);
-                } else {
-                    if(trk.index < 2) {
-                        rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track));
-                    } else {
-                        rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + " index " + std::to_string(trk.index));
-                    }
-                }
+                update_title(disc, metadata, trk);
                 MSF next_pos = (trk.track == tracklist.size()) ? disc->duration : tracklist[trk.track].disc_position.position;
                 rootView->timeBar->update_msf(metadata.disc_position.position, msf_now, next_pos, trk.index == 0);
             }
+            must_show_title_stopped = false;
             break;
 
         case Player::State::STOP:
             rootView->set_lyric_show(false, 0);
-            if(disc->title != "") {
-                rootView->lblBigMiddle->set_value(disc->title);
+            if(must_show_title_stopped && tracklist.size() >= trk.track && trk.track > 0) {
+                auto metadata = tracklist[trk.track - 1];
+                update_title(disc, metadata, trk);
             } else {
-                rootView->lblBigMiddle->set_value(CD::Player::PlayerStateString(sts));
-            }
-            if(disc->artist != "") {
-                rootView->lblSmallTop->set_value(disc->artist);
-                rootView->lblSmallTop->hidden = false;
-            } else {
-                rootView->lblSmallTop->hidden = true;
+                if(disc->title != "") {
+                    rootView->lblBigMiddle->set_value(disc->title);
+                } else {
+                    rootView->lblBigMiddle->set_value(CD::Player::PlayerStateString(sts));
+                }
+                if(disc->artist != "") {
+                    rootView->lblSmallTop->set_value(disc->artist);
+                    rootView->lblSmallTop->hidden = false;
+                } else {
+                    rootView->lblSmallTop->hidden = true;
+                }
             }
             break;
 
         case Player::State::CHANGE_DISC:
+            must_show_title_stopped = false;
             break;
 
         case Player::State::BAD_DISC:
@@ -150,6 +171,7 @@ void CDMode::loop() {
         case Player::State::CLOSE:
         case Player::State::LOAD:
         case Player::State::INIT:
+            must_show_title_stopped = false;
             rootView->lblSmallTop->hidden = true;
             rootView->lblBigMiddle->set_value(CD::Player::PlayerStateString(sts));
             break;
@@ -177,16 +199,18 @@ void CDMode::loop() {
             kp_sts = kp_new_sts;
             
             if(kp_sts == 1) {
-                player.do_command((sts == Player::State::STOP || sts == Player::State::OPEN) ? Player::Command::OPEN_CLOSE : Player::Command::STOP);
+                player.do_command((sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW) ? Player::Command::STOP : Player::Command::OPEN_CLOSE);
             }
             else if(kp_sts == 2) {
                 player.do_command(CD::Player::Command::PLAY_PAUSE);
             }
             else if(kp_sts == 4) { 
                 player.do_command(CD::Player::Command::PREV_TRACK);
+                if(sts == Player::State::STOP) must_show_title_stopped = true;
             }
             else if(kp_sts == 8) { 
                 player.do_command(CD::Player::Command::NEXT_TRACK);
+                if(sts == Player::State::STOP) must_show_title_stopped = true;
             }
             else if(kp_sts == 16) { 
                 player.do_command(CD::Player::Command::PREV_DISC);

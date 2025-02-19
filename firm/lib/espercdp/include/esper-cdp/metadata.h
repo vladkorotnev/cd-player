@@ -93,6 +93,9 @@ namespace CD {
 
         bool populate_from_cache(Album&, const std::string);
         void save_to_cache(const Album&, const std::string);
+        void mk_dir_if_needed(const char * path);
+        const std::string id_to_path(const std::string&);
+        const std::string id_to_dir_prefix(const std::string&);
     };
 
     class MusicBrainzMetadataProvider: public MetadataProvider {

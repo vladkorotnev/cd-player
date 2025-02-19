@@ -142,6 +142,8 @@ namespace CD {
             } else {
                 if(response["syncedLyrics"].is<JsonString>()) {
                     process_lrc_bulk(response["syncedLyrics"].as<std::string>(), track.lyrics);
+                } else {
+                    ESP_LOGI(LOG_TAG, "no synced lyrics");
                 }
             }
         } else {

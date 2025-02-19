@@ -30,4 +30,6 @@ private:
     ATAPI::Device cdrom;
     CD::Player player;
     CD::CachingMetadataAggregateProvider meta;
+    bool must_show_title_stopped = false;
+    void update_title(std::shared_ptr<CD::Album> disc, const CD::Track metadata, CD::Player::TrackNo trk);
 };
