@@ -17,7 +17,7 @@ public:
     std::shared_ptr<UI::View> allButLyric;
     std::shared_ptr<TimeBar> timeBar;
     std::shared_ptr<UI::TinySpinner> loading;
-    std::shared_ptr<UI::Label> lblSmallTrkLbl;
+    std::shared_ptr<UI::Label> lblTrackIndicator;
     std::shared_ptr<WiFiIcon> wifi;
 
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
@@ -26,7 +26,7 @@ public:
         lblBigMiddle = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
-        lblSmallTrkLbl = std::make_shared<UI::Label>(UI::Label({{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right));
+        lblTrackIndicator = std::make_shared<UI::Label>(UI::Label({{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right));
 
         lblLyric = std::make_shared<LyricLabel>(LyricLabel({{0, 0}, {160, 27}}));
         lblLyric->hidden = true;
@@ -42,7 +42,7 @@ public:
         subviews.push_back(wifi);
         subviews.push_back(loading);
         subviews.push_back(timeBar);
-        subviews.push_back(lblSmallTrkLbl);
+        subviews.push_back(lblTrackIndicator);
         subviews.push_back(lblLyric);
         subviews.push_back(allButLyric);
     }
@@ -93,13 +93,13 @@ void CDMode::setup() {
 
 void CDMode::update_title(std::shared_ptr<CD::Album> disc, const CD::Track metadata, Player::TrackNo trk) {
     if(disc->tracks.size() == 0 || metadata.title == "") {
-        rootView->lblSmallTrkLbl->hidden = true;
+        rootView->lblTrackIndicator->hidden = true;
     } else {
-        rootView->lblSmallTrkLbl->hidden = false;
+        rootView->lblTrackIndicator->hidden = false;
         if(trk.index < 2) {
-            rootView->lblSmallTrkLbl->set_value(std::to_string(trk.track) + "/" + std::to_string(disc->tracks.size()));
+            rootView->lblTrackIndicator->set_value(std::to_string(trk.track) + "/" + std::to_string(disc->tracks.size()));
         } else {
-            rootView->lblSmallTrkLbl->set_value(std::to_string(trk.track) + "." + std::to_string(trk.index));
+            rootView->lblTrackIndicator->set_value(std::to_string(trk.track) + "." + std::to_string(trk.index));
         }
     }
 
@@ -156,7 +156,7 @@ void CDMode::loop() {
                 auto metadata = tracklist[trk.track - 1];
                 update_title(disc, metadata, trk);
             } else {
-                rootView->lblSmallTrkLbl->hidden = true;
+                rootView->lblTrackIndicator->hidden = true;
                 if(disc->title != "") {
                     rootView->lblBigMiddle->set_value(disc->title);
                 } else {
@@ -201,6 +201,8 @@ void CDMode::loop() {
             rootView->set_lyric_show(true, line_len + 5000);
         }
     }
+
+    rootView->lblBigMiddle->frame = (rootView->lblSmallTop->hidden && !rootView->timeBar->hidden && !rootView->lblTrackIndicator->hidden) ? EGRect {{0, 0}, {160, 24}} : EGRect {{0, 8}, {160, 16}};
 
     uint8_t kp_new_sts = 0;
     if(resources.keypad->read(&kp_new_sts)) {
