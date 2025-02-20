@@ -198,6 +198,7 @@ namespace CD {
     }
 
     void CachingMetadataAggregateProvider::save_to_cache(const Album& album, const std::string id) {
+        size_t initial_space =  LittleFS.totalBytes() - LittleFS.usedBytes();
         CacheDataFileHeader hdr = { 0 };
         hdr.magic = CACHE_DATAFILE_MAGIC;
         hdr.version = CACHE_DATAFILE_VER;
@@ -277,7 +278,8 @@ namespace CD {
         fclose(f);
         free(dest);
 
-        ESP_LOGI(LOG_TAG, "Remaining FS capacity after cache = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
+        ESP_LOGI(LOG_TAG, "Remaining FS capacity after cache = %lu", LittleFS.totalBytes() - LittleFS.usedBytes());
+        ESP_LOGI(LOG_TAG, "Taken on disk = %lu", (LittleFS.totalBytes() - LittleFS.usedBytes()) - initial_space);
     }
 
     const std::string CachingMetadataAggregateProvider::id_to_dir_prefix(const std::string& id) {

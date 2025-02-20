@@ -43,6 +43,9 @@ namespace UI {
                     }
                 }
             }
+            if(frame.size.height > fnt->size.height) {
+                origin.y = frame.size.height / 2 - fnt->size.height / 2;
+            }
             Fonts::EGFont_put_string(fnt, value.c_str(), origin, buf);
             View::render(buf);
         }

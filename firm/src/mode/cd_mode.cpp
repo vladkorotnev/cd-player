@@ -2,22 +2,23 @@
 #include "cd_mode/time_bar.h"
 #include "cd_mode/lyric_label.h"
 #include <esper-gui/views/framework.h>
+#include <views/wifi_icon.h>
 #include "Arduino.h"
 #include <string>
 
 static const char LOG_TAG[] = "APL_CDP";
 using CD::Player;
 
-
 class CDMode::CDPView: public UI::View {
 public:
-
     std::shared_ptr<UI::Label> lblSmallTop;
     std::shared_ptr<UI::Label> lblBigMiddle;
     std::shared_ptr<LyricLabel> lblLyric;
     std::shared_ptr<UI::View> allButLyric;
     std::shared_ptr<TimeBar> timeBar;
     std::shared_ptr<UI::TinySpinner> loading;
+    std::shared_ptr<UI::Label> lblSmallTrkLbl;
+    std::shared_ptr<WiFiIcon> wifi;
 
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
         allButLyric = std::make_shared<UI::View>(UI::View({{0, 0}, {160, 27}}));
@@ -25,19 +26,23 @@ public:
         lblBigMiddle = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
+        lblSmallTrkLbl = std::make_shared<UI::Label>(UI::Label({{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right));
 
         lblLyric = std::make_shared<LyricLabel>(LyricLabel({{0, 0}, {160, 27}}));
         lblLyric->hidden = true;
-        timeBar = std::make_shared<TimeBar>(TimeBar({{0, 27}, {160, 5}}));
+        timeBar = std::make_shared<TimeBar>(TimeBar({{20, 27}, {120, 5}}));
 
-        loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 32 - 6}, {5, 5}}));
+        wifi = std::make_shared<WiFiIcon>(WiFiIcon({{0, 32 - 5}, {5, 5}}));
+        loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{0, 32 - 5}, {5, 5}}));
         loading->hidden = true;
 
         allButLyric->subviews.push_back(lblSmallTop);
         allButLyric->subviews.push_back(lblBigMiddle);
 
+        subviews.push_back(wifi);
         subviews.push_back(loading);
         subviews.push_back(timeBar);
+        subviews.push_back(lblSmallTrkLbl);
         subviews.push_back(lblLyric);
         subviews.push_back(allButLyric);
     }
@@ -60,6 +65,7 @@ public:
             now_is_lyric = is_lyric;
         }
     }
+
 private:
     bool now_is_lyric = false;
     int lyric_len = 0;
@@ -86,29 +92,31 @@ void CDMode::setup() {
 }
 
 void CDMode::update_title(std::shared_ptr<CD::Album> disc, const CD::Track metadata, Player::TrackNo trk) {
+    if(disc->tracks.size() == 0 || metadata.title == "") {
+        rootView->lblSmallTrkLbl->hidden = true;
+    } else {
+        rootView->lblSmallTrkLbl->hidden = false;
+        if(trk.index < 2) {
+            rootView->lblSmallTrkLbl->set_value(std::to_string(trk.track) + "/" + std::to_string(disc->tracks.size()));
+        } else {
+            rootView->lblSmallTrkLbl->set_value(std::to_string(trk.track) + "." + std::to_string(trk.index));
+        }
+    }
+
     if(metadata.artist != "" && metadata.artist != disc->artist) {
         rootView->lblSmallTop->set_value(metadata.artist);
         rootView->lblSmallTop->hidden = false;
     } else {
-        if(metadata.title != "") {
-            rootView->lblSmallTop->hidden = false;
-            if(trk.index < 2) {
-                rootView->lblSmallTop->set_value("Track " + std::to_string(trk.track));
-            } else {
-                rootView->lblSmallTop->set_value("Track " + std::to_string(trk.track) + "-" + std::to_string(trk.index));
-            }
-        }
-        else {
-            rootView->lblSmallTop->hidden = true;
-        }
+        rootView->lblSmallTop->hidden = true;
     }
+
     if(metadata.title != "") {
         rootView->lblBigMiddle->set_value(metadata.title);
     } else {
         if(trk.index < 2) {
-            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track));
+            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + "/" + std::to_string(disc->tracks.size()));
         } else {
-            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + " - " + std::to_string(trk.index));
+            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + "-" + std::to_string(trk.index) + "/" + std::to_string(disc->tracks.size()));
         }
     }
 }
@@ -123,6 +131,8 @@ void CDMode::loop() {
     auto tracklist = disc->tracks;
 
     rootView->loading->hidden = !(sts == Player::State::INIT || sts == Player::State::LOAD || sts == Player::State::CLOSE || sts == Player::State::CHANGE_DISC || player.is_processing_metadata());
+    rootView->wifi->hidden = !rootView->loading->hidden;
+
     rootView->timeBar->hidden = !(sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW);
     rootView->timeBar->trackbar->filled = (sts == Player::State::PLAY);
 
@@ -146,6 +156,7 @@ void CDMode::loop() {
                 auto metadata = tracklist[trk.track - 1];
                 update_title(disc, metadata, trk);
             } else {
+                rootView->lblSmallTrkLbl->hidden = true;
                 if(disc->title != "") {
                     rootView->lblBigMiddle->set_value(disc->title);
                 } else {
@@ -205,11 +216,11 @@ void CDMode::loop() {
                 player.do_command(CD::Player::Command::PLAY_PAUSE);
             }
             else if(kp_sts == 4) { 
-                player.do_command(CD::Player::Command::PREV_TRACK);
+                if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(CD::Player::Command::PREV_TRACK);
                 if(sts == Player::State::STOP) must_show_title_stopped = true;
             }
             else if(kp_sts == 8) { 
-                player.do_command(CD::Player::Command::NEXT_TRACK);
+                if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(CD::Player::Command::NEXT_TRACK);
                 if(sts == Player::State::STOP) must_show_title_stopped = true;
             }
             else if(kp_sts == 16) { 

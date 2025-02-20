@@ -80,7 +80,7 @@ void setup(void) {
   disp = new Graphics::Hardware::FutabaGP1232ADriver();
   disp->initialize();
   disp->set_power(true);
-  disp->set_brightness(Graphics::Hardware::Brightness::DISP_BRIGHTNESS_75);
+  disp->set_brightness(Graphics::Hardware::Brightness::DISP_BRIGHTNESS_50);
   compositor = new Graphics::Compositor(disp);
 
   Wire.begin(32, 33, 100000);

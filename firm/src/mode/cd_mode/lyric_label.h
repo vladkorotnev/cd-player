@@ -23,9 +23,12 @@ public:
 
     void render(EGGraphBuf * buf) override {
         EGPoint origin = EGPointZero;
+        origin.y = std::max(0, (int)(frame.size.height/2 - (font_to_use->size.height * lines.size()) / 2));
         std::wstring_convert<std::codecvt_utf8_utf16<wchar_t>> converter;
         for(auto& line: lines) {
             auto utf8 = converter.to_bytes(line);
+            EGSize line_size = Fonts::EGFont_measure_string(font_to_use, utf8.c_str());
+            origin.x = frame.size.width/2 - line_size.width/2;
             Fonts::EGFont_put_string(font_to_use, utf8.c_str(), origin, buf);
             origin.y += font_to_use->size.height;
         }
@@ -50,41 +53,93 @@ protected:
         ESP_LOGD(LOG_TAG, "Formatting a line of %i chars with a font of %i x %i", str_len, font->size.width, font->size.height);
 
         std::wstring buffer = std::wstring();
-        bool just_wrapped = false;
+        std::wstring cur_word = std::wstring();
         int line_len_px = 0;
+        int word_len_px = 0;
+        EGGraphBuf last_space_glyph;
+        wchar_t last_space_char = 0;
 
         while(wchar_t ch = EGStr_utf8_iterate(&val_utf)) {
-            // for now, dumb wrapping without word wrap, but omit spaces after line break and double line breaks
-            if(!just_wrapped || (ch != ' ' && ch != '　' && ch != '\n')) {
-                buffer.push_back(ch);
-                auto glyph = Fonts::EGFont_glyph(font, ch);
-                if(glyph.size.width == 0 && glyph.size.height == 0) {
-                    // oops! no such glyph in the font, cannot typeset that way
-                    return false;
-                }
-                line_len_px += glyph.size.width;
-                just_wrapped = false;
-            }
-
             str_len--;
-            ESP_LOGD(LOG_TAG, "Remain px = %i, Line len px = %i, Str remain = %i", (frame.size.width - line_len_px), line_len_px, str_len);
-            if(frame.size.width - line_len_px < font->size.width) {
-                // one more character won't fit, break lines
-                lines.push_back(buffer);
-                ESP_LOGD(LOG_TAG, "Wrapped line %i: %hs", lines.size(), buffer.c_str());
-                just_wrapped = true;
-                buffer = std::wstring();
-                line_len_px = 0;
-                if(frame.size.height - lines.size() * font->size.height < font->size.height) {
-                    // one more line won't fit, end of story
-                    ESP_LOGD(LOG_TAG, "Could not fit %i more chars", str_len);
-                    return (str_len == 0);
+            if(ch != ' ' && ch != '　') {
+                cur_word.push_back(ch);
+                auto glyph = Fonts::EGFont_glyph(font, ch);
+                word_len_px += glyph.size.width;
+            }
+            else {
+                // word boundary!
+                // check if word and previous space will fit on current line
+                if((frame.size.width - line_len_px) >= (word_len_px + (last_space_char == 0 ? 0 : last_space_glyph.size.width))) {
+                    // it fits! push it in, including previous space
+                    if(last_space_char != 0) {
+                        buffer.push_back(last_space_char);
+                        line_len_px += last_space_glyph.size.width;
+                    }
+                    buffer.append(cur_word);
+                    line_len_px += word_len_px;
                 }
+                else {
+                    // it doesn't fit!
+                    // can we do more lines?
+                    if((frame.size.height - lines.size() * font->size.height) < font->size.height) {
+                        // one more line won't fit, end of story
+                        ESP_LOGD(LOG_TAG, "Could not fit %i more chars", (str_len + cur_word.size()));
+                        return ((str_len + cur_word.size()) == 0);
+                    }
+
+                    // store current line
+                    lines.push_back(buffer);
+
+                    // current word becomes start of next line
+                    line_len_px = word_len_px;
+                    buffer = cur_word;
+                }
+
+                cur_word = std::wstring();
+                word_len_px = 0;
+                // keep the current space for later
+                last_space_glyph = Fonts::EGFont_glyph(font, ch);
+                last_space_char = ch;
             }
         }
 
-        lines.push_back(buffer);
-        ESP_LOGD(LOG_TAG, "Wrapped final line %i: %hs", lines.size(), buffer.c_str());
+        if(cur_word.size() > 0) {
+            // check if word will fit on current line
+            if((frame.size.width - line_len_px) >= (word_len_px + (last_space_char == 0 ? 0 : last_space_glyph.size.width))) {
+                // it fits! push it in, including previous space
+                if(last_space_char != 0) {
+                    buffer.push_back(last_space_char);
+                    line_len_px += last_space_glyph.size.width;
+                }
+                buffer.append(cur_word);
+                line_len_px += word_len_px;
+            }
+            else {
+                // it doesn't fit!
+                // can we do more lines?
+                if((frame.size.height - lines.size() * font->size.height) < font->size.height) {
+                    // one more line won't fit, end of story
+                    ESP_LOGD(LOG_TAG, "Could not fit %i more chars", (str_len + cur_word.size()));
+                    return ((str_len + cur_word.size()) == 0);
+                }
+
+                lines.push_back(buffer);
+
+                line_len_px = word_len_px;
+                buffer = cur_word;
+            }
+        }
+
+        if(buffer.size() > 0) {
+            if((frame.size.height - lines.size() * font->size.height) < font->size.height) {
+                // last line didn't fit, directed by robert b. weide
+                ESP_LOGD(LOG_TAG, "Could not fit %i more chars", (buffer.size()));
+                return false;
+            }
+
+            lines.push_back(buffer);
+            ESP_LOGD(LOG_TAG, "Wrapped final line %i: %hs", lines.size(), buffer.c_str());
+        }
 
         return true;
     }

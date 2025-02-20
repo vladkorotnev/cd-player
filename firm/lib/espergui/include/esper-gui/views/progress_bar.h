@@ -41,7 +41,7 @@ namespace UI {
         int calc_pix_width() {
             if(value <= minimum) return 0;
             if(value >= maximum) return frame.size.width - 2;
-            return (((frame.size.width - 2) * (value - minimum)) / (maximum - minimum)) + ((((frame.size.width - 2) * (value - minimum)) / (maximum - minimum)) != 0);
+            return (((frame.size.width - 2) * (value - minimum)) / (maximum - minimum)) + ((((frame.size.width - 2) * (value - minimum)) % (maximum - minimum)) != 0);
         }
     };
 }

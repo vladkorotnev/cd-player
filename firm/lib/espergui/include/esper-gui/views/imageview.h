@@ -11,12 +11,12 @@ namespace UI {
 
     class ImageView: public View {
     public:
-        ImageView(Image* i, EGRect f):
+        ImageView(const Image* i, EGRect f):
             image(i),
             View(f) {
         }
 
-        void set_image(Image* i) {
+        void set_image(const Image* i) {
             image = i;
             set_needs_display();
         }
@@ -35,6 +35,6 @@ namespace UI {
         }
 
     protected:
-        Image * image = nullptr;
+        const Image * image = nullptr;
     };
 }

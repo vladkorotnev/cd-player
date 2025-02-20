@@ -15,10 +15,10 @@ public:
     shared_ptr<ProgressBar> trackbar;
 
     TimeBar(EGRect frame): View(frame) {
-        lblLeft = make_shared<Label>(Label({{0, 0}, {16, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Right));
-        lblRight = make_shared<Label>(Label({{frame.size.width - 16, 0}, {16, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Left));
-        trackbar = make_shared<ProgressBar>(ProgressBar({{lblLeft->frame.size.width, 0},{frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width, frame.size.height}}));
-        
+        lblLeft = make_shared<Label>(Label({{0, 0}, {20, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Right));
+        lblRight = make_shared<Label>(Label({{frame.size.width - 20, 0}, {20, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Left));
+        trackbar = make_shared<ProgressBar>(ProgressBar({{lblLeft->frame.size.width + 1, 0},{frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width - 2, frame.size.height}}));
+
         subviews.push_back(lblLeft);
         subviews.push_back(lblRight);
         subviews.push_back(trackbar);
@@ -29,7 +29,6 @@ public:
             char buf[8] = { 0 };
             snprintf(buf, 8, "%d:%02d", cur.M, cur.S);
             lblLeft->set_value((is_pos_negative ? "-" : "") + std::string(buf));
-            update_sizes();
             trackbar->value = MSF_TO_FRAMES(cur);
         }
         cur_msf = cur;
@@ -48,7 +47,6 @@ public:
             char buf[8] = { 0 };
             snprintf(buf, 8, "%d:%02d", duration_min, duration_sec);
             lblRight->set_value(std::string(buf));
-            update_sizes();
         }
         
         if(is_pos_negative) {
@@ -64,14 +62,4 @@ protected:
     MSF cur_msf;
     MSF next_pos_msf;
     bool negative;
-private:
-    void update_sizes() {
-        lblLeft->frame.size.width = lblLeft->str_size.width;
-        lblRight->frame.size.width = lblRight->str_size.width;
-
-        lblRight->frame.origin.x = frame.size.width - lblRight->str_size.width;
-
-        trackbar->frame.origin.x = lblLeft->frame.size.width + 1;
-        trackbar->frame.size.width = frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width - 2;
-    }
 };
