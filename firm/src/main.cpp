@@ -91,11 +91,7 @@ void setup(void) {
   ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
   load_all_fonts();
   
-  WiFi.begin(WIFI_NAME, WIFI_PASS);
-  WiFi.waitForConnectResult();
-  if(WiFi.isConnected()) Serial.println("WiFi ok");
-  else Serial.println("!! WIFI FAIL !!");
-
+  Core::Services::WLAN::start();
   Core::Services::NTP::start();
 
   keypad = new Platform::Keypad(i2c);

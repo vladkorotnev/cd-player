@@ -3,6 +3,7 @@
 #include <esper-cdp/metadata.h>
 #include <memory>
 #include <queue>
+#include <set>
 
 /// Defines the CD Player model as seen to the end user.
 /// You'd normally call this a "view model" but is it really in this context?
@@ -66,6 +67,13 @@ namespace CD {
             PREV_DISC
         };
 
+        enum PlayMode {
+            /// @brief Play all tracks and discs in sequence
+            PLAYMODE_CONTINUE,
+            /// @brief Shuffle all tracks on the disc
+            PLAYMODE_SHUFFLE,
+        };
+
         struct Slot {
             bool disc_present;
             bool active;
@@ -92,13 +100,15 @@ namespace CD {
         /// @brief Returns the changer slots statuses, even if the device is not a changer — in such case it will be just one slot. 
         const std::vector<Slot>& get_slots() { return slots; }
         const Slot& get_active_slot() { return slots[cur_slot]; }
+        int get_active_slot_index() { return cur_slot; }
         const MSF get_current_absolute_time() { return abs_ts; }
         const MSF get_current_track_time() { return rel_ts; }
         const TrackNo get_current_track_number() { return cur_track; }
         bool is_processing_metadata() { return !_metaQueue.empty(); }
+        const PlayMode get_play_mode() { return play_mode; }
+        void set_play_mode(PlayMode mode);
 
         void do_command(Command);
-        void do_command_async(Command);
 
         void poll_state();
 
@@ -113,6 +123,10 @@ namespace CD {
         TaskHandle_t _metaTask;
         SemaphoreHandle_t _metaSemaphore;
         std::queue<std::shared_ptr<Album>> _metaQueue;
+
+        TickType_t last_softscan_tick = 0;
+        TickType_t softscan_interval = pdMS_TO_TICKS(500);
+        MSF softscan_hop = { .M = 0, .S = 5, .F = 0 };
 
         MSF abs_ts = { .M = 0, .S = 0, .F = 0 };
         MSF rel_ts = { .M = 0, .S = 0, .F = 0 };
@@ -131,9 +145,14 @@ namespace CD {
         int cur_slot = 0;
         bool want_auto_play = false;
 
+        std::set<int> shuffle_history = {};
+        PlayMode play_mode = PlayMode::PLAYMODE_CONTINUE;
+
         void setup_tasks();
         void teardown_tasks();
         void start_seeking(bool ffwd);
-        void change_discs(bool forward);
+        bool change_discs(bool forward);
+        void change_tracks(bool ffwd);
+        bool play_next_shuffled_track();
     };
 }

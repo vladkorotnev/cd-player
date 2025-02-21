@@ -9,6 +9,35 @@
 static const char LOG_TAG[] = "APL_CDP";
 using CD::Player;
 
+static const char * HumanReadablePlayerStateString(Player::State sts) {
+    switch(sts) {
+        case Player::State::INIT: return "Please Wait";
+        case Player::State::LOAD: return "Reading";
+        case Player::State::CLOSE: return "Reading";
+        case Player::State::NO_DISC: return "No Disc";
+        case Player::State::BAD_DISC: return "No Disc";
+        case Player::State::OPEN: return "Open";
+        case Player::State::CHANGE_DISC: return "Changing Disc";
+        default:
+            return Player::PlayerStateString(sts);
+            break;
+    }
+}
+
+static const uint8_t shuffle_icon_data[] = {
+    0b11000010,
+    0b00101111,
+    0b00010000,
+    0b00101111,
+    0b11000010,
+};
+
+static const UI::Image shuffle_icon = {
+    .format = EG_FMT_HORIZONTAL,
+    .size = {8, 5},
+    .data = shuffle_icon_data
+};
+
 class CDMode::CDPView: public UI::View {
 public:
     std::shared_ptr<UI::Label> lblSmallTop;
@@ -18,6 +47,8 @@ public:
     std::shared_ptr<TimeBar> timeBar;
     std::shared_ptr<UI::TinySpinner> loading;
     std::shared_ptr<UI::Label> lblTrackIndicator;
+    std::shared_ptr<UI::Label> lblDiscIndicator;
+    std::shared_ptr<UI::ImageView> imgShuffleIcon;
     std::shared_ptr<WiFiIcon> wifi;
 
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
@@ -27,7 +58,9 @@ public:
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
         lblTrackIndicator = std::make_shared<UI::Label>(UI::Label({{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right));
-
+        lblDiscIndicator = std::make_shared<UI::Label>(UI::Label({{5, 27}, {12, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left));
+        imgShuffleIcon = std::make_shared<UI::ImageView>(UI::ImageView(&shuffle_icon, {{152, 27}, {8, 5}}));
+        imgShuffleIcon->hidden = true;
         lblLyric = std::make_shared<LyricLabel>(LyricLabel({{0, 0}, {160, 27}}));
         lblLyric->hidden = true;
         timeBar = std::make_shared<TimeBar>(TimeBar({{20, 27}, {120, 5}}));
@@ -43,6 +76,8 @@ public:
         subviews.push_back(loading);
         subviews.push_back(timeBar);
         subviews.push_back(lblTrackIndicator);
+        subviews.push_back(imgShuffleIcon);
+        subviews.push_back(lblDiscIndicator);
         subviews.push_back(lblLyric);
         subviews.push_back(allButLyric);
     }
@@ -92,10 +127,11 @@ void CDMode::setup() {
 }
 
 void CDMode::update_title(std::shared_ptr<CD::Album> disc, const CD::Track metadata, Player::TrackNo trk) {
+    rootView->imgShuffleIcon->hidden = (player.get_play_mode() != Player::PlayMode::PLAYMODE_SHUFFLE || player.get_status() == Player::State::STOP);
     if(disc->tracks.size() == 0 || metadata.title == "") {
         rootView->lblTrackIndicator->hidden = true;
     } else {
-        rootView->lblTrackIndicator->hidden = false;
+        rootView->lblTrackIndicator->hidden = !rootView->imgShuffleIcon->hidden;
         if(trk.index < 2) {
             rootView->lblTrackIndicator->set_value(std::to_string(trk.track) + "/" + std::to_string(disc->tracks.size()));
         } else {
@@ -135,6 +171,14 @@ void CDMode::loop() {
 
     rootView->timeBar->hidden = !(sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW);
     rootView->timeBar->trackbar->filled = (sts == Player::State::PLAY);
+    rootView->timeBar->trackbar->blinking = (sts == Player::State::PAUSE);
+
+    if(player.get_slots().size() > 1) {
+        rootView->lblDiscIndicator->set_value(std::to_string(player.get_active_slot_index() + 1) + "/" + std::to_string(player.get_slots().size()));
+        rootView->lblDiscIndicator->hidden = false;
+    } else {
+        rootView->lblDiscIndicator->hidden = true;
+    }
 
     switch(sts) {
         case Player::State::PLAY:
@@ -157,10 +201,11 @@ void CDMode::loop() {
                 update_title(disc, metadata, trk);
             } else {
                 rootView->lblTrackIndicator->hidden = true;
+                rootView->imgShuffleIcon->hidden = (player.get_play_mode() != Player::PlayMode::PLAYMODE_SHUFFLE);
                 if(disc->title != "") {
                     rootView->lblBigMiddle->set_value(disc->title);
                 } else {
-                    rootView->lblBigMiddle->set_value(CD::Player::PlayerStateString(sts));
+                    rootView->lblBigMiddle->set_value(HumanReadablePlayerStateString(sts));
                 }
                 if(disc->artist != "") {
                     rootView->lblSmallTop->set_value(disc->artist);
@@ -171,20 +216,18 @@ void CDMode::loop() {
             }
             break;
 
-        case Player::State::CHANGE_DISC:
-            must_show_title_stopped = false;
-            break;
-
         case Player::State::BAD_DISC:
-            sts = Player::State::NO_DISC;
         case Player::State::NO_DISC:
+        case Player::State::CHANGE_DISC:
         case Player::State::OPEN:
         case Player::State::CLOSE:
         case Player::State::LOAD:
         case Player::State::INIT:
             must_show_title_stopped = false;
+            rootView->lblTrackIndicator->hidden = true;
+            rootView->imgShuffleIcon->hidden = true;
             rootView->lblSmallTop->hidden = true;
-            rootView->lblBigMiddle->set_value(CD::Player::PlayerStateString(sts));
+            rootView->lblBigMiddle->set_value(HumanReadablePlayerStateString(sts));
             break;
     }
 
@@ -216,6 +259,8 @@ void CDMode::loop() {
             }
             else if(kp_sts == 2) {
                 player.do_command(CD::Player::Command::PLAY_PAUSE);
+                rootView->timeBar->trackbar->filled = (sts == Player::State::PLAY);
+                rootView->timeBar->set_needs_display();
             }
             else if(kp_sts == 4) { 
                 if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(CD::Player::Command::PREV_TRACK);
@@ -226,7 +271,7 @@ void CDMode::loop() {
                 if(sts == Player::State::STOP) must_show_title_stopped = true;
             }
             else if(kp_sts == 16) { 
-                player.do_command(CD::Player::Command::PREV_DISC);
+                player.set_play_mode(CD::Player::PLAYMODE_SHUFFLE);
             }
             else if(kp_sts == 32) {
                 player.do_command(CD::Player::Command::NEXT_DISC);

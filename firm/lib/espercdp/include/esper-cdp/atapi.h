@@ -5,12 +5,25 @@
 namespace ATAPI {
     class Device {
     public:
+        struct Quirks {
+            /// Indicates that the drive was not reporting media codes correctly
+            bool no_media_codes;
+            /// Indicates that wait_no_busy will operate erratically on the device. Internal use only?
+            bool busy_ass;
+            /// Indicates that the drive cannot do seeks while using digital output
+            /// @note This is actually per standard, so should this be opposite? Or is this somewhere in capability pages?
+            bool must_use_softscan;
+            /// Indicates that the drive sometimes responds with garbage in the TOC struct, eg the TEAC CD-C68E seems to love to do that
+            bool fucky_toc_reads;
+            /// @brief Indicates that the drive doesn't assert DRQ when sending TOC
+            bool no_drq_in_toc;
+        };
+
         Device(Platform::IDEBus * bus);
 
         void reset();
         bool check_atapi_compatible();
         bool self_test();
-
         void wait_ready();
 
         /// @brief Eject or close the tray
@@ -19,6 +32,8 @@ namespace ATAPI {
         /// @brief Request the changer (if any) to switch to a specified slot and put the disc in play position
         /// @note The changer might not move right away (e.g. TEAC CD-C68E does not). In this case maybe follow up the command with `eject(false)`.
         void load_unload(SlotNumber slot);
+        /// @brief Sends a device start command to ask the drive to read the disc.
+        void start();
 
         /// @brief Request the player to play audio data
         /// @param start Start of the played segment. Set to beginning of first track (usually M00S02F00, but can vary disc by disc)
@@ -39,6 +54,7 @@ namespace ATAPI {
         const DriveInfo * get_info();
         const MechInfo * query_state();
         const AudioStatus * query_position();
+        const Quirks& get_quirks() { return quirks; }
 
     private:
         SemaphoreHandle_t semaphore;
@@ -49,6 +65,7 @@ namespace ATAPI {
         MechInfo mech_sts = { 0 };
         AudioStatus audio_sts = { 0 };
         int packet_size = 12;
+        Quirks quirks;
 
         union StatusRegister {
             struct __attribute__((packed)) {

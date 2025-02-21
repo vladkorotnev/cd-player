@@ -28,6 +28,8 @@ namespace ATAPI {
 
         semaphore = xSemaphoreCreateBinary();
         xSemaphoreGive(semaphore);
+
+        quirks = {0};
     }
 
     void Device::reset() {
@@ -231,7 +233,40 @@ namespace ATAPI {
         info.serial = std::string(buf);
 
         packet_size = ((rslt.general_config & 0x1) != 0) ? 16 : 12;
-        ESP_LOGI(LOG_TAG, "Drive Model = '%s', packet size = %i", info.model.c_str(), packet_size);
+        
+        quirks = { 0 };
+        if(info.model == "NEC                 CD-ROM DRIVE:284" && info.firmware == "3.51    NEC                 CD-ROM DRIVE") {
+            ESP_LOGW(LOG_TAG, "Shitty drive detected! NEC CDR-1400C anyone?");
+
+            quirks.busy_ass = true;
+            quirks.no_media_codes = true;
+        }
+        else if(info.model == "TEAC DV-W58G-A") {
+            ESP_LOGW(LOG_TAG, "Detected a drive that doesn't support hardware ffwd/rewind");
+            quirks.must_use_softscan = true;
+        }
+        else if(info.model == "HL-DT-ST DVDRAM GSA-4163B") {
+            // responses still make zero sense. UNSUPPORTED!
+            quirks.no_media_codes = true;
+            quirks.busy_ass = true;
+            quirks.no_drq_in_toc = true;
+        }
+        else if(info.model == "TEAC CD-C68E") {
+            quirks.fucky_toc_reads = true;
+        }
+
+        ESP_LOGI(LOG_TAG, "Drive Model = '%s', SN = '%s', FW = '%s', packet size = %i", info.model.c_str(),  info.serial.c_str(), info.firmware.c_str(), packet_size);
+    }
+
+    void Device::start() {
+        const Requests::StartStopUnit req = {
+            .opcode = OperationCodes::START_STOP_UNIT,
+            .start = true,
+            .load_eject = false
+        };
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&req, sizeof(req));
+        xSemaphoreGive(semaphore);
     }
 
     void Device::eject(bool open) {
@@ -307,7 +342,7 @@ namespace ATAPI {
             .opcode = OperationCodes::READ_TOC_PMA_ATIP,
             .msf = true,
             .format = TocFormat::TOC_FMT_CD_TEXT,
-            .allocation_length = 0xFFFF // oughtta be enough!
+            .allocation_length = htobe16(0x7FFF) // oughtta be enough!
         };
 
         send_packet(&req, sizeof(req), true);
@@ -352,7 +387,7 @@ namespace ATAPI {
 
         Responses::ReadTOCResponseHeader res_hdr;
         bool success = false;
-        int attempts = 20;
+        int attempts = quirks.fucky_toc_reads ? 20 : 2;
         std::vector<uint8_t> toc_subchannel = {};
         std::vector<DiscTrack> tracks = {};
         MSF leadOut = { .M = 0, .S = 0, .F = 0 };
@@ -365,7 +400,7 @@ namespace ATAPI {
         do {
             tracks.clear();
             send_packet(&req, sizeof(req), true);
-            delay(50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
+            delay(quirks.fucky_toc_reads ? 1000 : 50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
             wait_not_busy();
 
             read_response(&res_hdr, sizeof(res_hdr), false);
@@ -376,7 +411,7 @@ namespace ATAPI {
                 ESP_LOGI(LOG_TAG, "TOC reading attempts = %i", attempts);
                 int last_trkno = res_hdr.first_track_no - 1;
                 for(int i = res_hdr.first_track_no; i <= res_hdr.last_track_no + 1; i++) {
-                    wait_drq();
+                    if(!quirks.no_drq_in_toc) wait_drq();
                     read_response(&entry, sizeof(entry), false);
                     ESP_LOGI(LOG_TAG, " + track %i: %02im%02is%02if, preemph=%i, prot=%i, data=%i, quadro=%i", entry.track_no, entry.address.M, entry.address.S, entry.address.F, entry.pre_emphasis, entry.copy_protected, entry.data_track, entry.quadrophonic);
 
@@ -459,6 +494,9 @@ namespace ATAPI {
             }
         }
 
+        if(quirks.busy_ass) {
+            delay(5);
+        }
         wait_not_busy();
     }
 
@@ -483,7 +521,7 @@ namespace ATAPI {
 
                 sts = read_sts_regi();
                 delayMicroseconds(10);
-            } while(bufLen > i && sts.DRQ);
+            } while(bufLen > i && (sts.DRQ || quirks.no_drq_in_toc));
 
             if(bufLen > i) {
                 ESP_LOGV(LOG_TAG, "Data underrun when reading response: wanted %i bytes, DRQ clear after %i bytes", bufLen, i + 1);
@@ -535,6 +573,7 @@ namespace ATAPI {
         ESP_LOGD(LOG_TAG, "Wait for bit clear 0x%02x", bits.value);
 
         do {
+            delay(100);
             if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
                 ESP_LOGW(LOG_TAG, "Still waiting for bit clear 0x%02x", bits.value);
                 start_wait = xTaskGetTickCount();

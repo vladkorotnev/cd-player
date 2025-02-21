@@ -1,5 +1,12 @@
 # ESPer CDP
 
+## Index
+
+* [Firmware](firm)
+* [Schematics](sch)
+* [Test CD](test-suite)
+* [Hoard of Docs](reference)
+
 ## Project goals
 
 ### Main goals 
@@ -27,9 +34,3 @@
 
 For SATA compatibility it may be possible to use an IDE to SATA adapter, so if rev.2 is ever to happen, it needs to have a high speed bus for streaming PCM data. Perhaps MCP23S17 as it goes to 10 MHz?
 
-## HW memo (rev.1)
-
-* I2C Level shifter: LSF0102
-* SPDIF to I2S: WM8805
-* DAC: PCM5102
-* IO Expander PCA9555PW

@@ -104,9 +104,9 @@ namespace Platform {
         IDE::DriveSelectRegister tmp = {{
             .lba_hi = 0,
             .slave_device = (active_device == DeviceNumber::IDE_SLAVE),
-            .reserved0 = false, //<- according to http://oswiki.osask.jp/?ATA, old ATAPI devices might need these bits enabled 
+            .reserved0 = true, //<- according to http://oswiki.osask.jp/?ATA, old ATAPI devices might need these bits enabled 
             .enable_lba = false,
-            .reserved1 = false,
+            .reserved1 = true,
         }};
 
         write_internal(IDE::Register::DriveSelect, {{ .low = tmp.value, .high = 0xFF }});

@@ -18,6 +18,9 @@ struct MSF {
 
 #define MSF_TO_FRAMES(x) (x.F + (x.S + x.M * 60) * MSF::FRAMES_IN_SECOND)
 #define MSF_TO_MILLIS(x) ((x.S + x.M * 60) * 1000 + x.F * (1000 / MSF::FRAMES_IN_SECOND)) // rough approximation
+MSF FRAMES_TO_MSF(int frames);
+MSF operator +(MSF a, MSF b);
+MSF operator -(MSF a, MSF b);
 
 namespace ATAPI {
      using SlotNumber = uint8_t;

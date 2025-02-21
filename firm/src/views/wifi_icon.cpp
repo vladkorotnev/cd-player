@@ -1,4 +1,5 @@
 #include <views/wifi_icon.h>
+#include <esper-core/wlan.h>
 
 static const uint8_t disconnect_data[] = {
     0b10001000,
@@ -63,6 +64,24 @@ WiFiIcon::WiFiIcon(EGRect f): UI::View(f) {
 
 bool WiFiIcon::needs_display() {
     TickType_t now = xTaskGetTickCount();
+    if(now - last_check >= pdMS_TO_TICKS(1000)) {
+        int rssi = Core::Services::WLAN::rssi();
+        if(rssi > 0) {
+            set_level(0);
+        }
+        else if(rssi >= -70) {
+            set_level(3);
+        }
+        else if(rssi >= -85) {
+            set_level(2);
+        }
+        else if(rssi >= -90) {
+            set_level(1);
+        }
+        else {
+            set_level(0);
+        }
+    }
     if(cur_lvl == 0 && now - last_blink >= pdMS_TO_TICKS(500)) {
         set_image(blink_phase ? 0 : 3);
         last_blink = now;

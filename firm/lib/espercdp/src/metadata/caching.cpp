@@ -11,7 +11,7 @@
 static const char LOG_TAG[] = "CDCache";
 
 // Cache structure:
-// .../folder/A/Asdfgb.CAC
+// .../folder/Asdfgb.CAC
 // File structure:
 // - Header
 // - compressed_size bytes array of {
@@ -279,11 +279,11 @@ namespace CD {
         free(dest);
 
         ESP_LOGI(LOG_TAG, "Remaining FS capacity after cache = %lu", LittleFS.totalBytes() - LittleFS.usedBytes());
-        ESP_LOGI(LOG_TAG, "Taken on disk = %lu", (LittleFS.totalBytes() - LittleFS.usedBytes()) - initial_space);
+        ESP_LOGI(LOG_TAG, "Taken on disk = %lu", initial_space - (LittleFS.totalBytes() - LittleFS.usedBytes()));
     }
 
     const std::string CachingMetadataAggregateProvider::id_to_dir_prefix(const std::string& id) {
-        return path + "/" + id.substr(0, 1);
+        return path;// + "/" + id.substr(0, 1); // do these subfolders eat a whole 8k?? looks like it: https://github.com/littlefs-project/littlefs/issues/1067#issuecomment-2671755185
     }
 
     const std::string CachingMetadataAggregateProvider::id_to_path(const std::string& id) {

@@ -65,10 +65,10 @@ namespace Platform {
     void AudioRouter::spdif_set_up_muting_hax() {
         // TODO: this is too fast to react, use an interrupt instead?
 
-        // Allocate a MCPWM unit at 500kHz (somehow more doesn't work for me).
+        // Allocate a MCPWM unit at 1 Hz
         // Set duty cycle to 100% (a.k.a. constant logic HIGH)
         mcpwm_config_t mcpwm_config = {
-            .frequency = 500000,
+            .frequency = 1,
             .cmpr_a = 100.0,
             .cmpr_b = 100.0,
             .duty_mode = MCPWM_DUTY_MODE_0,

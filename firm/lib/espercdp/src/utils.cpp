@@ -59,3 +59,26 @@ namespace ATAPI {
           ;
     }
 };
+
+MSF FRAMES_TO_MSF(int frames) {
+    int duration_min = (frames / MSF::FRAMES_IN_SECOND) / 60;
+    int duration_sec = (frames / MSF::FRAMES_IN_SECOND) % 60;
+    int duration_frames = (frames % MSF::FRAMES_IN_SECOND);
+    return MSF {
+        .M = (uint8_t) std::min(99,  duration_min),
+        .S = (uint8_t) std::min(99, duration_sec),
+        .F = (uint8_t) std::min(74, duration_frames)
+    };
+}
+
+MSF operator +(MSF a, MSF b) {
+    return FRAMES_TO_MSF(
+        MSF_TO_FRAMES(a) + MSF_TO_FRAMES(b)
+    );
+}
+
+MSF operator -(MSF a, MSF b) {
+    return FRAMES_TO_MSF(
+        std::max(0, MSF_TO_FRAMES(a) + MSF_TO_FRAMES(b))
+    );
+}

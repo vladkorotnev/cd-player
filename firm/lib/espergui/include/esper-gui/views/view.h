@@ -37,6 +37,7 @@ public:
 
     /// @brief Mark the view as needing to be drawn during the next composition pass
     void set_needs_display() {
+        if(hidden) return;
         dirty = true;
     }
     

@@ -116,6 +116,7 @@ namespace CD {
     }
 
     void LrcLibLyricProvider::fetch_track(Track& track, const Album& album) {
+        if(!track.lyrics.empty()) return;
         EXT_RAM_ATTR static WiFiClientSecure client;
         EXT_RAM_ATTR static HTTPClient http;
 

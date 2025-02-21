@@ -11,6 +11,12 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * optional: IR remote receiver (not yet implemented)
 * optional: Nixierator module for track # display (not yet implemented)
 
+### Tested CD drives
+
+* **NEC CDR-1400C**: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes
+* **TEAC DV-W58G**: works, no ffwd/rewind (using software timer for that so it's janky)
+* **TEAC CD-C68E**: works including changer, sometimes TOC reads are broken
+
 ## Capabilities
 
 * Read CD audio TOC from an IDE drive
@@ -20,6 +26,28 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * Cache CD metadata in Flash (not compressed for now and no cleanup when storage runs out yet)
 * Display timed lyrics for the songs using the awesome [LRCLib](https://lrclib.net/)
 * ... more to come! I need time :P
+
+## Further goals
+
+### Software only
+
+* Internet radio
+* Bluetooth receiver
+* Stretch: Bluetooth transmitter from radio/CD
+* Settings UI on screen
+* Connect to WiFi by QR
+* LastFM scrobble with Oauth by QR
+* More lyric sources (similar to those supported by one popular foobar plugin)
+* IR Remote support
+* Figure out how to disable drive's sleep mode? For now I almost exploded the disc twice but never got the power condition mode select call to work
+
+### Rev 2 of hardware if it ever comes
+
+* Direct read of CDA from the drive instead of using SPDIF
+* Reading of UDF/ISO9660 drives with AAC/MP3/MOD/XM/IT/other files on them
+* FM radio with RDS
+* AM radio (SW, MW, LW)
+* maybe: other display types
 
 ## Architecture
 

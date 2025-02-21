@@ -122,7 +122,7 @@ namespace CD {
                     abs_ts = { .M = 0, .S = 0, .F = 0 };
                     rel_ts = { .M = 0, .S = 0, .F = 0 };
                     cdrom->wait_ready();
-                    if(media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN && media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN_ALT) {
+                    if((media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN && media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN_ALT) || (cdrom->get_quirks().no_media_codes && media_type == ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN)) {
                         sts = State::LOAD;
                     } else {
                         delay = 2000; //<- some drives cannot load while processing other commands
@@ -131,8 +131,9 @@ namespace CD {
 
                 case State::LOAD:
                     // Load state: either just inited, or just closed the tray / changed CDs
-                    if(ATAPI::MediaTypeCodeIsAudioCD(media_type)) {
-                        // We got an audio CD
+                    if(ATAPI::MediaTypeCodeIsAudioCD(media_type) || cdrom->get_quirks().no_media_codes) {
+                        // We got an audio CD probably
+                        if(cdrom->get_quirks().no_media_codes) vTaskDelay(pdMS_TO_TICKS(2000));
                         auto toc = cdrom->read_toc();
                         if(toc.tracks.empty()) {
                             // The CD is not really useful as we cannot seem to read or play it
@@ -177,7 +178,10 @@ namespace CD {
                     break;
 
                 case State::NO_DISC:
-                    // nothing to do
+                    // nothing to do, but if changer, advance to next disc if any
+                    if(slots.size() > 1) {
+                        change_discs(true);
+                    }
                     break;
                 case State::BAD_DISC:
                     if(ATAPI::MediaTypeCodeIsAudioCD(media_type)) {
@@ -187,19 +191,30 @@ namespace CD {
                     break;
 
                 case State::STOP:
-                    abs_ts = { .M = 0, .S = 0, .F = 0 };
-                    rel_ts = { .M = 0, .S = 0, .F = 0 };
+                    {
+                        abs_ts = { .M = 0, .S = 0, .F = 0 };
+                        rel_ts = { .M = 0, .S = 0, .F = 0 };
+                        const ATAPI::AudioStatus* audio = cdrom->query_position();
+                        if(audio->state == ATAPI::AudioStatus::PlayState::Playing) {
+                            // we are playing for some other reason, maybe front panel button!
+                            sts = State::PLAY;
+                        }
+                    }
                     break;
 
                 case State::PLAY:
                     {
                         const ATAPI::AudioStatus* audio = cdrom->query_position();
                         if(audio->state == ATAPI::AudioStatus::PlayState::Stopped || audio->track == TRK_NUM_LEAD_OUT) {
-                            sts = State::STOP;
-                            cur_track.track = 1;
-                            cur_track.index = 1;
-                            abs_ts = { .M = 0, .S = 0, .F = 0 };
-                            rel_ts = { .M = 0, .S = 0, .F = 0 };
+                            if(play_mode != PlayMode::PLAYMODE_SHUFFLE || !play_next_shuffled_track()) {
+                                if(slots.size() == 1 || !change_discs(true)) {
+                                    cur_track.track = 1;
+                                    cur_track.index = 1;
+                                    abs_ts = { .M = 0, .S = 0, .F = 0 };
+                                    rel_ts = { .M = 0, .S = 0, .F = 0 };
+                                    sts = State::STOP;
+                                }
+                            }
                         }
                         else if(audio->state == ATAPI::AudioStatus::PlayState::Paused) {
                             sts = State::PAUSE;
@@ -215,9 +230,31 @@ namespace CD {
                 break;
 
                 case State::PAUSE:
+                    {
+                        const ATAPI::AudioStatus* audio = cdrom->query_position();
+                        cur_track.track = audio->track;
+                        cur_track.index = audio->index;
+                        abs_ts = audio->position_in_disc;
+                        rel_ts = audio->position_in_track;
+                    }
+                    break;
                 case State::SEEK_FF:
                 case State::SEEK_REW:
                     {
+                        if(cdrom->get_quirks().must_use_softscan) {
+                            if(pre_seek_sts == State::PLAY) {
+                                TickType_t now = xTaskGetTickCount();
+                                if(now - last_softscan_tick >= softscan_interval) {
+                                    MSF ss = (sts == State::SEEK_FF) ? (abs_ts + softscan_hop) : (abs_ts - softscan_hop);
+                                    cdrom->play(ss, slots[cur_slot].disc->duration);
+                                    last_softscan_tick = now;
+                                }
+                            } else {
+                                // cannot do softseek from pause
+                                sts = pre_seek_sts;
+                            }
+                        }
+
                         const ATAPI::AudioStatus* audio = cdrom->query_position();
                         cur_track.track = audio->track;
                         cur_track.index = audio->index;
@@ -307,31 +344,26 @@ namespace CD {
                 {
                     case Command::PLAY:
                         {
-                            auto album = slots[cur_slot].disc;
-                            if(!album->tracks.empty()) {
-                                int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
-                                sts = State::PLAY;
+                            if(play_mode == PlayMode::PLAYMODE_SHUFFLE && cur_track.track == 1) {
+                                play_next_shuffled_track();
+                                shuffle_history.clear(); // don't keep 1.1 always in history
+                            } else {
+                                auto album = slots[cur_slot].disc;
+                                if(!album->tracks.empty()) {
+                                    int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
+                                    cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
+                                    sts = State::PLAY;
+                                }
                             }
                         }
                     break;
 
                     case Command::NEXT_TRACK:
-                        {
-                            auto album = slots[cur_slot].disc;
-                            if(!album->tracks.empty()) {
-                                cur_track.track = std::min((int)album->tracks.size(), cur_track.track + 1);
-                            }
-                        }
+                        change_tracks(true);
                     break;
 
                     case Command::PREV_TRACK:
-                        {
-                            auto album = slots[cur_slot].disc;
-                            if(!album->tracks.empty()) {
-                                cur_track.track = std::max(1, cur_track.track - 1);
-                            }
-                        }
+                        change_tracks(false);
                     break;
                     
                     case Command::NEXT_DISC:
@@ -370,29 +402,11 @@ namespace CD {
                     break;
 
                     case Command::NEXT_TRACK:
-                        {
-                            auto album = slots[cur_slot].disc;
-                            if(!album->tracks.empty()) {
-                                if(cur_track.track < album->tracks.size()) {
-                                    cur_track.track = std::min((int)album->tracks.size(), cur_track.track + 1);
-                                    int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                    cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
-                                }
-                            }
-                        }
+                        change_tracks(true);
                     break;
 
                     case Command::PREV_TRACK:
-                        {
-                            auto album = slots[cur_slot].disc;
-                            if(!album->tracks.empty()) {
-                                if(rel_ts.M == 0 && rel_ts.S < 3) {
-                                    cur_track.track = std::max(1, cur_track.track - 1);
-                                }
-                                int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
-                            }
-                        }
+                        change_tracks(false);
                     break;
 
                     case Command::NEXT_DISC:
@@ -432,31 +446,11 @@ namespace CD {
                     break;
 
                     case Command::NEXT_TRACK:
-                        {
-                            auto album = slots[cur_slot].disc;
-                            if(!album->tracks.empty()) {
-                                if(cur_track.track < album->tracks.size()) {
-                                    cur_track.track = std::min((int)album->tracks.size(), cur_track.track + 1);
-                                    int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                    cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
-                                    cdrom->pause(true);
-                                }
-                            }
-                        }
+                        change_tracks(true);
                     break;
 
                     case Command::PREV_TRACK:
-                        {
-                            auto album = slots[cur_slot].disc;
-                            if(!album->tracks.empty()) {
-                                if(rel_ts.M == 0 && rel_ts.S < 3) {
-                                    cur_track.track = std::max(1, cur_track.track - 1);
-                                }
-                                int desired_track_idx = (album->tracks.size() >= cur_track.track ? (cur_track.track - 1) : 0);
-                                cdrom->play(album->tracks[desired_track_idx].disc_position.position, album->duration);
-                                cdrom->pause(true);
-                            }
-                        }
+                        change_tracks(false);
                     break;
 
                     case Command::NEXT_DISC:
@@ -490,25 +484,74 @@ namespace CD {
         xSemaphoreGive(_cmdSemaphore);
     }
 
+    void Player::change_tracks(bool fwd) {
+        auto album = slots[cur_slot].disc;
+        if(!album->tracks.empty()) {
+            int next_trk_no;
+            if(fwd) {
+                if(play_mode == PlayMode::PLAYMODE_SHUFFLE && sts != Player::State::STOP) {
+                    play_next_shuffled_track();
+                } else {
+                    next_trk_no = std::min((int) album->tracks.size(), (int) cur_track.track + 1);
+                }
+            }
+            else {
+                if(sts == State::STOP || (rel_ts.M == 0 && rel_ts.S <= 3)) {
+                    // if stopped or within the first 3 seconds of a song
+                    // go back one track
+                    if(play_mode == PlayMode::PLAYMODE_SHUFFLE && sts != State::STOP) {
+                        if(shuffle_history.empty()) return;
+                        next_trk_no = *shuffle_history.rbegin();
+                        shuffle_history.erase(next_trk_no);
+                    } else {
+                        next_trk_no = ((cur_track.track >= 2) ? (cur_track.track - 1) : 1); 
+                    }
+                } else {
+                    next_trk_no = cur_track.track; // go to start of current track
+                }
+            }
+            // don't advance onto the data track
+            // i've seen a CD with a data track in the start and in the end, but never in the middle..? that might break seeking past that with this
+            if(next_trk_no < 1 || album->tracks[next_trk_no - 1].disc_position.is_data) return;
+
+            if(sts != State::STOP) {
+                cdrom->play(album->tracks[next_trk_no - 1].disc_position.position, album->duration);
+                if(sts == State::PAUSE) {
+                    cdrom->pause(true);
+                }
+            }
+            else {
+                cur_track.track = next_trk_no;
+            }
+        }
+    }
+
     void Player::start_seeking(bool forward) {
         pre_seek_sts = sts;
         sts = forward ? State::SEEK_FF : State::SEEK_REW;
-        cdrom->scan(forward, { .M = 0xFF, .S = 0xFF, .F = 0xFF }); //<- seems like not all drives support this (e.g. teac from 2004) -- can we use repeated Play MSF commands instead?
+        if(!cdrom->get_quirks().must_use_softscan) {
+            cdrom->scan(forward, abs_ts);
+        }
     }
 
-    void Player::change_discs(bool forward) {
+    bool Player::change_discs(bool forward) {
+        if(slots.size() < 2) return false;
+
+        int disc_count = std::count_if(slots.cbegin(), slots.cend(), [](const Slot &x) { return x.disc_present; });
+        if(disc_count == 0) return false;
+        
+        int i = forward ? ((cur_slot + 1) % slots.size()) : (cur_slot == 0 ? (slots.size()-1) : cur_slot - 1);
+        while(!slots[i].disc_present)
+            i = forward ? ((i + 1) % slots.size()) : (i == 0 ? (slots.size()-1) : (i - 1));
+
+        if(i == cur_slot) return false;
+        
+        next_expected_slot = i;
+
         State old_sts = sts;
         sts = State::CHANGE_DISC;
-        if(old_sts == State::PLAY) {
+        if(old_sts == State::PLAY || old_sts == State::PAUSE) {
             cdrom->stop();
-        }
-
-        // TODO: drive might only support selecting slots with discs, what do?
-        if(forward) {
-            next_expected_slot = (cur_slot + 1) % slots.size();
-        }
-        else {
-            next_expected_slot = (cur_slot == 0 ? (slots.size()-1) : cur_slot - 1);
         }
 
         ESP_LOGI(LOG_TAG, "Change slot %i -> %i", cur_slot, next_expected_slot);
@@ -518,5 +561,44 @@ namespace CD {
         }
 
         cdrom->load_unload(next_expected_slot);
+        return true;
+    }
+
+    void Player::set_play_mode(PlayMode mode) {
+        if(mode == play_mode) return;
+        if(mode == PlayMode::PLAYMODE_SHUFFLE) {
+            shuffle_history.clear();
+        }
+        if(sts == State::PLAY || sts == State::PAUSE) {
+            if(mode == PlayMode::PLAYMODE_CONTINUE && play_mode == PlayMode::PLAYMODE_SHUFFLE) {
+                // from shuffle to continue: enqueue the whole disc instead of the active track
+                cdrom->play(abs_ts, slots[cur_slot].disc->duration);
+                if(sts == State::PAUSE) cdrom->pause(true);
+            }
+            else if(mode == PlayMode::PLAYMODE_SHUFFLE) {
+                // from other to shuffle: reenqueue the current track only to receive EOP events properly
+                cdrom->play(abs_ts, (cur_track.track == get_active_slot().disc->tracks.size()) ? get_active_slot().disc->duration : get_active_slot().disc->tracks[cur_track.track - 1].disc_position.position);
+                if(sts == State::PAUSE) cdrom->pause(true);
+            }
+        }
+        play_mode = mode;
+    }
+
+    bool Player::play_next_shuffled_track() {
+        shuffle_history.insert(cur_track.track);
+
+        auto const tracklist = get_active_slot().disc->tracks;
+        int playable_track_count = std::count_if(tracklist.cbegin(), tracklist.cend(), [this](const CD::Track& t) {
+            return shuffle_history.find(t.disc_position.number) == shuffle_history.end() && !t.disc_position.is_data;
+        });
+        if(playable_track_count == 0) return false;
+        int trk_idx = esp_random() % tracklist.size();
+        while(tracklist[trk_idx].disc_position.is_data || shuffle_history.find(tracklist[trk_idx].disc_position.number) != shuffle_history.end()) {
+            trk_idx = esp_random() % tracklist.size();
+        }
+       
+        cdrom->play(tracklist[trk_idx].disc_position.position, (trk_idx == (tracklist.size() - 1)) ? get_active_slot().disc->duration : tracklist[trk_idx + 1].disc_position.position);
+        sts = State::PLAY;
+        return true;
     }
 }
