@@ -45,8 +45,14 @@ namespace CD {
     }
 
     void Player::teardown_tasks() {
-        vTaskDelete(_pollTask);
-        vTaskDelete(_metaTask);
+        if(_pollTask) {
+            vTaskDelete(_pollTask);
+            _pollTask = NULL;
+        }
+        if(_metaTask) {
+            vTaskDelete(_metaTask);
+            _metaTask = NULL;
+        }
     }
 
     void Player::process_metadata_queue() {
@@ -241,25 +247,24 @@ namespace CD {
                 case State::SEEK_FF:
                 case State::SEEK_REW:
                     {
-                        if(cdrom->get_quirks().must_use_softscan) {
-                            if(pre_seek_sts == State::PLAY) {
-                                TickType_t now = xTaskGetTickCount();
-                                if(now - last_softscan_tick >= softscan_interval) {
-                                    MSF ss = (sts == State::SEEK_FF) ? (abs_ts + softscan_hop) : (abs_ts - softscan_hop);
-                                    cdrom->play(ss, slots[cur_slot].disc->duration);
-                                    last_softscan_tick = now;
-                                }
-                            } else {
-                                // cannot do softseek from pause
-                                sts = pre_seek_sts;
-                            }
-                        }
-
                         const ATAPI::AudioStatus* audio = cdrom->query_position();
                         cur_track.track = audio->track;
                         cur_track.index = audio->index;
                         abs_ts = audio->position_in_disc;
                         rel_ts = audio->position_in_track;
+
+                        if(cdrom->get_quirks().must_use_softscan) {
+                            TickType_t now = xTaskGetTickCount();
+                            if(now - last_softscan_tick >= softscan_interval) {
+                                if(now - softscan_start >= softscan_interval * 8) {
+                                    softscan_start = now;
+                                    softscan_hop = softscan_hop + MSF { .M = 0, .S = 5, .F = 0 };
+                                }
+                                MSF ss = (sts == State::SEEK_FF) ? (abs_ts + softscan_hop) : (abs_ts - softscan_hop);
+                                cdrom->play(ss, slots[cur_slot].disc->duration);
+                                last_softscan_tick = now;
+                            }
+                        }
                     }
                 break;
             }
@@ -273,11 +278,6 @@ namespace CD {
 
     void Player::do_command(Command cmd) {
         xSemaphoreTake(_cmdSemaphore, portMAX_DELAY);
-
-        if(cmd == Command::PLAY_PAUSE) {
-            if(sts == State::PLAY) cmd = Command::PAUSE;
-            else cmd = Command::PLAY;
-        }
 
         if(sts != State::INIT && sts != State::CHANGE_DISC && sts != State::LOAD) {
             // Open/Close works in any state
@@ -510,9 +510,7 @@ namespace CD {
                     next_trk_no = cur_track.track; // go to start of current track
                 }
             }
-            // don't advance onto the data track
-            // i've seen a CD with a data track in the start and in the end, but never in the middle..? that might break seeking past that with this
-            if(next_trk_no < 1 || album->tracks[next_trk_no - 1].disc_position.is_data) return;
+            if(next_trk_no < 1) return;
 
             if(sts != State::STOP) {
                 cdrom->play(album->tracks[next_trk_no - 1].disc_position.position, album->duration);
@@ -528,9 +526,14 @@ namespace CD {
 
     void Player::start_seeking(bool forward) {
         pre_seek_sts = sts;
-        sts = forward ? State::SEEK_FF : State::SEEK_REW;
         if(!cdrom->get_quirks().must_use_softscan) {
+            sts = forward ? State::SEEK_FF : State::SEEK_REW;
             cdrom->scan(forward, abs_ts);
+        } else {
+            softscan_start = xTaskGetTickCount();
+            softscan_hop = softscan_hop_default;
+            if(sts == State::PAUSE) cdrom->pause(false);
+            sts = forward ? State::SEEK_FF : State::SEEK_REW;
         }
     }
 
@@ -564,24 +567,25 @@ namespace CD {
         return true;
     }
 
-    void Player::set_play_mode(PlayMode mode) {
-        if(mode == play_mode) return;
-        if(mode == PlayMode::PLAYMODE_SHUFFLE) {
+    void Player::set_play_mode(PlayMode new_mode) {
+        if(new_mode == play_mode) return;
+        if(new_mode == PlayMode::PLAYMODE_SHUFFLE) {
             shuffle_history.clear();
         }
         if(sts == State::PLAY || sts == State::PAUSE) {
-            if(mode == PlayMode::PLAYMODE_CONTINUE && play_mode == PlayMode::PLAYMODE_SHUFFLE) {
+            if(new_mode == PlayMode::PLAYMODE_CONTINUE && play_mode == PlayMode::PLAYMODE_SHUFFLE) {
                 // from shuffle to continue: enqueue the whole disc instead of the active track
                 cdrom->play(abs_ts, slots[cur_slot].disc->duration);
                 if(sts == State::PAUSE) cdrom->pause(true);
+                shuffle_history.clear();
             }
-            else if(mode == PlayMode::PLAYMODE_SHUFFLE) {
+            else if(new_mode == PlayMode::PLAYMODE_SHUFFLE) {
                 // from other to shuffle: reenqueue the current track only to receive EOP events properly
                 cdrom->play(abs_ts, (cur_track.track == get_active_slot().disc->tracks.size()) ? get_active_slot().disc->duration : get_active_slot().disc->tracks[cur_track.track - 1].disc_position.position);
                 if(sts == State::PAUSE) cdrom->pause(true);
             }
         }
-        play_mode = mode;
+        play_mode = new_mode;
     }
 
     bool Player::play_next_shuffled_track() {
@@ -589,11 +593,11 @@ namespace CD {
 
         auto const tracklist = get_active_slot().disc->tracks;
         int playable_track_count = std::count_if(tracklist.cbegin(), tracklist.cend(), [this](const CD::Track& t) {
-            return shuffle_history.find(t.disc_position.number) == shuffle_history.end() && !t.disc_position.is_data;
+            return shuffle_history.find(t.disc_position.number) == shuffle_history.end();
         });
         if(playable_track_count == 0) return false;
         int trk_idx = esp_random() % tracklist.size();
-        while(tracklist[trk_idx].disc_position.is_data || shuffle_history.find(tracklist[trk_idx].disc_position.number) != shuffle_history.end()) {
+        while(shuffle_history.find(tracklist[trk_idx].disc_position.number) != shuffle_history.end()) {
             trk_idx = esp_random() % tracklist.size();
         }
        

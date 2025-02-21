@@ -27,28 +27,33 @@ namespace CD {
             lead_out( {.M = 0, .S = 0, .F = 0} ),
             title(""),
             artist(""),
-            toc_subchannel({})
+            toc_subchannel({}),
+            toc({})
         {}
 
-        Album(const ATAPI::DiscTOC& toc): Album() {
-            lead_out = toc.leadOut;
-            if(toc.tracks.back().is_data) {
+        Album(const ATAPI::DiscTOC& _toc): Album() {
+            lead_out = _toc.leadOut;
+            if(_toc.tracks.back().is_data) {
                 // Normally data track is at the end
-                duration = toc.tracks.back().position;
+                duration = _toc.tracks.back().position;
             } else {
                 duration = lead_out;
             }
-            toc_subchannel = toc.toc_subchannel;
+            toc = _toc.tracks;
+            toc_subchannel = _toc.toc_subchannel;
 
-            for(auto& track: toc.tracks) {
-                tracks.push_back({
-                    .disc_position = track,
-                    .title = "",
-                    .artist = ""
-                });
+            for(auto& track: _toc.tracks) {
+                if(!track.is_data) {
+                    tracks.push_back({
+                        .disc_position = track,
+                        .title = "",
+                        .artist = ""
+                    });
+                }
             }
         }
 
+        std::vector<ATAPI::DiscTrack> toc;
         std::vector<uint8_t> toc_subchannel;
         std::string title;
         std::string artist;
@@ -58,7 +63,7 @@ namespace CD {
 
         bool is_metadata_complete() {
             for(auto& track: tracks) {
-                if(track.title.empty() && !track.disc_position.is_data) {
+                if(track.title.empty()) {
                     return false;
                 }
             }
@@ -68,7 +73,7 @@ namespace CD {
 
         bool is_metadata_good_for_caching() {
             for(auto& track: tracks) {
-                if(track.title.empty() && !track.disc_position.is_data) {
+                if(track.title.empty()) {
                     return false;
                 }
             }

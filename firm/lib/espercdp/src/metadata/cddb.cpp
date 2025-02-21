@@ -30,7 +30,7 @@ namespace CD {
 
         cddb_disc_set_length(disc, FRAMES_TO_SECONDS(MSF_TO_FRAMES(album.lead_out)));
 
-        for(int i = 0; i < album.tracks.size(); i++) {
+        for(int i = 0; i < album.toc.size(); i++) {
             trk = cddb_track_new();
             if(!trk) {
                 ESP_LOGE(LOG_TAG, "memory allocation failed");
@@ -38,7 +38,7 @@ namespace CD {
             }
 
             cddb_disc_add_track(disc, trk);
-            cddb_track_set_frame_offset(trk, MSF_TO_FRAMES(album.tracks[i].disc_position.position));
+            cddb_track_set_frame_offset(trk, MSF_TO_FRAMES(album.toc[i].position));
         }
 
         cddb_disc_calc_discid(disc);

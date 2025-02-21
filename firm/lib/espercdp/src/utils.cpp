@@ -79,6 +79,6 @@ MSF operator +(MSF a, MSF b) {
 
 MSF operator -(MSF a, MSF b) {
     return FRAMES_TO_MSF(
-        std::max(0, MSF_TO_FRAMES(a) + MSF_TO_FRAMES(b))
+        std::max(0, MSF_TO_FRAMES(a) - MSF_TO_FRAMES(b))
     );
 }

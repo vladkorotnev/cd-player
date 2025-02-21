@@ -8,12 +8,7 @@ namespace Platform {
         _bus(bus),
         _addr(addr) {}
 
-    bool Keypad::read(uint8_t * outVal) {
-        if(outVal == nullptr) {
-            ESP_LOGE(LOG_TAG, "outVal cannot be null");
-            return false;
-        }
-
+    bool Keypad::update(uint8_t * outVal) {
         if(!_bus->lock()) {
             return false;
         }
@@ -32,7 +27,8 @@ namespace Platform {
                     ESP_LOGE(LOG_TAG, "Error when reading inPort");
                 }
                 else {
-                    *outVal = ~wire->read();
+                    last_value = ~wire->read();
+                    if(outVal != nullptr) *outVal = last_value;
                     rslt = true;
                 }
             }
@@ -40,6 +36,10 @@ namespace Platform {
 
         _bus->release();
         return rslt;
+    }
+
+    uint8_t Keypad::get_value() {
+        return last_value;
     }
 
     bool Keypad::setup_locked() {
@@ -57,5 +57,40 @@ namespace Platform {
 
         ESP_LOGE(LOG_TAG, "Error %i when configuring port", err);
         return false;
+    }
+
+    Button::Button(Keypad * kp, uint8_t bitmask) {
+        keypad = kp;
+        mask = bitmask;
+    }
+
+    Button::State Button::get_state() {
+        TickType_t now = xTaskGetTickCount();
+
+        bool pressed = (keypad->get_value() & mask) != 0;
+        if(pressed != cur_state) {
+            cur_state = pressed;
+            changed_at = now;
+        }
+
+        if(cur_state) {
+            if(now - changed_at >= pdMS_TO_TICKS(500)) {
+                click_flag = false;
+                State rslt = hold_flag ? BTN_STATE_HOLD_CONTINUES : BTN_STATE_HELD;
+                hold_flag = true;
+                return rslt;
+            } else {
+                click_flag = true;
+                return BTN_STATE_PRESSED;
+            }
+        } else {
+            hold_flag = false;
+            if(click_flag) {
+                click_flag = false;
+                return BTN_STATE_CLICKED;
+            } else {
+                return BTN_STATE_RELEASED;
+            }
+        }
     }
 }

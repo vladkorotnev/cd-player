@@ -6,7 +6,7 @@ namespace CD {
         bool cacheable() override { return false; }
         void fetch_album(Album& album) override {
             for(auto &track: album.tracks) {
-                if(!track.disc_position.is_data && track.lyrics.empty() && !track.title.empty()) {
+                if(track.lyrics.empty() && !track.title.empty()) {
                     fetch_track(track, album);
                 }
             }

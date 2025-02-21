@@ -1,4 +1,4 @@
-#include <mode.h>
+#include <modes/cd_mode.h>
 #include "cd_mode/time_bar.h"
 #include "cd_mode/lyric_label.h"
 #include <esper-gui/views/framework.h>
@@ -112,7 +112,15 @@ CDMode::CDMode(const PlatformSharedResources res):
         cdrom { ATAPI::Device(&ide) },
         meta { CD::CachingMetadataAggregateProvider("/mnt/cddb") },
         player { Player(&cdrom, &meta) },
-        Mode(res) {
+        stopEject { Button(resources.keypad, (1 << 0)) },
+        playPause { Button(resources.keypad, (1 << 1)) },
+        rewind { Button(resources.keypad, (1 << 2)) },
+        forward { Button(resources.keypad, (1 << 3)) },
+        prevTrackDisc { Button(resources.keypad, (1 << 4)) },
+        nextTrackDisc { Button(resources.keypad, (1 << 5)) },
+        playMode { Button(resources.keypad, (1 << 6)) },
+        chgSource { Button(resources.keypad, (1 << 7)) },
+    Mode(res) {
 
     meta.providers.push_back(new CD::CDTextMetadataProvider());
     meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
@@ -122,11 +130,15 @@ CDMode::CDMode(const PlatformSharedResources res):
     rootView = new CDPView();
 }
 
+CDMode::~CDMode() {
+    delete rootView;
+}
+
 void CDMode::setup() {
     resources.router->activate_route(Platform::AudioRoute::ROUTE_SPDIF_CD_PORT);
 }
 
-void CDMode::update_title(std::shared_ptr<CD::Album> disc, const CD::Track metadata, Player::TrackNo trk) {
+void CDMode::update_title(const std::shared_ptr<CD::Album> disc, const CD::Track& metadata, const Player::TrackNo trk) {
     rootView->imgShuffleIcon->hidden = (player.get_play_mode() != Player::PlayMode::PLAYMODE_SHUFFLE || player.get_status() == Player::State::STOP);
     if(disc->tracks.size() == 0 || metadata.title == "") {
         rootView->lblTrackIndicator->hidden = true;
@@ -160,11 +172,11 @@ void CDMode::update_title(std::shared_ptr<CD::Album> disc, const CD::Track metad
 void CDMode::loop() {
     static uint8_t kp_sts = 0;
 
-    auto trk = player.get_current_track_number();
-    auto sts = player.get_status();
-    auto msf_now = player.get_current_track_time();
-    auto disc = player.get_active_slot().disc;
-    auto tracklist = disc->tracks;
+    auto const& trk = player.get_current_track_number();
+    auto const sts = player.get_status();
+    auto const& msf_now = player.get_current_track_time();
+    auto const& disc = player.get_active_slot().disc;
+    auto const& tracklist = disc->tracks;
 
     rootView->loading->hidden = !(sts == Player::State::INIT || sts == Player::State::LOAD || sts == Player::State::CLOSE || sts == Player::State::CHANGE_DISC || player.is_processing_metadata());
     rootView->wifi->hidden = !rootView->loading->hidden;
@@ -247,42 +259,50 @@ void CDMode::loop() {
 
     rootView->lblBigMiddle->frame = (rootView->lblSmallTop->hidden && !rootView->timeBar->hidden && !rootView->lblTrackIndicator->hidden) ? EGRect {{0, 0}, {160, 24}} : EGRect {{0, 8}, {160, 16}};
 
-    uint8_t kp_new_sts = 0;
-    if(resources.keypad->read(&kp_new_sts)) {
-        if(kp_new_sts != kp_sts) {
-            ESP_LOGI("Test", "Key change: 0x%02x to 0x%02x", kp_sts, kp_new_sts);
-            rootView->set_lyric_show(false, 0);
-            kp_sts = kp_new_sts;
-            
-            if(kp_sts == 1) {
-                player.do_command((sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW) ? Player::Command::STOP : Player::Command::OPEN_CLOSE);
-            }
-            else if(kp_sts == 2) {
-                player.do_command(CD::Player::Command::PLAY_PAUSE);
-                rootView->timeBar->trackbar->filled = (sts == Player::State::PLAY);
-                rootView->timeBar->set_needs_display();
-            }
-            else if(kp_sts == 4) { 
-                if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(CD::Player::Command::PREV_TRACK);
-                if(sts == Player::State::STOP) must_show_title_stopped = true;
-            }
-            else if(kp_sts == 8) { 
-                if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(CD::Player::Command::NEXT_TRACK);
-                if(sts == Player::State::STOP) must_show_title_stopped = true;
-            }
-            else if(kp_sts == 16) { 
-                player.set_play_mode(CD::Player::PLAYMODE_SHUFFLE);
-            }
-            else if(kp_sts == 32) {
-                player.do_command(CD::Player::Command::NEXT_DISC);
-            }
-            else if(kp_sts == 64) {
-                player.do_command(CD::Player::Command::SEEK_FF);
-            }
-            else if(kp_sts == 128) {
-                player.do_command(CD::Player::Command::END_SEEK);
-            }
+    if(stopEject.is_clicked()) {
+        player.do_command((sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW) ? Player::Command::STOP : Player::Command::OPEN_CLOSE);
+    }
+    else if(playPause.is_clicked()) {
+        player.do_command((sts == Player::State::PLAY) ? Player::Command::PAUSE : Player::Command::PLAY);
+        rootView->timeBar->trackbar->filled = (sts == Player::State::PLAY);
+        rootView->timeBar->set_needs_display();
+    }
+    else if(forward.is_pressed() && sts != Player::State::SEEK_FF && sts != Player::State::SEEK_REW) {
+        player.do_command(Player::Command::SEEK_FF);
+    }
+    else if(rewind.is_pressed() && sts != Player::State::SEEK_FF && sts != Player::State::SEEK_REW) {
+        player.do_command(Player::Command::SEEK_REW);
+    }
+    else if((!forward.is_pressed() && sts == Player::State::SEEK_FF) || (!rewind.is_pressed() && sts == Player::State::SEEK_REW)) {
+        player.do_command(Player::Command::END_SEEK);
+    }
+    else if(prevTrackDisc.is_clicked()) {
+        if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(Player::Command::PREV_TRACK);
+        if(sts == Player::State::STOP) must_show_title_stopped = true;
+    }
+    else if(prevTrackDisc.is_held()) {
+        player.do_command(Player::Command::PREV_DISC);
+    }
+    else if(nextTrackDisc.is_clicked()) {
+        if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(Player::Command::NEXT_TRACK);
+        if(sts == Player::State::STOP) must_show_title_stopped = true;
+    }
+    else if(nextTrackDisc.is_held()) {
+        player.do_command(Player::Command::NEXT_DISC);
+    }
+    else if(playMode.is_clicked()) {
+        if(player.get_play_mode() == Player::PlayMode::PLAYMODE_SHUFFLE) {
+            player.set_play_mode(Player::PlayMode::PLAYMODE_CONTINUE);
+        } else {
+            player.set_play_mode(Player::PlayMode::PLAYMODE_SHUFFLE);
         }
+    }
+
+    // any key cancels lyrics
+    uint8_t kp_new_sts = resources.keypad->get_value();
+    if(kp_new_sts != kp_sts) {
+        rootView->set_lyric_show(false, 0);
+        kp_sts = kp_new_sts;
     }
 }
 

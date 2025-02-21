@@ -127,18 +127,18 @@ namespace CD {
         unsigned char sha[20] = { 0 };
         size_t dummy;
 
-        sprintf(temp, "%02X", album.tracks[0].disc_position.number);
+        sprintf(temp, "%02X", album.toc[0].number);
         mbedtls_sha1_update_ret(&ctx, (unsigned char*) temp, strlen(temp));
 
-        sprintf(temp, "%02X", album.tracks.back().disc_position.number);
+        sprintf(temp, "%02X", album.toc.back().number);
         mbedtls_sha1_update_ret(&ctx, (unsigned char*) temp, strlen(temp));
 
         sprintf(temp, "%08X", MSF_TO_FRAMES(album.lead_out));
         mbedtls_sha1_update_ret(&ctx, (unsigned char*) temp, strlen(temp));
 
         for (int i = 0; i < 99; i++) {
-            if(i < album.tracks.size()) {
-                sprintf(temp, "%08X", MSF_TO_FRAMES(album.tracks[i].disc_position.position));
+            if(i < album.toc.size()) {
+                sprintf(temp, "%08X", MSF_TO_FRAMES(album.toc[i].position));
                 mbedtls_sha1_update_ret(&ctx, (unsigned char*) temp, strlen(temp));
             }
             else {

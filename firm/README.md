@@ -14,8 +14,8 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 ### Tested CD drives
 
 * **NEC CDR-1400C**: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes
-* **TEAC DV-W58G**: works, no ffwd/rewind (using software timer for that so it's janky)
-* **TEAC CD-C68E**: works including changer, sometimes TOC reads are broken
+* **TEAC DV-W58G**: works, janky ffwd/rewind (using software timer because the drive doesn't do SCAN commands)
+* **TEAC CD-C68E**: works including changer, sometimes TOC reads are broken, workaround is in place but still
 
 ## Capabilities
 

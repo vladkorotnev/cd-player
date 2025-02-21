@@ -8,7 +8,7 @@
 #include <esper-gui/compositing.h>
 #include <esper-gui/text.h>
 
-#include <mode.h>
+#include <modes/cd_mode.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -64,6 +64,15 @@ void renderTask(void*) {
   while(true) {
     compositor->render(app->main_view());
     xTaskDelayUntil(&lastRender, pdMS_TO_TICKS(33));
+  }
+}
+
+TaskHandle_t keypadTaskHandle = 0;
+void keypadTask(void * pvArgs) {
+  Platform::Keypad * kp = reinterpret_cast<Platform::Keypad*>(pvArgs);
+  while(true) {
+    kp->update();
+    vTaskDelay(pdMS_TO_TICKS(10));
   }
 }
 
@@ -129,6 +138,15 @@ void setup(void) {
     nullptr,
     2,
     &renderTaskHandle
+  );
+
+  xTaskCreate(
+    keypadTask,
+    "KEYP",
+    4000,
+    keypad,
+    2,
+    &keypadTaskHandle
   );
 }
 

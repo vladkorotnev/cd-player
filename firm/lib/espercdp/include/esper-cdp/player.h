@@ -56,7 +56,6 @@ namespace CD {
             CLOSE,
             PLAY,
             PAUSE,
-            PLAY_PAUSE,
             SEEK_FF,
             SEEK_REW,
             END_SEEK,
@@ -124,9 +123,11 @@ namespace CD {
         SemaphoreHandle_t _metaSemaphore;
         std::queue<std::shared_ptr<Album>> _metaQueue;
 
+        TickType_t softscan_start = 0;
         TickType_t last_softscan_tick = 0;
-        TickType_t softscan_interval = pdMS_TO_TICKS(500);
-        MSF softscan_hop = { .M = 0, .S = 5, .F = 0 };
+        TickType_t softscan_interval = pdMS_TO_TICKS(250);
+        MSF softscan_hop = { .M = 0, .S = 10, .F = 0 };
+        const MSF softscan_hop_default = { .M = 0, .S = 10, .F = 0 };
 
         MSF abs_ts = { .M = 0, .S = 0, .F = 0 };
         MSF rel_ts = { .M = 0, .S = 0, .F = 0 };
