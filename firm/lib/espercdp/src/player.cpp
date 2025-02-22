@@ -140,6 +140,7 @@ namespace CD {
                     if(ATAPI::MediaTypeCodeIsAudioCD(media_type) || cdrom->get_quirks().no_media_codes) {
                         // We got an audio CD probably
                         if(cdrom->get_quirks().no_media_codes) vTaskDelay(pdMS_TO_TICKS(2000));
+                        cdrom->read_toc_lba();
                         auto toc = cdrom->read_toc();
                         if(toc.tracks.empty()) {
                             // The CD is not really useful as we cannot seem to read or play it
@@ -493,6 +494,7 @@ namespace CD {
                     play_next_shuffled_track();
                 } else {
                     next_trk_no = std::min((int) album->tracks.size(), (int) cur_track.track + 1);
+                    if(next_trk_no == cur_track.track) return; // don't jump to beginning of track if on last track
                 }
             }
             else {
@@ -510,7 +512,6 @@ namespace CD {
                     next_trk_no = cur_track.track; // go to start of current track
                 }
             }
-            if(next_trk_no < 1) return;
 
             if(sts != State::STOP) {
                 cdrom->play(album->tracks[next_trk_no - 1].disc_position.position, album->duration);
@@ -530,7 +531,6 @@ namespace CD {
             sts = forward ? State::SEEK_FF : State::SEEK_REW;
             cdrom->scan(forward, abs_ts);
         } else {
-            softscan_start = xTaskGetTickCount();
             softscan_hop = softscan_hop_default;
             if(sts == State::PAUSE) cdrom->pause(false);
             sts = forward ? State::SEEK_FF : State::SEEK_REW;

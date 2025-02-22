@@ -23,6 +23,7 @@ namespace ATAPI {
         STOP_PLAY_SCAN = 0x4E,
         MODE_SENSE = 0x5A,
         LOAD_UNLOAD = 0xA6,
+        READ_12 = 0xA8,
         MECHANISM_STATUS = 0xBD,
         SCAN = 0xBA,
         PLAY_CD = 0xBC,
@@ -276,7 +277,7 @@ namespace ATAPI {
                 SECT_TYPE_MODE2FORM2 = 0b101,
             };
 
-            enum SubchannelDataSelection {
+            enum SubchannelDataSelection: uint8_t {
                 NO_SUBCHANNEL = 0b000,
                 RAW_SUBCHANNEL = 0b001,
                 SUBCHANNEL_Q = 0b010,
@@ -289,16 +290,10 @@ namespace ATAPI {
             bool reserved0: 1;
             SectorType sector_type: 3;
             uint8_t lun: 3;
-            union {
-                struct {
-                    uint16_t lba_hi;
-                    uint16_t lba_low;
-                };
-                struct {
-                    uint8_t padding0;
-                    MSF msf; // is this valid here?
-                };
-            };
+
+            uint16_t lba_hi;
+            uint16_t lba_low;
+
             struct {
                 uint8_t high;
                 uint16_t low;
@@ -312,6 +307,18 @@ namespace ATAPI {
             bool synch: 1;
 
             SubchannelDataSelection subchannel: 3;
+            uint8_t reserved2: 5;
+
+            ReqPktFooter footer;
+        };
+
+        struct ATAPI_PKT Read {
+            uint8_t opcode;
+            uint8_t padding0;
+            uint32_t lba;
+            uint32_t sectors;
+            uint8_t padding1;
+            ReqPktFooter footer;
         };
 
         struct ATAPI_PKT Scan {
@@ -452,7 +459,7 @@ namespace ATAPI {
                     uint8_t padding;
                     MSF address;
                 };
-                uint8_t lba[4];
+                uint32_t lba;
             };
         };
 

@@ -92,7 +92,7 @@ void setup(void) {
   disp->set_brightness(Graphics::Hardware::Brightness::DISP_BRIGHTNESS_50);
   compositor = new Graphics::Compositor(disp);
 
-  Wire.begin(32, 33, 100000);
+  Wire.begin(32, 33, 400000);
   i2c = new Core::ThreadSafeI2C(&Wire);
   i2c->log_all_devices();
 

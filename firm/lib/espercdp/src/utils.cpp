@@ -56,6 +56,7 @@ namespace ATAPI {
             // example: EXIT TUNES QWCE-20004 is reported as MTC_PHOTO_120MM
             || code == MTC_PHOTO_120MM || code == MTC_PHOTO_80MM || code == MTC_CDR_PHOTO_120MM || code == MTC_CDR_PHOTO_80MM || code == MTC_CD_EXT_PHOTO_120MM || code == MTC_CD_EXT_PHOTO_80MM
 #endif
+        || code == MTC_CDR_DATA_120MM
           ;
     }
 };

@@ -453,6 +453,93 @@ namespace ATAPI {
         };
     }
 
+    void Device::read_toc_lba() {
+        const Requests::ReadTOC req = {
+            .opcode = OperationCodes::READ_TOC_PMA_ATIP,
+            .msf = false,
+            .format = TocFormat::TOC_FMT_TOC,
+            .allocation_length = 0xFFFF // oughtta be enough!
+        };
+
+        Responses::ReadTOCResponseHeader res_hdr;
+        bool success = false;
+        int attempts = quirks.fucky_toc_reads ? 20 : 2;
+        uint32_t lead_out_lba = 0;
+        uint32_t first_track_lba = 0;
+        Responses::NormalTOCEntry entry;
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+
+        do {
+            send_packet(&req, sizeof(req), true);
+            delay(quirks.fucky_toc_reads ? 1000 : 50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
+            wait_not_busy();
+
+            read_response(&res_hdr, sizeof(res_hdr), false);
+            res_hdr.data_length = be16toh(res_hdr.data_length);
+            ESP_LOGI(LOG_TAG, "Reported TOC size = %i (from track %i to %i)", res_hdr.data_length, res_hdr.first_track_no, res_hdr.last_track_no);
+
+            if(res_hdr.data_length == (res_hdr.last_track_no - (res_hdr.first_track_no - 1) + 1) * sizeof(entry) + 2 && res_hdr.last_track_no >= res_hdr.first_track_no) {
+                ESP_LOGI(LOG_TAG, "TOC reading attempts = %i", attempts);
+                int last_trkno = res_hdr.first_track_no - 1;
+                for(int i = res_hdr.first_track_no; i <= res_hdr.last_track_no + 1; i++) {
+                    if(!quirks.no_drq_in_toc) wait_drq();
+                    read_response(&entry, sizeof(entry), false);
+                    entry.lba = be16toh(entry.lba);
+                    ESP_LOGI(LOG_TAG, " + track %i: LBA=%08x, preemph=%i, prot=%i, data=%i, quadro=%i", entry.track_no, entry.lba, entry.pre_emphasis, entry.copy_protected, entry.data_track, entry.quadrophonic);
+
+                    if((entry.track_no != TRK_NUM_LEAD_OUT && entry.track_no != last_trkno + 1) || (last_trkno == TRK_NUM_LEAD_OUT)) {
+                        ESP_LOGE(LOG_TAG, "  ^--- this makes no sense! retry.");
+                        success = false;
+                        break;
+                    }
+
+                    if(entry.track_no == TRK_NUM_LEAD_OUT) {
+                        lead_out_lba = entry.lba;
+                        success = true;
+                    } else {
+                        if(first_track_lba == 0 && entry.data_track) {
+                            first_track_lba = entry.lba;
+                        }
+                    }
+
+                    last_trkno = entry.track_no;
+                }
+                // flush anything if any
+                read_response(nullptr, 0, true);
+            } else {
+                ESP_LOGE(LOG_TAG, "  ^--- this makes no sense! retry.");
+            }
+        } while(!success && (attempts--) > 0);
+        
+        if(success) {
+            const Requests::Read req2 = {
+                .opcode = OperationCodes::READ_12,
+                .lba = htobe32(16),
+                .sectors = htobe32(1),
+            };
+
+            uint8_t sector[2048] = { 0 };
+
+            ide->write(IDE::Register::Feature, {{.low = 0, .high = 0xFF}});
+            ide->write(IDE::Register::CylinderLow, {{.low = (2048 & 0xFF), .high = 0xFF}});
+            ide->write(IDE::Register::CylinderHigh, {{.low = (2048 >> 8), .high = 0xFF}});
+
+            send_packet(&req2, sizeof(req2), true);
+            delay(quirks.fucky_toc_reads ? 1000 : 50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
+            wait_not_busy();
+            if(read_sts_regi().ERR) {
+                ESP_LOGE(LOG_TAG, "Sector test read fail?");
+            }
+            data16 lba_hi = ide->read(IDE::Register::CylinderHigh);
+            data16 lba_lo = ide->read(IDE::Register::CylinderLow);
+            ESP_LOGW(LOG_TAG, "HI = %04x, LO = %04x", lba_hi.value, lba_lo.value);
+            read_response(&sector, sizeof(sector), true);
+        }
+
+        xSemaphoreGive(semaphore);
+    }
+
     MediaTypeCode Device::check_media() {
         const Requests::ModeSense req = {
             .opcode = OperationCodes::MODE_SENSE,

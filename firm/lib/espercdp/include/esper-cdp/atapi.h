@@ -50,6 +50,7 @@ namespace ATAPI {
         MediaTypeCode check_media();
         /// @brief Read the audio CD TOC
         const DiscTOC read_toc();
+        void read_toc_lba();
 
         const DriveInfo * get_info();
         const MechInfo * query_state();

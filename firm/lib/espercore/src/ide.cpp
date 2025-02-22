@@ -105,7 +105,7 @@ namespace Platform {
             .lba_hi = 0,
             .slave_device = (active_device == DeviceNumber::IDE_SLAVE),
             .reserved0 = true, //<- according to http://oswiki.osask.jp/?ATA, old ATAPI devices might need these bits enabled 
-            .enable_lba = false,
+            .enable_lba = true,
             .reserved1 = true,
         }};
 
