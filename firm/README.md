@@ -13,9 +13,11 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 
 ### Tested CD drives
 
-* **NEC CDR-1400C**: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes
-* **TEAC DV-W58G**: works, janky ffwd/rewind (using software timer because the drive doesn't do SCAN commands)
-* **TEAC CD-C68E**: works including changer, sometimes TOC reads are broken, workaround is in place but still
+* **Recommended: NEC ND-3500A**: just works! Wish every one of the others was like this.
+* *Matsushita SR-8171 (slimline)*: mostly works. TOC read after disc change is unstable (goes through on 3rd retry, timing/busyflag issue?) Needs a standard JAE 50pin to IDE 40pin adapter. Does not require 12V supply. Analog output only.
+* *NEC CDR-1400C*: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes properly
+* *TEAC DV-W58G*: works, janky ffwd/rewind (using software timer because the drive doesn't do SCAN commands). Most of the initial development was done with this drive.
+* *TEAC CD-C68E*: works including changer, sometimes TOC reads are broken, workaround is in place but still. *No SPDIF output, so you have to resort to analog.*
 
 ## Capabilities
 
@@ -35,7 +37,7 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * Bluetooth receiver
 * Stretch: Bluetooth transmitter from radio/CD
 * Settings UI on screen
-* Connect to WiFi by QR
+* Connect to WiFi by QR (**upd:** DPP QR doesn't fit in 29x29 or 31x31, must use captive portal or OSD altogether)
 * LastFM scrobble with Oauth by QR
 * More lyric sources (similar to those supported by one popular foobar plugin)
 * IR Remote support
