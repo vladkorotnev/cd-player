@@ -515,11 +515,14 @@ namespace ATAPI {
         if(success) {
             const Requests::Read req2 = {
                 .opcode = OperationCodes::READ_12,
-                .lba = htobe32(16),
+                .lba = htobe32(0),
                 .sectors = htobe32(1),
             };
 
             uint8_t sector[2048] = { 0 };
+
+            wait_drq_end();
+            wait_not_busy();
 
             ide->write(IDE::Register::Feature, {{.low = 0, .high = 0xFF}});
             ide->write(IDE::Register::CylinderLow, {{.low = (2048 & 0xFF), .high = 0xFF}});
@@ -528,13 +531,19 @@ namespace ATAPI {
             send_packet(&req2, sizeof(req2), true);
             delay(quirks.fucky_toc_reads ? 1000 : 50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
             wait_not_busy();
-            if(read_sts_regi().ERR) {
+            wait_drq();
+            auto sts = read_sts_regi();
+            if(sts.ERR) {
                 ESP_LOGE(LOG_TAG, "Sector test read fail?");
             }
-            data16 lba_hi = ide->read(IDE::Register::CylinderHigh);
-            data16 lba_lo = ide->read(IDE::Register::CylinderLow);
-            ESP_LOGW(LOG_TAG, "HI = %04x, LO = %04x", lba_hi.value, lba_lo.value);
+            else if(sts.DRQ) {
+                ESP_LOGI(LOG_TAG, "DRQ is SET!!");
+            }
+
             read_response(&sector, sizeof(sector), true);
+            for(int i = 0; i < sizeof(sector); i++)
+                if(sector[i] != 0)
+                    ESP_LOGI(LOG_TAG, "THERE WAS DATA");
         }
 
         xSemaphoreGive(semaphore);
@@ -600,15 +609,12 @@ namespace ATAPI {
 
         if(bufLen > 0 && buf != nullptr) {
             int i = 0;
-            do {
+            while(bufLen > i && (quirks.no_drq_in_toc || read_sts_regi().DRQ)) {
                 val = ide->read(IDE::Register::Data);
                 buf[i++] = val.low;
                 buf[i++] = val.high;
                 delayMicroseconds(10);
-
-                sts = read_sts_regi();
-                delayMicroseconds(10);
-            } while(bufLen > i && (sts.DRQ || quirks.no_drq_in_toc));
+            }
 
             if(bufLen > i) {
                 ESP_LOGV(LOG_TAG, "Data underrun when reading response: wanted %i bytes, DRQ clear after %i bytes", bufLen, i + 1);
