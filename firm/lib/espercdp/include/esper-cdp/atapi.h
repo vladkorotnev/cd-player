@@ -50,7 +50,9 @@ namespace ATAPI {
         MediaTypeCode check_media();
         /// @brief Read the audio CD TOC
         const DiscTOC read_toc();
+
         void read_toc_lba();
+        bool read_sectors(uint32_t sector, uint32_t count, void* buffer);
 
         const DriveInfo * get_info();
         const MechInfo * query_state();
@@ -67,6 +69,10 @@ namespace ATAPI {
         AudioStatus audio_sts = { 0 };
         int packet_size = 12;
         Quirks quirks;
+
+        bool data_track_present = false;
+        uint32_t data_sector_offset = 0;
+        uint32_t lead_out_lba = 0;
 
         union StatusRegister {
             struct __attribute__((packed)) {

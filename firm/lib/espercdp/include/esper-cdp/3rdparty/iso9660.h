@@ -8,14 +8,13 @@
 
  #ifndef __ISO9660_H__
  #define __ISO9660_H__
- 
- #include "disc_io.h"
- 
- 
+
+ #include <esper-cdp/atapi.h>
+
  #define ISO_MAXPATHLEN		128
 
  
- bool ISO9660_Mount(const DISC_INTERFACE* disc_interface);
+ bool ISO9660_Mount(ATAPI::Device* disc_interface);
  bool ISO9660_Unmount();
  const char *ISO9660_GetVolumeLabel();
 

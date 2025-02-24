@@ -3,6 +3,8 @@
 #include <cassert>
 #include <algorithm>
 #include <endian.h>
+#include <esper-cdp/3rdparty/iso9660.h>
+#include <dirent.h>
 
 static const char LOG_TAG[] = "ATAPI";
 
@@ -464,9 +466,11 @@ namespace ATAPI {
         Responses::ReadTOCResponseHeader res_hdr;
         bool success = false;
         int attempts = quirks.fucky_toc_reads ? 20 : 2;
-        uint32_t lead_out_lba = 0;
-        uint32_t first_track_lba = 0;
+        lead_out_lba = 0;
         Responses::NormalTOCEntry entry;
+
+        ISO9660_Unmount();
+        data_track_present = false;
 
         xSemaphoreTake(semaphore, portMAX_DELAY);
 
@@ -485,7 +489,7 @@ namespace ATAPI {
                 for(int i = res_hdr.first_track_no; i <= res_hdr.last_track_no + 1; i++) {
                     if(!quirks.no_drq_in_toc) wait_drq();
                     read_response(&entry, sizeof(entry), false);
-                    entry.lba = be16toh(entry.lba);
+                    entry.lba = be32toh(entry.lba);
                     ESP_LOGI(LOG_TAG, " + track %i: LBA=%08x, preemph=%i, prot=%i, data=%i, quadro=%i", entry.track_no, entry.lba, entry.pre_emphasis, entry.copy_protected, entry.data_track, entry.quadrophonic);
 
                     if((entry.track_no != TRK_NUM_LEAD_OUT && entry.track_no != last_trkno + 1) || (last_trkno == TRK_NUM_LEAD_OUT)) {
@@ -498,8 +502,9 @@ namespace ATAPI {
                         lead_out_lba = entry.lba;
                         success = true;
                     } else {
-                        if(first_track_lba == 0 && entry.data_track) {
-                            first_track_lba = entry.lba;
+                        if(!data_track_present && entry.data_track) {
+                            data_sector_offset = entry.lba;
+                            data_track_present = true;
                         }
                     }
 
@@ -511,42 +516,71 @@ namespace ATAPI {
                 ESP_LOGE(LOG_TAG, "  ^--- this makes no sense! retry.");
             }
         } while(!success && (attempts--) > 0);
-        
-        if(success) {
-            const Requests::Read req2 = {
-                .opcode = OperationCodes::READ_12,
-                .lba = htobe32(0),
-                .sectors = htobe32(1),
-            };
-
-            uint8_t sector[2048] = { 0 };
-
-            wait_drq_end();
-            wait_not_busy();
-
-            ide->write(IDE::Register::Feature, {{.low = 0, .high = 0xFF}});
-            ide->write(IDE::Register::CylinderLow, {{.low = (2048 & 0xFF), .high = 0xFF}});
-            ide->write(IDE::Register::CylinderHigh, {{.low = (2048 >> 8), .high = 0xFF}});
-
-            send_packet(&req2, sizeof(req2), true);
-            delay(quirks.fucky_toc_reads ? 1000 : 50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
-            wait_not_busy();
-            wait_drq();
-            auto sts = read_sts_regi();
-            if(sts.ERR) {
-                ESP_LOGE(LOG_TAG, "Sector test read fail?");
-            }
-            else if(sts.DRQ) {
-                ESP_LOGI(LOG_TAG, "DRQ is SET!!");
-            }
-
-            read_response(&sector, sizeof(sector), true);
-            for(int i = 0; i < sizeof(sector); i++)
-                if(sector[i] != 0)
-                    ESP_LOGI(LOG_TAG, "THERE WAS DATA");
-        }
 
         xSemaphoreGive(semaphore);
+
+        if(success && data_track_present) {
+            ISO9660_Mount(this);
+            auto dir = opendir("/cdrom");
+
+            if(dir) {
+                struct dirent *de;
+                while ((de = readdir(dir)) != NULL) {
+                    ESP_LOGI(LOG_TAG, " - %s", de->d_name);
+                }
+                closedir(dir);
+            }
+            else {
+                ESP_LOGE(LOG_TAG, "Could not open /cdrom");
+            }
+        }
+    }
+
+    bool Device::read_sectors(uint32_t sector, uint32_t count, void* buffer) {
+        if(!data_track_present) return false;
+
+        uint32_t actual_sect;
+        if(sector > data_sector_offset && (sector + data_sector_offset) > lead_out_lba) {
+            // dodgy read, absolute position provided?
+            actual_sect = sector;
+        } else {
+            actual_sect = sector + data_sector_offset;
+        }
+
+        const Requests::Read req = {
+            .opcode = OperationCodes::READ_12,
+            .lba = htobe32(actual_sect),
+            .sectors = htobe32(count),
+        };
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        wait_drq_end();
+        wait_not_busy();
+
+        ide->write(IDE::Register::Feature, {{.low = 0, .high = 0xFF}});
+        ide->write(IDE::Register::CylinderLow, {{.low = (2048 & 0xFF), .high = 0xFF}});
+        ide->write(IDE::Register::CylinderHigh, {{.low = (2048 >> 8), .high = 0xFF}});
+
+        send_packet(&req, sizeof(req), true);
+        wait_not_busy();
+        auto sts = read_sts_regi();
+        if(sts.ERR) {
+            ESP_LOGE(LOG_TAG, "Sector read fail at %i count %i", actual_sect, count);
+            xSemaphoreGive(semaphore);
+            return false;
+        }
+        else {
+            wait_drq();
+        }
+
+        TickType_t start = xTaskGetTickCount();
+        ide->read_bulk(IDE::Register::Data, buffer, count * 2048); // does not check status register but hopefully is faster?
+        TickType_t end = xTaskGetTickCount();
+        ESP_LOGI(LOG_TAG, "Transfer %i sectors at %i in %i ms", count, actual_sect, pdTICKS_TO_MS(end - start));
+
+        xSemaphoreGive(semaphore);
+
+        return true;
     }
 
     MediaTypeCode Device::check_media() {

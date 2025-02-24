@@ -14,8 +14,11 @@
 #include <sys/stat.h>
 #include <esp_vfs.h>
 #include <algorithm>
-
+#include <esp32-hal-log.h>
+#include <endian.h>
 #include <esper-cdp/3rdparty/iso9660.h>
+
+static const char LOG_TAG[] = "ISO9660";
 
 #define OFFSET_EXTENDED 1
 #define OFFSET_SECTOR 6
@@ -79,7 +82,7 @@ typedef struct dentry_s
 
 typedef struct iso9660mount_s
 {
-    const DISC_INTERFACE *disc_interface;
+    ATAPI::Device *disc_interface;
     uint8_t read_buffer[BUFFER_SIZE] __attribute__((aligned(32)));
     uint8_t cluster_buffer[BUFFER_SIZE] __attribute__((aligned(32)));
     uint32_t cache_start;
@@ -106,8 +109,8 @@ typedef struct dstate_s
 } DIR_STATE_STRUCT;
 
 typedef struct {
-    int device;
-    void *dirStruct;
+    DIR hdr;
+    DIR_STATE_STRUCT *dirStruct;
 } DIR_ITER;
 
 static MOUNT_DESCR* _SHARED_MOUNT_DESCR;
@@ -123,7 +126,7 @@ static int __read(MOUNT_DESCR *mdescr, void *ptr, uint64_t offset, size_t len)
     uint32_t end_sector = (offset + len - 1) / SECTOR_SIZE;
     uint32_t sectors = std::min((uint32_t)(BUFFER_SIZE / SECTOR_SIZE), end_sector - sector + 1);
     uint32_t sector_offset = offset % SECTOR_SIZE;
-    const DISC_INTERFACE *disc = mdescr->disc_interface;
+    ATAPI::Device *disc = mdescr->disc_interface;
 
     len = std::min(BUFFER_SIZE - sector_offset, len);
     if (mdescr->cache_sectors && sector >= mdescr->cache_start && (sector + sectors) <= (mdescr->cache_start + mdescr->cache_sectors))
@@ -132,7 +135,7 @@ static int __read(MOUNT_DESCR *mdescr, void *ptr, uint64_t offset, size_t len)
         return len;
     }
 
-    if (!disc->readSectors(sector, BUFFER_SIZE / SECTOR_SIZE, mdescr->read_buffer))
+    if (!disc->read_sectors(sector, BUFFER_SIZE / SECTOR_SIZE, mdescr->read_buffer))
     {
         mdescr->cache_sectors = 0;
         return -1;
@@ -239,7 +242,7 @@ static int32_t read_direntry(MOUNT_DESCR *mdescr, DIR_ENTRY *entry, uint8_t *buf
 
 static bool read_directory(MOUNT_DESCR *mdescr, DIR_ENTRY *dir_entry, PATH_ENTRY *path_entry)
 {
-    uint32_t sector = path_entry->table_entry.sector;
+    uint32_t sector = be32toh(path_entry->table_entry.sector);
     uint32_t remaining = 0;
     uint32_t sector_offset = 0;
 
@@ -759,11 +762,11 @@ static void cleanup_recursive(PATH_ENTRY *entry)
 static struct pvd_s* read_volume_descriptor(MOUNT_DESCR *mdescr, uint8_t descriptor)
 {
     uint8_t sector;
-    const DISC_INTERFACE *disc = mdescr->disc_interface;
+    ATAPI::Device *disc = mdescr->disc_interface;
 
     for (sector = 16; sector < 32; sector++)
     {
-        if (!disc->readSectors(sector, 1, mdescr->read_buffer))
+        if (!disc->read_sectors(sector, 1, mdescr->read_buffer))
             return NULL;
         if (!memcmp(mdescr->read_buffer + 1, "CD001\1", 6))
         {
@@ -782,11 +785,15 @@ static bool read_directories(MOUNT_DESCR *mdescr)
     struct pvd_s *volume = read_volume_descriptor(mdescr, 2);
     if (volume)
         mdescr->enc_iso_unicode = true;
-    else if (!(volume = read_volume_descriptor(mdescr, 1)))
+    else if (!(volume = read_volume_descriptor(mdescr, 1))) {
+        ESP_LOGE(LOG_TAG, "No descriptor 2 or 1 exists");
         return false;
+    }
 
-    if (!(mdescr->iso_rootentry = (PATH_ENTRY*) malloc(sizeof(PATH_ENTRY))))
+    if (!(mdescr->iso_rootentry = (PATH_ENTRY*) heap_caps_malloc(sizeof(PATH_ENTRY), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM))) {
+        ESP_LOGE(LOG_TAG, "Out of memory creating PATH_ENTRY");
         return false;
+    }
     memset(mdescr->iso_rootentry, 0, sizeof(PATH_ENTRY));
     mdescr->iso_rootentry->table_entry.name_length = 1;
     mdescr->iso_rootentry->table_entry.extended_sectors = volume->root[OFFSET_EXTENDED];
@@ -799,8 +806,8 @@ static bool read_directories(MOUNT_DESCR *mdescr)
     strncpy(mdescr->volume_id, volume->volume_id, 32);
     mdescr->volume_id[31] = '\0';
 
-    uint32_t path_table = volume->path_table_be;
-    uint32_t path_table_len = volume->path_table_len_be;
+    uint32_t path_table = be32toh(volume->path_table_be);
+    uint32_t path_table_len = be32toh(volume->path_table_len_be);
     uint16_t i = 1;
     uint64_t offset = sizeof(PATHTABLE_ENTRY) - ISO_MAXPATHLEN + 2;
     PATH_ENTRY *parent = mdescr->iso_rootentry;
@@ -840,7 +847,7 @@ static bool read_directories(MOUNT_DESCR *mdescr)
     return true;
 }
 
-static MOUNT_DESCR *_ISO9660_mdescr_constructor(const DISC_INTERFACE *disc_interface)
+static MOUNT_DESCR *_ISO9660_mdescr_constructor(ATAPI::Device *disc_interface)
 {
     MOUNT_DESCR *mdescr = NULL;
 
@@ -857,59 +864,168 @@ static MOUNT_DESCR *_ISO9660_mdescr_constructor(const DISC_INTERFACE *disc_inter
 
     if (!read_directories(mdescr))
     {
+        ESP_LOGE(LOG_TAG, "Directory read failed");
         free(mdescr);
         return NULL;
     }
     return mdescr;
 }
 
+// convert _r style apis to C style apis
+static int open_iso9660(const char *path, int flags, int mode)
+{
+    FILE_STRUCT *file = (FILE_STRUCT*) heap_caps_malloc(sizeof(FILE_STRUCT), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    if (!file)
+        return -1;
+    memset(file, 0, sizeof(FILE_STRUCT));
+    int ret = _ISO9660_open_r(_GLOBAL_REENT, file, path, flags, mode);
+    if (ret < 0)
+    {
+        free(file);
+        return -1;
+    }
+    return (int) file;
+}
+
+static int close_iso9660(int fd)
+{
+    return _ISO9660_close_r(_GLOBAL_REENT, (void*) fd);
+}
+
+static ssize_t read_iso9660(int fd, void *buf, size_t len)
+{
+    return _ISO9660_read_r(_GLOBAL_REENT, (void*) fd, (char*) buf, len);
+}
+
+static off_t lseek_iso9660(int fd, off_t pos, int dir)
+{
+    return _ISO9660_seek_r(_GLOBAL_REENT, (void*) fd, pos, dir);
+}
+
+static int fstat_iso9660(int fd, struct stat *st)
+{
+    return _ISO9660_fstat_r(_GLOBAL_REENT, (void*) fd, st);
+}
+
+static int stat_iso9660(const char *path, struct stat *st)
+{
+    return _ISO9660_stat_r(_GLOBAL_REENT, path, st);
+}
+
+static DIR *opendir_iso9660(const char *path)
+{
+    DIR_ITER *dirState = (DIR_ITER*) heap_caps_malloc(sizeof(DIR_ITER), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    if (!dirState)
+        return NULL;
+    memset(dirState, 0, sizeof(DIR_ITER));
+    dirState->dirStruct = (DIR_STATE_STRUCT*) heap_caps_malloc(sizeof(DIR_STATE_STRUCT), MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+    if (!dirState->dirStruct) {
+        free(dirState);
+        return NULL;
+    }
+    memset(dirState->dirStruct, 0, sizeof(DIR_STATE_STRUCT));
+    DIR_ITER* ret = _ISO9660_diropen_r(_GLOBAL_REENT, dirState, path);
+    if (!ret) {
+        free(dirState->dirStruct);
+        free(dirState);
+        return NULL;
+    }
+    return (DIR*) ret;
+}
+
+static int closedir_iso9660(DIR *dir)
+{
+    DIR_ITER *dirState = (DIR_ITER*) dir;
+    int ret = _ISO9660_dirclose_r(_GLOBAL_REENT, dirState);
+    free(dirState->dirStruct);
+    free(dirState);
+    return ret;
+}
+
+static struct dirent *readdir_iso9660(DIR *dir)
+{
+    DIR_ITER *dirState = (DIR_ITER*) dir;
+    static struct dirent dirent;
+    struct stat st;
+    int ret = _ISO9660_dirnext_r(_GLOBAL_REENT, dirState, dirent.d_name, &st);
+    if (ret < 0)
+        return NULL;
+    dirent.d_ino = st.st_ino;
+    return &dirent;
+}
+
+static int readdir_r_iso9660(DIR *dir, struct dirent *entry, struct dirent **out_dirent)
+{
+    DIR_ITER *dirState = (DIR_ITER*) dir;
+    struct stat st;
+    int ret = _ISO9660_dirnext_r(_GLOBAL_REENT, dirState, entry->d_name, &st);
+    if (ret < 0) {
+        *out_dirent = NULL;
+        return ret;
+    }
+    entry->d_ino = st.st_ino;
+    *out_dirent = entry;
+    return 0;
+}
+
+static void seekdir_iso9660(DIR *dir, long loc)
+{
+    DIR_ITER *dirState = (DIR_ITER*) dir;
+    _ISO9660_dirreset_r(_GLOBAL_REENT, dirState);
+    for (int i = 0; i < loc; i++) {
+        struct dirent dirent;
+        struct stat st;
+        _ISO9660_dirnext_r(_GLOBAL_REENT, dirState, dirent.d_name, &st);
+    }
+}
+
+static long telldir_iso9660(DIR *dir)
+{
+    DIR_ITER *dirState = (DIR_ITER*) dir;
+    return dirState->dirStruct->index;
+}
 
 static esp_vfs_t vfs_iso9660 = {
     .flags = ESP_VFS_FLAG_DEFAULT,
     .write = NULL,
-    .lseek = NULL, //todo adapt _ISO9660_seek_r
-    .read = NULL, // todo
-    .pread = NULL, // todo
-    .pwrite = NULL,
-    .open = NULL, // todo
-    .close = NULL, // todo
-    .fstat = NULL, // todo
-    .stat = NULL, // todo
+    .lseek = lseek_iso9660,
+    .read = read_iso9660,
+    .open = open_iso9660,
+    .close = close_iso9660,
+    .fstat = fstat_iso9660,
+    .stat = stat_iso9660,
     .link = NULL,
     .unlink = NULL,
     .rename = NULL,
-    .opendir = NULL, // todo
-    .readdir = NULL, // todo
-    .readdir_r = NULL, // todo?
-    .telldir = NULL, // todo?
-    .seekdir = NULL, // todo
-    .closedir = NULL, // todo
+    .opendir = opendir_iso9660,
+    .readdir = readdir_iso9660,
+    .readdir_r = readdir_r_iso9660,
+    .telldir = telldir_iso9660,
+    .seekdir = seekdir_iso9660,
+    .closedir = closedir_iso9660,
     .mkdir = NULL,
     .rmdir = NULL,
 };
 
 
-bool ISO9660_Mount(const DISC_INTERFACE *disc_interface)
+bool ISO9660_Mount(ATAPI::Device *disc_interface)
 {
     MOUNT_DESCR *mdescr = NULL;
     char devname[10];
-
-    if (!disc_interface->startup())
-        return false;
-
-    if (!disc_interface->isInserted())
-        return false;
 
     // Initialize the file system
     mdescr = _ISO9660_mdescr_constructor(disc_interface);
     if (!mdescr)
     {
+        ESP_LOGE(LOG_TAG, "Failed to initialize FS!");
         return false;
     }
     _SHARED_MOUNT_DESCR = mdescr;
 
-    if (esp_vfs_register("/cdrom", &vfs_iso9660, NULL))
+    ESP_LOGI(LOG_TAG, "Partition name = '%s'", ISO9660_GetVolumeLabel());
+    if (esp_vfs_register("/cdrom", &vfs_iso9660, NULL) != ESP_OK)
     {
+        ESP_LOGE(LOG_TAG, "esp_vfs_register explosion!!");
         free(mdescr);
         return false;
     }
@@ -923,10 +1039,15 @@ bool ISO9660_Unmount()
     char devname[11];
 
     mdescr = _SHARED_MOUNT_DESCR;
-    if (!mdescr)
+    if (!mdescr) {
+        ESP_LOGE(LOG_TAG, "!mdescr -- not mounted?");
         return false;
+    }
 
-    if(esp_vfs_unregister("/cdrom") == ESP_ERR_INVALID_STATE) return false;
+    if(esp_vfs_unregister("/cdrom") == ESP_ERR_INVALID_STATE) {
+        ESP_LOGE(LOG_TAG, "esp_vfs_unregister is ERR_INVALID_STATE -- not mounted?");
+        return false;
+    }
 
     if (mdescr->iso_rootentry)
     {

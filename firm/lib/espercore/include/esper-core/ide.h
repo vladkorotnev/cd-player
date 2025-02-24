@@ -53,6 +53,7 @@ namespace Platform {
         DeviceNumber active_device = DeviceNumber::IDE_MASTER; // <- dont seem to be able to address other device but still
 
         data16 read(uint8_t reg);
+        void read_bulk(uint8_t reg, void* buf, size_t size);
         void write(uint8_t reg, data16 data);
         void reset();
 
@@ -65,6 +66,10 @@ namespace Platform {
         
         void transact_out(uint8_t addr, uint8_t reg, uint8_t val);
         uint8_t transact_in(uint8_t addr, uint8_t reg);
+
+        void transact_out_locked(uint8_t addr, uint8_t reg, uint8_t val);
+        uint8_t transact_in_locked(uint8_t addr, uint8_t reg);
+        uint8_t transact_in_continuation_locked(uint8_t addr);
 
         void ensure_sel_device();
         void write_internal(uint8_t reg, data16 data);

@@ -46,6 +46,51 @@ namespace Platform {
         return rslt;
     }
 
+    void IDEBus::read_bulk(uint8_t reg, void* buf, size_t size) {
+        // [ 19333][I][atapi.cpp:551] read_toc_lba(): [ATAPI] Transfer 2048 bytes in 355 ms
+        // about 5,5 kilobytes a second... not too bad I guess for a PIO over I2C @ 550kHz setting??
+        // if we add one wire for DIOR maybe we can go faster
+
+        ensure_sel_device();
+        data16 rslt = { .value = 0xFFFF };
+
+        if(!_bus->lock()) {
+            ESP_LOGE(LOG_TAG, "Could not acquire bus");
+            return;
+        }
+
+        // set data bus to input
+        transact_out_locked(_addr_databus, PCA_CFG_REGI_A, 0xFF);
+        transact_out_locked(_addr_databus, PCA_CFG_REGI_B, 0xFF);
+
+        reg &= ~CTL_MASK;
+        control_register &= CTL_MASK;
+        control_register |= reg;
+        size_t i = 0;
+
+        auto wire = _bus->get();
+        transact_in_locked(_addr_databus, PCA_DATA_IN_REGI_B); // dummy read of high bits to prepare the PCA9555 for burst reading of ABABABA... without prior byte selection commands
+        while(i < size) {
+            control_register &= ~CTL_DIOR; // DIOR low
+            transact_out_locked(_addr_flags, PCA_DATA_OUT_REGI_B, control_register);
+
+            // read without asking for specifically port A or B since it will flip flop between them automagically (see datasheet)
+            if(wire->requestFrom(_addr_databus, (uint8_t)2) != 2) {
+                ESP_LOGE(LOG_TAG, "Wanted 2 bytes from databus but got ???");
+            }
+            rslt.low = wire->read();
+            rslt.high = wire->read();
+            
+            control_register |= CTL_DIOR; // DIOR high
+            transact_out_locked(_addr_flags, PCA_DATA_OUT_REGI_B, control_register);
+
+            ((uint8_t*)buf)[i++] = rslt.low;
+            ((uint8_t*)buf)[i++] = rslt.high;
+        }
+
+        _bus->release();
+    }
+
     void IDEBus::write(uint8_t reg, data16 data) { 
         ensure_sel_device();
         write_internal(reg, data);
@@ -120,7 +165,11 @@ namespace Platform {
             ESP_LOGE(LOG_TAG, "Could not acquire bus");
             return;
         }
+        transact_out_locked(addr, reg, val);
+        _bus->release();
+    }
 
+    void IDEBus::transact_out_locked(uint8_t addr, uint8_t reg, uint8_t val) {
         auto wire = _bus->get();
 
         wire->beginTransmission(addr);
@@ -130,8 +179,6 @@ namespace Platform {
         if(err) {
             ESP_LOGE(LOG_TAG, "Fail writing to 0x%02x::0x%02x, error = %i", addr, reg, err);
         }
-
-        _bus->release();
     }
 
     uint8_t IDEBus::transact_in(uint8_t addr, uint8_t reg) {
@@ -140,6 +187,13 @@ namespace Platform {
             return 0xFF;
         }
 
+        uint8_t rslt = transact_in_locked(addr, reg);
+
+        _bus->release();
+        return rslt;
+    }
+
+    uint8_t IDEBus::transact_in_locked(uint8_t addr, uint8_t reg) {
         auto wire = _bus->get();
         uint8_t rslt = 0xFF;
 
@@ -149,14 +203,19 @@ namespace Platform {
         if(err) {
             ESP_LOGE(LOG_TAG, "Fail writing to 0x%02x::0x%02x, error = %i", addr, reg, err);
         } else {
-            if(wire->requestFrom(addr, (uint8_t)1) != 1) {
-                ESP_LOGE(LOG_TAG, "Fail reading from 0x%02x::0x%02x", addr, reg);
-            } else {
-                rslt = wire->read();
-            }
+            rslt = transact_in_continuation_locked(addr);
         }
+        return rslt;
+    }
 
-        _bus->release();
+    uint8_t IDEBus::transact_in_continuation_locked(uint8_t addr) {
+        auto wire = _bus->get();
+        uint8_t rslt = 0xFF;
+        if(wire->requestFrom(addr, (uint8_t)1) != 1) {
+            ESP_LOGE(LOG_TAG, "Fail reading from 0x%02x", addr);
+        } else {
+            rslt = wire->read();
+        }
         return rslt;
     }
 }
