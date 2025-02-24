@@ -9,6 +9,7 @@
 #include <esper-gui/text.h>
 
 #include <modes/cd_mode.h>
+#include <modes/netradio_mode.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -80,7 +81,7 @@ void keypadTask(void * pvArgs) {
 // cppcheck-suppress unusedFunction
 void setup(void) { 
 #ifdef BOARD_HAS_PSRAM
-  heap_caps_malloc_extmem_enable(128);
+  // heap_caps_malloc_extmem_enable(128);
 #endif
   // Open Serial 
   Serial.begin(115200);
@@ -122,7 +123,7 @@ void setup(void) {
     }
   );
 
-  app = new CDMode({
+  app = new InternetRadioMode({
     .i2c = i2c,
     .keypad = keypad,
     .router = router

@@ -8,9 +8,9 @@ namespace Platform {
     AudioRouter::AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s) :
         _spdif{spdif},
         dac_pins{dac},
-        i2s_pins{i2s} {
-            i2s_bus_release_local();
-
+        i2s_pins{i2s}
+        {
+            _i2s = new I2SStream();
             gpio_config_t conf = { 0 };
             conf.mode = GPIO_MODE_OUTPUT;
             conf.pin_bit_mask = 
@@ -36,14 +36,29 @@ namespace Platform {
         }
         else if(next == ROUTE_INTERNAL_CPU) {
             spdif_teardown_muting_hax();
-            _spdif->set_enabled(true);
-            // TODO: set up i2s and unmute
+            _spdif->set_enabled(false);
+
+            auto cfg = _i2s->defaultConfig(TX_MODE);
+            AudioInfo info(48000, 2, 16);
+            cfg.copyFrom(info);
+            cfg.pin_bck = i2s_pins.bck;
+            cfg.pin_data = i2s_pins.data;
+            cfg.pin_mck = i2s_pins.mck;
+            cfg.pin_ws = i2s_pins.lrck;
+            _i2s->begin(cfg);
+            set_mute_internal(false);
         }
 
         current_route = next;
     }
 
+    I2SStream * AudioRouter::get_output_port() {
+        return _i2s;
+    }
+
     void AudioRouter::i2s_bus_release_local() {
+        if(_i2s->isActive())
+            _i2s->end();
         // Release I2S bus by setting pins into HiZ
         gpio_config_t conf = { 0 };
         conf.pull_down_en = GPIO_PULLDOWN_DISABLE;

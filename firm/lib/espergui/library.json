@@ -9,6 +9,7 @@
 		]
     },
     "dependencies": {
+      "ArduinoAudioTools": "https://github.com/pschatzmann/arduino-audio-tools.git#496a9f2"
     },
     "frameworks": ["arduino"]
 }
