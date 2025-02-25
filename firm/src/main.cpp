@@ -80,8 +80,9 @@ void keypadTask(void * pvArgs) {
 
 // cppcheck-suppress unusedFunction
 void setup(void) { 
+  ESP_LOGI(LOG_TAG, "CPU speed = %i", getCpuFrequencyMhz());
 #ifdef BOARD_HAS_PSRAM
-  // heap_caps_malloc_extmem_enable(128);
+  heap_caps_malloc_extmem_enable(128);
 #endif
   // Open Serial 
   Serial.begin(115200);
@@ -102,7 +103,7 @@ void setup(void) {
   load_all_fonts();
   
   Core::Services::WLAN::start();
-  Core::Services::NTP::start();
+  // Core::Services::NTP::start();
 
   keypad = new Platform::Keypad(i2c);
 

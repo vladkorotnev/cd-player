@@ -36,12 +36,16 @@ namespace Platform {
         void activate_route(AudioRoute);
         void set_deemphasis(bool);
 
-        I2SStream * get_output_port();
+        AudioStream * get_output_port();
 
     private:
         AudioRoute current_route = ROUTE_NONE_INACTIVE;
         WM8805 * _spdif;
+
+        AudioInfo cpuOutputParams = AudioInfo(44100, 2, 16);
         I2SStream * _i2s;
+        FormatConverterStream * _resampler;
+
         const DACBus dac_pins;
         const I2SBus i2s_pins;
 

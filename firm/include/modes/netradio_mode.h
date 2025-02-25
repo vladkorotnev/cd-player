@@ -14,6 +14,10 @@ public:
     void loop() override;
     void teardown() override;
 
+protected:
+    void update_meta(MetaDataType type, const char * str, int len);
+    static InternetRadioMode* _that;
+    static void _update_meta_global(MetaDataType type, const char * str, int len);
 private:
     class InternetRadioView;
     InternetRadioView * rootView;
@@ -25,7 +29,7 @@ private:
     AudioPlayer player;
     MP3DecoderHelix codec;
     AudioSourceURL source;
-    ICYStream urlStream;
+    ICYStreamBuffered urlStream;
     
     Task sndTask;
 };

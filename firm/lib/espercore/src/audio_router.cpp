@@ -11,6 +11,8 @@ namespace Platform {
         i2s_pins{i2s}
         {
             _i2s = new I2SStream();
+            _resampler = new FormatConverterStream();
+
             gpio_config_t conf = { 0 };
             conf.mode = GPIO_MODE_OUTPUT;
             conf.pin_bit_mask = 
@@ -39,26 +41,34 @@ namespace Platform {
             _spdif->set_enabled(false);
 
             auto cfg = _i2s->defaultConfig(TX_MODE);
-            AudioInfo info(48000, 2, 16);
-            cfg.copyFrom(info);
+            cfg.copyFrom(cpuOutputParams);
             cfg.pin_bck = i2s_pins.bck;
             cfg.pin_data = i2s_pins.data;
             cfg.pin_mck = i2s_pins.mck;
             cfg.pin_ws = i2s_pins.lrck;
+            cfg.buffer_count = 4;
+            cfg.buffer_size = 512;
             _i2s->begin(cfg);
+
+            _resampler->setAudioInfoOut(cfg);
+            _resampler->setOutput(*_i2s);
+            _resampler->begin();
             set_mute_internal(false);
         }
 
         current_route = next;
     }
 
-    I2SStream * AudioRouter::get_output_port() {
-        return _i2s;
+    AudioStream * AudioRouter::get_output_port() {
+        return _resampler;
     }
 
     void AudioRouter::i2s_bus_release_local() {
-        if(_i2s->isActive())
+        
+        if(_i2s->isActive()) {
+            _resampler->end();
             _i2s->end();
+        }
         // Release I2S bus by setting pins into HiZ
         gpio_config_t conf = { 0 };
         conf.pull_down_en = GPIO_PULLDOWN_DISABLE;
