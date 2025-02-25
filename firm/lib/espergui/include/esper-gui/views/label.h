@@ -32,7 +32,7 @@ namespace UI {
 
         void render(EGGraphBuf * buf) override {
             EGPoint origin = EGPointZero;
-            if(auto_scroll && str_size.width > frame.size.width) {
+            if(will_scroll()) {
                 origin.x = -scroll_offset;
             } else {
                 if(alignment != Alignment::Left) {
@@ -52,28 +52,39 @@ namespace UI {
 
         bool needs_display() override {
             TickType_t now = xTaskGetTickCount();
-            if(auto_scroll && str_size.width > frame.size.width && (now - last_scroll_tick >= pdMS_TO_TICKS(16))) {
+            if(will_scroll() && (now - last_scroll_tick >= pdMS_TO_TICKS(66))) {
                 last_scroll_tick = now;
-
-                if(scroll_holdoff == 0 || scroll_offset != 0) {
+                bool is_follower = scroll_synchro == nullptr || !(*scroll_synchro)->will_scroll() || (*scroll_synchro)->str_size.width <= str_size.width;
+                if((scroll_holdoff == 0 && (!is_follower || (is_follower && (*scroll_synchro)->scroll_holdoff == 0))) || scroll_offset != 0) {
                     scroll_offset += 2;
-                    scroll_holdoff = 60;
                     if(scroll_offset >= str_size.width + 16) {
                         scroll_offset = -frame.size.width;
                     }
-                    return true;
-                } else {
+                    if(scroll_offset == 0) {
+                        scroll_holdoff = 60;
+                    }
+                    set_needs_display();
+                } else if (!is_follower) {
                     scroll_holdoff--;
+                } else if  (is_follower && (*scroll_synchro)->scroll_offset == 0) {
+                    scroll_holdoff = 0;
                 }
             }
             return View::needs_display();
         }
 
+        void synchronize_scrolling_to(std::shared_ptr<UI::Label>* other) {
+            scroll_synchro = other;
+        }
+
+    protected:
+        bool will_scroll() { return auto_scroll && str_size.width > frame.size.width; }
     private:
         std::string value = "";
         const Fonts::Font* fnt = nullptr;
         int scroll_offset = 0;
         int scroll_holdoff = 60;
         TickType_t last_scroll_tick = 0;
+        std::shared_ptr<UI::Label>* scroll_synchro = nullptr; // Y U NO HAVE Option<>??
     };
 }

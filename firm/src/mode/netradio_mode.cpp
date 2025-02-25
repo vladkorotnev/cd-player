@@ -62,7 +62,9 @@ public:
         lblSubtitle = make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
 
         lblTitle->auto_scroll = true;
+        lblTitle->synchronize_scrolling_to(&lblSubtitle);
         lblSubtitle->auto_scroll = true;
+        lblSubtitle->synchronize_scrolling_to(&lblTitle);
 
         subviews.push_back(wifi);
         subviews.push_back(loading);
@@ -106,7 +108,7 @@ private:
 };
 
 InternetRadioMode::InternetRadioMode(const PlatformSharedResources res):
-    urlStream(128 * 1024),
+    urlStream(512 * 1024),
     mp3(),
     decoder(res.router->get_output_port(), &mp3),
     copier(decoder, urlStream),
@@ -150,8 +152,7 @@ void InternetRadioMode::play() {
         copier.resize(128000);
         
         decoder.begin();
-        urlStream.begin("http://srv01.gpmradio.ru/stream/reg/mp3/128/region_relax_86", "audio/mpeg");
-
+        urlStream.begin("https://u1.happyhardcore.com/", "audio/mpeg");
         rootView->set_loading(false);
         while(1) {
             copier.copy(); 

@@ -30,7 +30,7 @@ private:
     Button moreStations;
 
     StreamCopy copier;
-    AACDecoderHelix mp3;
+    MP3DecoderHelix mp3;
     EncodedAudioStream decoder;
     ICYStreamBuffered urlStream;
     
