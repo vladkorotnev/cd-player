@@ -69,6 +69,7 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 ## Tech Notes
 
 * On design of CDDB metadata in-flash cache system: https://github.com/littlefs-project/littlefs/issues/1067
+* Various issues around Arduino-Audio-Tools: https://github.com/pschatzmann/arduino-audio-tools/discussions/1930
 
 ----
 

@@ -1,7 +1,8 @@
 #pragma once
 #include <mode.h>
-#include "AudioTools/AudioCodecs/CodecMP3Helix.h"
-#include "AudioTools/AudioCodecs/CodecAACHelix.h"
+#include "AudioTools.h"
+#include <AudioTools/AudioCodecs/CodecMP3Helix.h>
+#include <AudioTools/AudioCodecs/CodecAACHelix.h>
 
 using Platform::Button;
 
@@ -18,6 +19,8 @@ protected:
     void update_meta(MetaDataType type, const char * str, int len);
     static InternetRadioMode* _that;
     static void _update_meta_global(MetaDataType type, const char * str, int len);
+
+    void play();
 private:
     class InternetRadioView;
     InternetRadioView * rootView;
@@ -26,10 +29,10 @@ private:
     Button chgSource;
     Button moreStations;
 
-    AudioPlayer player;
-    MP3DecoderHelix codec;
-    AudioSourceURL source;
+    StreamCopy copier;
+    AACDecoderHelix mp3;
+    EncodedAudioStream decoder;
     ICYStreamBuffered urlStream;
     
-    Task sndTask;
+    Task * sndTask;
 };

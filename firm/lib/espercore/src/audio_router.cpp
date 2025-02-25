@@ -46,8 +46,8 @@ namespace Platform {
             cfg.pin_data = i2s_pins.data;
             cfg.pin_mck = i2s_pins.mck;
             cfg.pin_ws = i2s_pins.lrck;
-            cfg.buffer_count = 4;
-            cfg.buffer_size = 512;
+            cfg.buffer_count = 8;
+            cfg.buffer_size = 1024;
             _i2s->begin(cfg);
 
             _resampler->setAudioInfoOut(cfg);
