@@ -4,7 +4,7 @@
 #include "AudioTools.h"
 
 #define ESPER_AUDIO_BUFFER_SIZE 1024
-#define ESPER_AUDIO_BUFFER_COUNT 2
+#define ESPER_AUDIO_BUFFER_COUNT 6
 
 namespace Platform {
     enum AudioRoute {

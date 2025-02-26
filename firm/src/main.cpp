@@ -132,25 +132,25 @@ void setup(void) {
   app->setup();
   app->main_view().set_needs_display();
 
-  // xTaskCreatePinnedToCore(
-  //   renderTask,
-  //   "RENDER",
-  //   16000,
-  //   nullptr,
-  //   2,
-  //   &renderTaskHandle,
-  //   0
-  // );
+  xTaskCreatePinnedToCore(
+    renderTask,
+    "RENDER",
+    16000,
+    nullptr,
+    2,
+    &renderTaskHandle,
+    0
+  );
 
-  // xTaskCreatePinnedToCore(
-  //   keypadTask,
-  //   "KEYP",
-  //   4000,
-  //   keypad,
-  //   2,
-  //   &keypadTaskHandle,
-  //   0
-  // );
+  xTaskCreatePinnedToCore(
+    keypadTask,
+    "KEYP",
+    4000,
+    keypad,
+    2,
+    &keypadTaskHandle,
+    0
+  );
 
   
 }

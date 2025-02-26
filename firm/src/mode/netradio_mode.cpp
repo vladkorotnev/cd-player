@@ -158,14 +158,26 @@ private:
 class InternetRadioMode::StreamingPipeline {
 public:
     StreamingPipeline(Platform::AudioRouter * router):
+        bufferNetData(256 * 1024),
+        bufferPcmData(1024 * 1024),
+        queueNetData(bufferNetData),
+        queuePcmData(bufferPcmData),
         urlStream(),
         codecAAC(), codecMP3(),
-        decoder(router->get_output_port(), &codecAAC),
-        sndTask("IRASND", 8192, 15, 1),
-        copier(decoder, urlStream) {
+        decoder(&queueNetData, &codecAAC),
+        sndTask("IRASND", 8192, 17, 0),
+        codecTask("IRADEC", 8192, configMAX_PRIORITIES - 1, 1),
+        netTask("IRANET", 8192, 14, 1),
+        copierDownloading(queueNetData, urlStream),
+        copierDecoding(decoder, queueNetData),
+        copierPlaying(*router->get_output_port(), queuePcmData) {
             outPort = router->get_output_port();
-            sema = xSemaphoreCreateBinary();
-            xSemaphoreGive(sema);
+            semaSnd = xSemaphoreCreateBinary();
+            semaNet = xSemaphoreCreateBinary();
+            semaCodec = xSemaphoreCreateBinary();
+            xSemaphoreGive(semaSnd);
+            xSemaphoreGive(semaNet);
+            xSemaphoreGive(semaCodec);
     }
 
     ~StreamingPipeline() {
@@ -176,7 +188,9 @@ public:
         running = true;
         loadingCallback(true);
         ESP_LOGI(LOG_TAG, "Streamer is starting");
-        sndTask.begin([this, url, loadingCallback]() { 
+        queueNetData.begin();
+        queuePcmData.begin();
+        netTask.begin([this, url, loadingCallback]() { 
                 urlStream.setMetadataCallback(_update_meta_global);
                 urlStream.begin(url.c_str());
                 ESP_LOGI(LOG_TAG, "Streamer did begin URL");
@@ -187,11 +201,13 @@ public:
                     ESP_LOGI(LOG_TAG, "Server reports content-type: %s", srv_mime.c_str());
                     if(srv_mime == "audio/mpeg" || srv_mime == "audio/mp3") {
                         decoder.setDecoder(&codecMP3);
+                        decoder.setOutput(queuePcmData);
                         codecMP3.setNotifyActive(true);
                         codecMP3.addNotifyAudioChange(*outPort);
                     }
                     else if(srv_mime == "audio/aac") {
                         decoder.setDecoder(&codecAAC);
+                        decoder.setOutput(queuePcmData);
                         codecAAC.setNotifyActive(true);
                         codecAAC.addNotifyAudioChange(*outPort);
                     }
@@ -209,12 +225,49 @@ public:
 
                 loadingCallback(false);
                 TickType_t last_successful_copy = xTaskGetTickCount();
+                TickType_t last_stats = xTaskGetTickCount();
+                codecTask.begin([this]() { 
+                    xSemaphoreTake(semaCodec, portMAX_DELAY);
+                    while(bufferNetData.levelPercent() < 20.0f) { 
+                        xSemaphoreGive(semaCodec);
+                        delay(1);
+                        xSemaphoreTake(semaCodec, portMAX_DELAY);
+                    }
+
+                    if(!bufferNetData.isEmpty()) {
+                        copierDecoding.copy(); 
+                    }
+                    xSemaphoreGive(semaCodec);
+                    delay(1); 
+                });
+                sndTask.begin([this]() { 
+                    xSemaphoreTake(semaSnd, portMAX_DELAY);
+                    while(bufferPcmData.levelPercent() < 50.0f) {
+                        xSemaphoreGive(semaSnd);
+                        delay(1); 
+                        xSemaphoreTake(semaSnd, portMAX_DELAY);
+                    }
+                    xSemaphoreGive(semaSnd);
+                    while(1) {
+                        xSemaphoreTake(semaSnd, portMAX_DELAY);
+                        if(!copierPlaying.copy()) {
+                            ESP_LOGE(LOG_TAG, "copierPlaying underrun!? PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
+                            while(bufferPcmData.levelPercent() < 25.0f) { 
+                                xSemaphoreGive(semaSnd);
+                                delay(1);
+                                xSemaphoreTake(semaSnd, portMAX_DELAY);
+                            }
+                        }
+                        xSemaphoreGive(semaSnd);
+                        delay(1); 
+                    }
+                });
                 while(1) {
-                    xSemaphoreTake(sema, portMAX_DELAY);
+                    xSemaphoreTake(semaNet, portMAX_DELAY);
                     TickType_t now = xTaskGetTickCount();
-                    if(copier.copy()) {
+                    if(bufferNetData.isFull() || copierDownloading.copy()) {
                         last_successful_copy = now;
-                    } else if(now - last_successful_copy >= pdTICKS_TO_MS(1000)) {
+                    } else if(now - last_successful_copy >= pdTICKS_TO_MS(1000) && bufferNetData.isEmpty()) {
                         ESP_LOGE(LOG_TAG, "streamer is stalled!?");
                         loadingCallback(true);
                         urlStream.end();
@@ -223,33 +276,49 @@ public:
                         last_successful_copy = now;
                         loadingCallback(false);
                     }
-                    xSemaphoreGive(sema);
-                    delay(5);
+                    if(now - last_stats >= pdTICKS_TO_MS(1000)) {
+                        ESP_LOGI(LOG_TAG, "Stats: PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
+                        last_stats = now;
+                    }
+                    xSemaphoreGive(semaNet);
+                    delay(1);
                 }
             }
         );
     }
 
     void stop() {
-        xSemaphoreTake(sema, portMAX_DELAY);
+        xSemaphoreTake(semaSnd, portMAX_DELAY);
+        xSemaphoreTake(semaCodec, portMAX_DELAY);
+        xSemaphoreTake(semaNet, portMAX_DELAY);
         running = false;
         sndTask.end();
-
-        urlStream.end();
-        decoder.end();
-        copier.end();
+        codecTask.end();
+        netTask.end();
+        queuePcmData.end();
+        queueNetData.end();
     }
 
 protected:
     bool running = false;
-    StreamCopy copier;
+    StreamCopy copierPlaying;
+    StreamCopy copierDecoding;
+    StreamCopy copierDownloading;
     AACDecoderHelix codecAAC;
     MP3DecoderHelix codecMP3;
     EncodedAudioStream decoder;
     ICYStream urlStream;
     Task sndTask;
+    Task codecTask;
+    Task netTask;
+    BufferRTOS<uint8_t> bufferNetData;
+    BufferRTOS<uint8_t> bufferPcmData;
+    QueueStream<uint8_t> queueNetData;
+    QueueStream<uint8_t> queuePcmData;
     AudioStream * outPort;
-    SemaphoreHandle_t sema;
+    SemaphoreHandle_t semaSnd;
+    SemaphoreHandle_t semaNet;
+    SemaphoreHandle_t semaCodec;
 };
 
 InternetRadioMode::InternetRadioMode(const PlatformSharedResources res):
@@ -270,7 +339,6 @@ void InternetRadioMode::setup() {
     rootView->reset_meta("Radio");
     AudioToolsLogger.begin(Serial, AudioToolsLogLevel::Warning);
     resources.router->activate_route(Platform::AudioRoute::ROUTE_INTERNAL_CPU);
-    select_station(4);
 }
 
 void InternetRadioMode::select_station(int index) {
