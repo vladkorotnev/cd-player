@@ -59,12 +59,11 @@ void load_all_fonts() {
   fclose(f);
 }
 
-TickType_t lastRender = 0;
 TaskHandle_t renderTaskHandle = 0;
 void renderTask(void*) {
   while(true) {
     compositor->render(app->main_view());
-    xTaskDelayUntil(&lastRender, pdMS_TO_TICKS(33));
+    vTaskDelay(33);
   }
 }
 
@@ -73,7 +72,7 @@ void keypadTask(void * pvArgs) {
   Platform::Keypad * kp = reinterpret_cast<Platform::Keypad*>(pvArgs);
   while(true) {
     kp->update();
-    vTaskDelay(pdMS_TO_TICKS(10));
+    vTaskDelay(pdMS_TO_TICKS(33));
   }
 }
 
@@ -82,7 +81,7 @@ void keypadTask(void * pvArgs) {
 void setup(void) { 
   ESP_LOGI(LOG_TAG, "CPU speed = %i", getCpuFrequencyMhz());
 #ifdef BOARD_HAS_PSRAM
-  heap_caps_malloc_extmem_enable(128);
+  heap_caps_malloc_extmem_enable(1024);
 #endif
   // Open Serial 
   Serial.begin(115200);
@@ -103,7 +102,7 @@ void setup(void) {
   load_all_fonts();
   
   Core::Services::WLAN::start();
-  // Core::Services::NTP::start();
+  Core::Services::NTP::start();
 
   keypad = new Platform::Keypad(i2c);
 
@@ -133,23 +132,27 @@ void setup(void) {
   app->setup();
   app->main_view().set_needs_display();
 
-  xTaskCreate(
-    renderTask,
-    "RENDER",
-    16000,
-    nullptr,
-    2,
-    &renderTaskHandle
-  );
+  // xTaskCreatePinnedToCore(
+  //   renderTask,
+  //   "RENDER",
+  //   16000,
+  //   nullptr,
+  //   2,
+  //   &renderTaskHandle,
+  //   0
+  // );
 
-  xTaskCreate(
-    keypadTask,
-    "KEYP",
-    4000,
-    keypad,
-    2,
-    &keypadTaskHandle
-  );
+  // xTaskCreatePinnedToCore(
+  //   keypadTask,
+  //   "KEYP",
+  //   4000,
+  //   keypad,
+  //   2,
+  //   &keypadTaskHandle,
+  //   0
+  // );
+
+  
 }
 
 

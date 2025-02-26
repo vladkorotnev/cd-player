@@ -11,7 +11,6 @@ namespace Platform {
         i2s_pins{i2s}
         {
             _i2s = new I2SStream();
-            _resampler = new FormatConverterStream();
 
             gpio_config_t conf = { 0 };
             conf.mode = GPIO_MODE_OUTPUT;
@@ -46,13 +45,10 @@ namespace Platform {
             cfg.pin_data = i2s_pins.data;
             cfg.pin_mck = i2s_pins.mck;
             cfg.pin_ws = i2s_pins.lrck;
-            cfg.buffer_count = 8;
-            cfg.buffer_size = 1024;
+            cfg.buffer_count = ESPER_AUDIO_BUFFER_COUNT;
+            cfg.buffer_size = ESPER_AUDIO_BUFFER_SIZE;
             _i2s->begin(cfg);
 
-            _resampler->setAudioInfoOut(cfg);
-            _resampler->setOutput(*_i2s);
-            _resampler->begin();
             set_mute_internal(false);
         }
 
@@ -60,13 +56,12 @@ namespace Platform {
     }
 
     AudioStream * AudioRouter::get_output_port() {
-        return _resampler;
+        return _i2s;
     }
 
     void AudioRouter::i2s_bus_release_local() {
         
         if(_i2s->isActive()) {
-            _resampler->end();
             _i2s->end();
         }
         // Release I2S bus by setting pins into HiZ

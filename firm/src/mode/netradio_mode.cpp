@@ -1,10 +1,11 @@
 #include <modes/netradio_mode.h>
 #include <esper-gui/views/framework.h>
 #include <views/wifi_icon.h>
+#include "AudioTools.h"
+#include <AudioTools/AudioCodecs/CodecHelix.h>
 
 using std::make_shared;
 using std::shared_ptr;
-
 
 static const char LOG_TAG[] = "APL_IRA";
 
@@ -25,19 +26,68 @@ public:
         for(int i = 0; i < subviews.size(); i++) {
             auto lbl = subviews[i];
             if(i == active_ch_idx) {
-                EGDrawLine(buf, {lbl->frame.origin.x - 1, lbl->frame.origin.y + lbl->frame.size.height + 1}, {lbl->frame.origin.x + lbl->frame.size.width + 1, lbl->frame.origin.y + lbl->frame.size.height + 1});
+                EGDrawLine(buf, {line_left_cur, lbl->frame.origin.y + lbl->frame.size.height + 1}, {line_right_cur, lbl->frame.origin.y + lbl->frame.size.height + 1});
             }
         }
         View::render(buf);
     }
 
-    void set_active_ch_num(int num) {
-        active_ch_idx = num - 1;
+    bool needs_display() override {
+        if(line_right_tgt != line_right_cur || line_left_tgt != line_left_cur) {
+            bool going_right = (line_right_tgt > line_right_cur || line_left_tgt > line_left_cur);
+            int* first_coord = going_right ? &line_right_cur : &line_left_cur;
+            int* first_coord_tgt = going_right ? &line_right_tgt : &line_left_tgt;
+            int* second_coord = !going_right ? &line_right_cur : &line_left_cur;
+            int* second_coord_tgt = !going_right ? &line_right_tgt : &line_left_tgt;
+
+            if(*first_coord_tgt > *first_coord) {
+                *first_coord += std::min(line_speed/2, *first_coord_tgt - *first_coord);
+                line_speed = std::min(32, line_speed+1);
+            }
+            else if(*first_coord_tgt < *first_coord) {
+                *first_coord -= std::min(line_speed/2, *first_coord - *first_coord_tgt);
+                line_speed = std::min(32, line_speed+1);
+            }
+            else if(*second_coord_tgt > *second_coord) {
+                *second_coord += std::min(line_speed/2, *second_coord_tgt - *second_coord);
+                line_speed = std::max(2, line_speed - 1);
+            }
+            else if(*second_coord_tgt < *second_coord) {
+                *second_coord -= std::min(line_speed/2, *second_coord - *second_coord_tgt);
+                line_speed = std::max(2, line_speed - 1);
+            }
+
+            set_needs_display();
+        }
+        return View::needs_display();
+    }
+
+    void set_active_ch_idx(int num) {
+        active_ch_idx = num;
+        if(num < 0 || num > subviews.size()) {
+            line_left_cur = 0;
+            line_right_cur = 0;
+            line_left_tgt = 0;
+            line_right_tgt = 0;
+            set_needs_display();
+            return;
+        }
+
+        if(line_left_cur == line_left_tgt && line_right_cur == line_right_tgt) line_speed = 2;
+        auto lbl = subviews[num];
+        line_left_tgt = lbl->frame.origin.x - 1;
+        line_right_tgt = lbl->frame.origin.x + lbl->frame.size.width + 1;
         set_needs_display();
     }
 
 private:
     int active_ch_idx = -1;
+    int line_speed = 2;
+    
+    int line_left_cur = 0;
+    int line_right_cur = 0;
+    int line_left_tgt = 0;
+    int line_right_tgt = 0;
 };
 
 class InternetRadioMode::InternetRadioView: public UI::View {
@@ -55,8 +105,7 @@ public:
         loading = make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 32 - 7}, {5, 5}}));
         loading->hidden = true;
 
-        channelBar = make_shared<ChannelGridBar>(ChannelGridBar({{5, 32 - 7}, {160 - 5, 7}}));
-        channelBar->set_active_ch_num(3);
+        channelBar = make_shared<ChannelGridBar>(ChannelGridBar({{5, 32 - 7}, {160 - 12, 7}}));
 
         lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         lblSubtitle = make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
@@ -67,14 +116,13 @@ public:
         lblSubtitle->synchronize_scrolling_to(&lblTitle);
 
         subviews.push_back(wifi);
-        subviews.push_back(loading);
         subviews.push_back(channelBar);
+        subviews.push_back(loading);
         subviews.push_back(lblTitle);
         subviews.push_back(lblSubtitle);
     }
 
     void update_meta(MetaDataType type, const char * str, int len) {
-        ESP_LOGI(LOG_TAG, "META['%s'] = '%s'", toStr(type), str);
         if(type == MetaDataType::Title) {
             has_metadata = true;
             lblSubtitle->set_value(station);
@@ -107,31 +155,144 @@ private:
     std::string station = "";
 };
 
+class InternetRadioMode::StreamingPipeline {
+public:
+    StreamingPipeline(Platform::AudioRouter * router):
+        urlStream(),
+        codecAAC(), codecMP3(),
+        decoder(router->get_output_port(), &codecAAC),
+        sndTask("IRASND", 8192, 15, 1),
+        copier(decoder, urlStream) {
+            outPort = router->get_output_port();
+            sema = xSemaphoreCreateBinary();
+            xSemaphoreGive(sema);
+    }
+
+    ~StreamingPipeline() {
+        if(running) stop();
+    }
+
+    void start(const std::string url, std::function<void(bool)> loadingCallback) {
+        running = true;
+        loadingCallback(true);
+        ESP_LOGI(LOG_TAG, "Streamer is starting");
+        sndTask.begin([this, url, loadingCallback]() { 
+                urlStream.setMetadataCallback(_update_meta_global);
+                urlStream.begin(url.c_str());
+                ESP_LOGI(LOG_TAG, "Streamer did begin URL");
+                
+                const char * _srv_mime = urlStream.httpRequest().reply().get("Content-Type");
+                if(_srv_mime != nullptr) {
+                    const std::string srv_mime = _srv_mime;
+                    ESP_LOGI(LOG_TAG, "Server reports content-type: %s", srv_mime.c_str());
+                    if(srv_mime == "audio/mpeg" || srv_mime == "audio/mp3") {
+                        decoder.setDecoder(&codecMP3);
+                        codecMP3.setNotifyActive(true);
+                        codecMP3.addNotifyAudioChange(*outPort);
+                    }
+                    else if(srv_mime == "audio/aac") {
+                        decoder.setDecoder(&codecAAC);
+                        codecAAC.setNotifyActive(true);
+                        codecAAC.addNotifyAudioChange(*outPort);
+                    }
+                    else {
+                        ESP_LOGE(LOG_TAG, "Content-type is not supported, TODO show error");
+                        vTaskDelay(portMAX_DELAY);
+                    }
+                } else {
+                    ESP_LOGE(LOG_TAG, "No content-type reported, TODO show error");
+                    vTaskDelay(portMAX_DELAY);
+                }
+                decoder.setNotifyActive(true);
+                decoder.begin();
+                ESP_LOGI(LOG_TAG, "Streamer did begin decoder");
+
+                loadingCallback(false);
+                TickType_t last_successful_copy = xTaskGetTickCount();
+                while(1) {
+                    xSemaphoreTake(sema, portMAX_DELAY);
+                    TickType_t now = xTaskGetTickCount();
+                    if(copier.copy()) {
+                        last_successful_copy = now;
+                    } else if(now - last_successful_copy >= pdTICKS_TO_MS(1000)) {
+                        ESP_LOGE(LOG_TAG, "streamer is stalled!?");
+                        loadingCallback(true);
+                        urlStream.end();
+                        ESP_LOGE(LOG_TAG, "streamer is trying to begin URL again");
+                        urlStream.begin(url.c_str());
+                        last_successful_copy = now;
+                        loadingCallback(false);
+                    }
+                    xSemaphoreGive(sema);
+                    delay(5);
+                }
+            }
+        );
+    }
+
+    void stop() {
+        xSemaphoreTake(sema, portMAX_DELAY);
+        running = false;
+        sndTask.end();
+
+        urlStream.end();
+        decoder.end();
+        copier.end();
+    }
+
+protected:
+    bool running = false;
+    StreamCopy copier;
+    AACDecoderHelix codecAAC;
+    MP3DecoderHelix codecMP3;
+    EncodedAudioStream decoder;
+    ICYStream urlStream;
+    Task sndTask;
+    AudioStream * outPort;
+    SemaphoreHandle_t sema;
+};
+
 InternetRadioMode::InternetRadioMode(const PlatformSharedResources res):
-    urlStream(512 * 1024),
-    mp3(),
-    decoder(res.router->get_output_port(), &mp3),
-    copier(decoder, urlStream),
-    sndTask(nullptr),
+    streamer(nullptr),
     station_buttons({}), // todo
     chgSource(Button(res.keypad, (1 << 0))),
     moreStations(Button(res.keypad, (1 << 7))),
     Mode(res) {
         _that = this;
-    rootView = new InternetRadioView({{0, 0}, {160, 32}});
+        rootView = new InternetRadioView({{0, 0}, {160, 32}});
+
+        for(int i = 1; i <= 6; i++) {
+            station_buttons.push_back(Button(res.keypad, (1 << i)));
+        }
 }
 
 void InternetRadioMode::setup() {
-    rootView->reset_meta("Radio!");
+    rootView->reset_meta("Radio");
     AudioToolsLogger.begin(Serial, AudioToolsLogLevel::Warning);
     resources.router->activate_route(Platform::AudioRoute::ROUTE_INTERNAL_CPU);
-    
-    play();
+    select_station(4);
+}
+
+void InternetRadioMode::select_station(int index) {
+
+    // TODO: database
+    switch(index) {
+        case 0: rootView->reset_meta("Happy Hardcore"); play("http://u1.happyhardcore.com/"); break;
+        case 1: rootView->reset_meta("NDR 1"); play("http://icecast.ndr.de/ndr/ndr1wellenord/kiel/mp3/128/stream.mp3"); break;
+        case 2: rootView->reset_meta("Радио Проводач"); play("http://station.waveradio.org/provodach"); break;
+        case 3: rootView->reset_meta("Проводач (MP3)");play("http://station.waveradio.org/provodach.mp3"); break;
+        case 4: rootView->reset_meta("Советская Волна");play("http://station.waveradio.org/soviet"); break;;
+        case 5: rootView->reset_meta("Relax FM");play("http://srv01.gpmradio.ru/stream/reg/mp3/128/region_relax_86"); break;
+
+        default: return;
+    }
+    rootView->channelBar->set_active_ch_idx(index);
 }
 
 // cannot use lambda, so have to resort to this hack for now
 InternetRadioMode* InternetRadioMode::_that = nullptr;
 void InternetRadioMode::_update_meta_global(MetaDataType type, const char * str, int len) {
+    ESP_LOGI(LOG_TAG, "META['%s'] = '%s'", toStr(type), str);
     if(_that != nullptr) _that->update_meta(type, str, len); 
 }
 
@@ -139,35 +300,46 @@ void InternetRadioMode::update_meta(MetaDataType type, const char * str, int len
     rootView->update_meta(type, str, len);
 }
 
-void InternetRadioMode::play() {
+void InternetRadioMode::play(const std::string url) {
     rootView->set_loading(true);
-    if(sndTask != nullptr) {
-        delete sndTask;
-        sndTask = nullptr;
+
+    if(streamer != nullptr) {
+        ESP_LOGI(LOG_TAG, "Stop old streamer");
+        streamer->stop();
+        ESP_LOGI(LOG_TAG, "Delete old streamer");
+        delete streamer;
+        streamer = nullptr;
     }
-    sndTask = new Task("IRASND", 12000, 15, 1);
-    sndTask->begin([this]() { 
-        decoder.addNotifyAudioChange(*resources.router->get_output_port());
-        urlStream.setMetadataCallback(_update_meta_global);
-        copier.resize(128000);
-        
-        decoder.begin();
-        urlStream.begin("https://u1.happyhardcore.com/", "audio/mpeg");
-        rootView->set_loading(false);
-        while(1) {
-            copier.copy(); 
-        }
-    });
+
+    ESP_LOGI(LOG_TAG, "Create new streamer");
+    streamer = new StreamingPipeline(resources.router);
+    ESP_LOGI(LOG_TAG, "Start new streamer");
+    streamer->start(
+        url,
+        [this](bool isLoading) { rootView->set_loading(isLoading); }
+    );
 }
 
 void InternetRadioMode::loop() {
-    vTaskDelay(pdMS_TO_TICKS(1000));
+    for(int i = 0; i < 6; i++) {
+        if(station_buttons[i].is_clicked()) {
+            select_station(i);
+            return;
+        }
+        else if(station_buttons[i].is_held()) {
+            // TODO: settings?
+        }
+    }
+    delay(100);
 }
 
 void InternetRadioMode::teardown() {
-    sndTask->end();
-    delete sndTask;
-    sndTask = nullptr;
+    if(streamer != nullptr) {
+        streamer->stop();
+        delete streamer;
+    }
+
+    streamer = nullptr;
     resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
 }
 

@@ -3,6 +3,9 @@
 #include <esp32-hal-gpio.h>
 #include "AudioTools.h"
 
+#define ESPER_AUDIO_BUFFER_SIZE 1024
+#define ESPER_AUDIO_BUFFER_COUNT 2
+
 namespace Platform {
     enum AudioRoute {
         /// @brief Audio output is inactive or not initialized
@@ -44,7 +47,6 @@ namespace Platform {
 
         AudioInfo cpuOutputParams = AudioInfo(44100, 2, 16);
         I2SStream * _i2s;
-        FormatConverterStream * _resampler;
 
         const DACBus dac_pins;
         const I2SBus i2s_pins;
