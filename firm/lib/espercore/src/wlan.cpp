@@ -42,6 +42,7 @@ namespace Core::Services {
                         // expect disconnect before next connection is made
                         reconnecting = false;
                     } else {
+                        if(WiFi.getMode() == WIFI_OFF) return; // deliberate power off
                         ESP_LOGI(LOG_TAG, "Connection lost, reconnecting to %s in a few seconds...", ssid.c_str());
                         vTaskDelay(pdMS_TO_TICKS(5000));
                         WiFi.mode(WIFI_MODE_STA);
@@ -90,6 +91,11 @@ namespace Core::Services {
                     ap_fallback();
                 }
             }
+        }
+
+        void stop() {
+            WiFi.disconnect();
+            WiFi.mode(WIFI_OFF);
         }
 
         bool is_up() {

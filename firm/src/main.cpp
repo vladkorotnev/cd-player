@@ -10,6 +10,7 @@
 
 #include <modes/cd_mode.h>
 #include <modes/netradio_mode.h>
+#include <modes/bluetooth_mode.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -123,7 +124,7 @@ void setup(void) {
     }
   );
 
-  app = new InternetRadioMode({
+  app = new BluetoothMode({
     .i2c = i2c,
     .keypad = keypad,
     .router = router

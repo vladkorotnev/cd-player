@@ -5,6 +5,8 @@ namespace Core::Services {
     namespace WLAN {
         /// @brief Initialize the network service and connect to the saved network, if it's available, otherwise start an ad-hoc network
         void start();
+        /// @brief Stop the network service. Use e.g. before starting up Bluetooth.
+        void stop();
         /// @brief Whether the network service is initialized and connected or hosting an ad-hoc network 
         bool is_up();
         bool is_softAP();
