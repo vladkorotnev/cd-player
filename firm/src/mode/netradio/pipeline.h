@@ -45,7 +45,6 @@ class InternetRadioMode::StreamingPipeline {
             queuePcmData.begin();
             netTask.begin([this, url, loadingCallback]() { 
                     urlStream.setMetadataCallback(_update_meta_global);
-                    urlStream.setReadBufferSize(4096);
                     urlStream.begin(url.c_str());
                     ESP_LOGI(LOG_TAG, "Streamer did begin URL");
 
@@ -133,7 +132,7 @@ class InternetRadioMode::StreamingPipeline {
                         int copied = copierDownloading.copy();
                         if(copied > 0) {
                             last_successful_copy = now;
-                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(2500) /* && !bufferNetData.isFull() */) {
+                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(4000) /* && !bufferNetData.isFull() */) {
                             ESP_LOGE(LOG_TAG, "streamer is stalled!?");
                             if(bufferNetData.isEmpty() || bufferPcmData.isEmpty()) {
                                 netBufferLowWaterMark = std::min(99.0f, netBufferLowWaterMark + 10.0f);
@@ -151,7 +150,7 @@ class InternetRadioMode::StreamingPipeline {
                         } else if(copied < 0) {
                             ESP_LOGE(LOG_TAG, "copied = %i ???", copied);
                         }
-                        if(now - last_stats >= pdTICKS_TO_MS(1000)) {
+                        if(now - last_stats >= pdTICKS_TO_MS(5000)) {
                             ESP_LOGI(LOG_TAG, "Stats: PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
                             last_stats = now;
                         }
