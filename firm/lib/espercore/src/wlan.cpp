@@ -50,6 +50,7 @@ namespace Core::Services {
                     break;
                 case SYSTEM_EVENT_STA_GOT_IP:
                     ESP_LOGI(LOG_TAG, "Connection succeeded. SSID:'%s', IP: %s", network_name().c_str(), current_ip().c_str());
+                    WiFi.setSleep(false);
         
                     has_ip = true;
                     if(initial_connection_ongoing) {
@@ -83,6 +84,7 @@ namespace Core::Services {
                     WiFi.mode(WIFI_MODE_STA);
                     WiFi.begin(ssid.c_str(), pass.c_str());
                     WiFi.waitForConnectResult();
+                    WiFi.setSleep(false);
                 } else {
                     ESP_LOGI(LOG_TAG, "No saved network, use AP fallback");
                     ap_fallback();

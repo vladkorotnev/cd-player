@@ -1,8 +1,7 @@
 #include <modes/netradio_mode.h>
 #include <esper-gui/views/framework.h>
 #include <views/wifi_icon.h>
-#include "AudioTools.h"
-#include <AudioTools/AudioCodecs/CodecHelix.h>
+#include "netradio/pipeline.h"
 
 using std::make_shared;
 using std::shared_ptr;
@@ -75,6 +74,8 @@ public:
 
         if(line_left_cur == line_left_tgt && line_right_cur == line_right_tgt) line_speed = 2;
         auto lbl = subviews[num];
+        if(line_left_cur == 0) line_left_cur = lbl->frame.origin.x - 10;
+        if(line_right_cur == 0) line_right_cur = lbl->frame.origin.x - 9;
         line_left_tgt = lbl->frame.origin.x - 1;
         line_right_tgt = lbl->frame.origin.x + lbl->frame.size.width + 1;
         set_needs_display();
@@ -155,171 +156,6 @@ private:
     std::string station = "";
 };
 
-class InternetRadioMode::StreamingPipeline {
-public:
-    StreamingPipeline(Platform::AudioRouter * router):
-        bufferNetData(256 * 1024),
-        bufferPcmData(1024 * 1024),
-        queueNetData(bufferNetData),
-        queuePcmData(bufferPcmData),
-        urlStream(),
-        codecAAC(), codecMP3(),
-        decoder(&queueNetData, &codecAAC),
-        sndTask("IRASND", 8192, 17, 0),
-        codecTask("IRADEC", 8192, configMAX_PRIORITIES - 1, 1),
-        netTask("IRANET", 8192, 14, 1),
-        copierDownloading(queueNetData, urlStream),
-        copierDecoding(decoder, queueNetData),
-        copierPlaying(*router->get_output_port(), queuePcmData) {
-            outPort = router->get_output_port();
-            semaSnd = xSemaphoreCreateBinary();
-            semaNet = xSemaphoreCreateBinary();
-            semaCodec = xSemaphoreCreateBinary();
-            xSemaphoreGive(semaSnd);
-            xSemaphoreGive(semaNet);
-            xSemaphoreGive(semaCodec);
-    }
-
-    ~StreamingPipeline() {
-        if(running) stop();
-    }
-
-    void start(const std::string url, std::function<void(bool)> loadingCallback) {
-        running = true;
-        loadingCallback(true);
-        ESP_LOGI(LOG_TAG, "Streamer is starting");
-        queueNetData.begin();
-        queuePcmData.begin();
-        netTask.begin([this, url, loadingCallback]() { 
-                urlStream.setMetadataCallback(_update_meta_global);
-                urlStream.begin(url.c_str());
-                ESP_LOGI(LOG_TAG, "Streamer did begin URL");
-                
-                const char * _srv_mime = urlStream.httpRequest().reply().get("Content-Type");
-                if(_srv_mime != nullptr) {
-                    const std::string srv_mime = _srv_mime;
-                    ESP_LOGI(LOG_TAG, "Server reports content-type: %s", srv_mime.c_str());
-                    if(srv_mime == "audio/mpeg" || srv_mime == "audio/mp3") {
-                        decoder.setDecoder(&codecMP3);
-                        decoder.setOutput(queuePcmData);
-                        codecMP3.setNotifyActive(true);
-                        codecMP3.addNotifyAudioChange(*outPort);
-                    }
-                    else if(srv_mime == "audio/aac") {
-                        decoder.setDecoder(&codecAAC);
-                        decoder.setOutput(queuePcmData);
-                        codecAAC.setNotifyActive(true);
-                        codecAAC.addNotifyAudioChange(*outPort);
-                    }
-                    else {
-                        ESP_LOGE(LOG_TAG, "Content-type is not supported, TODO show error");
-                        vTaskDelay(portMAX_DELAY);
-                    }
-                } else {
-                    ESP_LOGE(LOG_TAG, "No content-type reported, TODO show error");
-                    vTaskDelay(portMAX_DELAY);
-                }
-                decoder.setNotifyActive(true);
-                decoder.begin();
-                ESP_LOGI(LOG_TAG, "Streamer did begin decoder");
-
-                loadingCallback(false);
-                TickType_t last_successful_copy = xTaskGetTickCount();
-                TickType_t last_stats = xTaskGetTickCount();
-                codecTask.begin([this]() { 
-                    xSemaphoreTake(semaCodec, portMAX_DELAY);
-                    while(bufferNetData.levelPercent() < 20.0f) { 
-                        xSemaphoreGive(semaCodec);
-                        delay(1);
-                        xSemaphoreTake(semaCodec, portMAX_DELAY);
-                    }
-
-                    if(!bufferNetData.isEmpty()) {
-                        copierDecoding.copy(); 
-                    }
-                    xSemaphoreGive(semaCodec);
-                    delay(1); 
-                });
-                sndTask.begin([this]() { 
-                    xSemaphoreTake(semaSnd, portMAX_DELAY);
-                    while(bufferPcmData.levelPercent() < 50.0f) {
-                        xSemaphoreGive(semaSnd);
-                        delay(1); 
-                        xSemaphoreTake(semaSnd, portMAX_DELAY);
-                    }
-                    xSemaphoreGive(semaSnd);
-                    while(1) {
-                        xSemaphoreTake(semaSnd, portMAX_DELAY);
-                        if(!copierPlaying.copy()) {
-                            ESP_LOGE(LOG_TAG, "copierPlaying underrun!? PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
-                            while(bufferPcmData.levelPercent() < 25.0f) { 
-                                xSemaphoreGive(semaSnd);
-                                delay(1);
-                                xSemaphoreTake(semaSnd, portMAX_DELAY);
-                            }
-                        }
-                        xSemaphoreGive(semaSnd);
-                        delay(1); 
-                    }
-                });
-                while(1) {
-                    xSemaphoreTake(semaNet, portMAX_DELAY);
-                    TickType_t now = xTaskGetTickCount();
-                    if(bufferNetData.isFull() || copierDownloading.copy()) {
-                        last_successful_copy = now;
-                    } else if(now - last_successful_copy >= pdTICKS_TO_MS(1000) && bufferNetData.isEmpty()) {
-                        ESP_LOGE(LOG_TAG, "streamer is stalled!?");
-                        loadingCallback(true);
-                        urlStream.end();
-                        ESP_LOGE(LOG_TAG, "streamer is trying to begin URL again");
-                        urlStream.begin(url.c_str());
-                        last_successful_copy = now;
-                        loadingCallback(false);
-                    }
-                    if(now - last_stats >= pdTICKS_TO_MS(1000)) {
-                        ESP_LOGI(LOG_TAG, "Stats: PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
-                        last_stats = now;
-                    }
-                    xSemaphoreGive(semaNet);
-                    delay(1);
-                }
-            }
-        );
-    }
-
-    void stop() {
-        xSemaphoreTake(semaSnd, portMAX_DELAY);
-        xSemaphoreTake(semaCodec, portMAX_DELAY);
-        xSemaphoreTake(semaNet, portMAX_DELAY);
-        running = false;
-        sndTask.end();
-        codecTask.end();
-        netTask.end();
-        queuePcmData.end();
-        queueNetData.end();
-    }
-
-protected:
-    bool running = false;
-    StreamCopy copierPlaying;
-    StreamCopy copierDecoding;
-    StreamCopy copierDownloading;
-    AACDecoderHelix codecAAC;
-    MP3DecoderHelix codecMP3;
-    EncodedAudioStream decoder;
-    ICYStream urlStream;
-    Task sndTask;
-    Task codecTask;
-    Task netTask;
-    BufferRTOS<uint8_t> bufferNetData;
-    BufferRTOS<uint8_t> bufferPcmData;
-    QueueStream<uint8_t> queueNetData;
-    QueueStream<uint8_t> queuePcmData;
-    AudioStream * outPort;
-    SemaphoreHandle_t semaSnd;
-    SemaphoreHandle_t semaNet;
-    SemaphoreHandle_t semaCodec;
-};
 
 InternetRadioMode::InternetRadioMode(const PlatformSharedResources res):
     streamer(nullptr),
@@ -372,8 +208,6 @@ void InternetRadioMode::play(const std::string url) {
     rootView->set_loading(true);
 
     if(streamer != nullptr) {
-        ESP_LOGI(LOG_TAG, "Stop old streamer");
-        streamer->stop();
         ESP_LOGI(LOG_TAG, "Delete old streamer");
         delete streamer;
         streamer = nullptr;

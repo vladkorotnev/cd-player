@@ -69,10 +69,10 @@ bool WiFiIcon::needs_display() {
         if(rssi > 0) {
             set_level(0);
         }
-        else if(rssi >= -70) {
+        else if(rssi >= -55) {
             set_level(3);
         }
-        else if(rssi >= -85) {
+        else if(rssi >= -75) {
             set_level(2);
         }
         else if(rssi >= -90) {
