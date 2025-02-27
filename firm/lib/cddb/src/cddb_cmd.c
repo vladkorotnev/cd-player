@@ -1036,17 +1036,17 @@ static int cddb_handle_response_list(cddb_conn_t *c, cddb_disc_t *disc)
                         cddb_disc_destroy(aux);
                         return -1;
                     }
-                    list_append(c->query_data, aux);
+                    libcddb_list_append(c->query_data, aux);
                 }
-                if (list_size(c->query_data) == 0) {
+                if (libcddb_list_size(c->query_data) == 0) {
                     /* empty result set */
                     cddb_errno_log_error(c, CDDB_ERR_INVALID_RESPONSE);
                     return -1;
                 }
                 /* return first disc in result set */
-                cddb_disc_copy(disc, (cddb_disc_t *)element_data(list_first(c->query_data)));
+                cddb_disc_copy(disc, (cddb_disc_t *)element_data(libcddb_list_first(c->query_data)));
             }
-            count = list_size(c->query_data);
+            count = libcddb_list_size(c->query_data);
             break;
         case 202:                   /* no match found */
             cddb_log_debug("...no match");
@@ -1082,7 +1082,7 @@ int cddb_query(cddb_conn_t *c, cddb_disc_t *disc)
 
     cddb_log_debug("cddb_query()");
     /* clear previous query result set */
-    list_flush(c->query_data);
+    libcddb_list_flush(c->query_data);
     
     /* recalculate disc ID to make sure it matches the disc data */
     cddb_disc_calc_discid(disc);
@@ -1146,7 +1146,7 @@ int cddb_query_next(cddb_conn_t *c, cddb_disc_t *disc)
     elem_t *aux;
 
     cddb_log_debug("cddb_query_next()");
-    aux = list_next(c->query_data);
+    aux = libcddb_list_next(c->query_data);
     if (!aux) {
         /* no more discs */
         cddb_errno_set(c, CDDB_ERR_DISC_NOT_FOUND);
@@ -1163,7 +1163,7 @@ int cddb_album(cddb_conn_t *c, cddb_disc_t *disc)
 {
     cddb_log_debug("cddb_album()");
     /* clear previous query result set */
-    list_flush(c->query_data);
+    libcddb_list_flush(c->query_data);
     
     /* check whether we have enough info to execute the command */
     cddb_log_debug("...disc->artist = %s", STR_OR_NULL(disc->artist));
@@ -1241,7 +1241,7 @@ static int cddb_parse_search_data(cddb_conn_t *c, cddb_disc_t **disc,
     } else if (matches[10].rm_so != -1) {
         /* nothing to do, values should be correct because of cloning */
     }
-    list_append(c->query_data, *disc);
+    libcddb_list_append(c->query_data, *disc);
     return TRUE;
 }
 
@@ -1302,7 +1302,7 @@ int cddb_search(cddb_conn_t *c, cddb_disc_t *disc, const char *str)
     /* copy proxy parameters */
     cddb_clone_proxy(cddb_search_conn, c);
     /* clear previous query result set */
-    list_flush(c->query_data);
+    libcddb_list_flush(c->query_data);
     
     if (!cddb_connect(cddb_search_conn)) {
         /* connection not OK, copy error code */
@@ -1330,10 +1330,10 @@ int cddb_search(cddb_conn_t *c, cddb_disc_t *disc, const char *str)
         }
     }
     /* return first disc in result set */
-    count = list_size(c->query_data);
+    count = libcddb_list_size(c->query_data);
     if (count  != 0) {
         cddb_disc_copy(disc, 
-                       (cddb_disc_t *)element_data(list_first(c->query_data)));
+                       (cddb_disc_t *)element_data(libcddb_list_first(c->query_data)));
     }
     /* close connection */
     cddb_disconnect(cddb_search_conn);
@@ -1568,7 +1568,7 @@ int cddb_sites(cddb_conn_t *c)
 
     cddb_log_debug("cddb_sites()");
     /* clear previous sites result set */
-    list_flush(c->sites_data);
+    libcddb_list_flush(c->sites_data);
 
     if (!cddb_connect(c)) {
         /* connection not OK */
@@ -1612,7 +1612,7 @@ int cddb_sites(cddb_conn_t *c)
             cddb_site_destroy(site);
             return FALSE;
         }
-        if (!list_append(c->sites_data, site)) {
+        if (!libcddb_list_append(c->sites_data, site)) {
             cddb_errno_log_error(c, CDDB_ERR_OUT_OF_MEMORY);
             cddb_site_destroy(site);
             return FALSE;

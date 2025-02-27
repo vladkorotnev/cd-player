@@ -111,8 +111,8 @@ cddb_conn_t *cddb_new(void)
         c->errnum = CDDB_ERR_OK;
 
         // XXX: handle out-of-memory
-        c->query_data = list_new((elem_destroy_cb*)cddb_disc_destroy);
-        c->sites_data = list_new((elem_destroy_cb*)cddb_site_destroy);
+        c->query_data = libcddb_list_new((elem_destroy_cb*)cddb_disc_destroy);
+        c->sites_data = libcddb_list_new((elem_destroy_cb*)cddb_site_destroy);
 
         c->charset = malloc(sizeof(struct cddb_iconv_s));
         c->charset->cd_to_freedb = NULL;
@@ -157,8 +157,8 @@ void cddb_destroy(cddb_conn_t *c)
         FREE_NOT_NULL(c->cache_dir);
         FREE_NOT_NULL(c->user);
         FREE_NOT_NULL(c->hostname);
-        list_destroy(c->query_data);
-        list_destroy(c->sites_data);
+        libcddb_list_destroy(c->query_data);
+        libcddb_list_destroy(c->sites_data);
         cddb_close_iconv(c);
         FREE_NOT_NULL(c->charset);
         free(c);
@@ -565,7 +565,7 @@ const cddb_site_t *cddb_first_site(cddb_conn_t *c)
 {
     elem_t *e;
 
-    e = list_first(c->sites_data);
+    e = libcddb_list_first(c->sites_data);
     if (e) {
         return element_data(e);
     }
@@ -576,7 +576,7 @@ const cddb_site_t *cddb_next_site(cddb_conn_t *c)
 {
     elem_t *e;
 
-    e = list_next(c->sites_data);
+    e = libcddb_list_next(c->sites_data);
     if (e) {
         return element_data(e);
     }

@@ -112,8 +112,8 @@ struct cddb_conn_s
 
     cddb_error_t errnum;        /**< error number of last CDDB command */
 
-    list_t *query_data;         /**< list to keep CDDB query results */
-    list_t *sites_data;         /**< list to keep FreeDB mirror sites */
+    libcddb_list_t *query_data;         /**< list to keep CDDB query results */
+    libcddb_list_t *sites_data;         /**< list to keep FreeDB mirror sites */
     cddb_search_params_t srch;  /**< parameters for text search */
 
     cddb_iconv_t charset;       /**< character set conversion settings */

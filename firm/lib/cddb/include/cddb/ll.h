@@ -38,7 +38,7 @@ typedef struct elem_s elem_t;
 /**
  * Linked list.
  */
-typedef struct list_s list_t;
+typedef struct libcddb_list_s libcddb_list_t;
 
 /**
  * Callback prototype for destroying element data.
@@ -56,7 +56,7 @@ typedef void elem_destroy_cb(void *data);
  *           no further action is required.
  * @return The linked list structure or NULL if memory allocation failed.
  */
-list_t *list_new(elem_destroy_cb *cb);
+libcddb_list_t *libcddb_list_new(elem_destroy_cb *cb);
 
 /**
  * Free all resources associated with the given linked list.  Embedded
@@ -65,7 +65,7 @@ list_t *list_new(elem_destroy_cb *cb);
  *
  * @param list The linked list.
  */
-void list_destroy(list_t *list);
+void libcddb_list_destroy(libcddb_list_t *list);
 
 /**
  * Remove all elements from the list without destroying the list
@@ -74,7 +74,7 @@ void list_destroy(list_t *list);
  *
  * @param list The linked list.
  */
-void list_flush(list_t *list);
+void libcddb_list_flush(libcddb_list_t *list);
 
 
 /* --- list elements --- */
@@ -100,7 +100,7 @@ void *element_data(elem_t *elem);
  * @return The list element that was appended or NULL if memory
  *         allocation fails or the list is invalid.
  */
-elem_t *list_append(list_t *list, void *data);
+elem_t *libcddb_list_append(libcddb_list_t *list, void *data);
 
 /**
  * Returns the number of elements in the list.
@@ -108,7 +108,7 @@ elem_t *list_append(list_t *list, void *data);
  * @param list The linked list.
  * @return The number of elements.
  */
-int list_size(list_t *list);
+int libcddb_list_size(libcddb_list_t *list);
 
 /**
  * Returns the list element at the specified index or NULL if the
@@ -118,7 +118,7 @@ int list_size(list_t *list);
  * @param idx The element index (first = 0).
  * @return The element or NULL if not found.
  */
-elem_t *list_get(list_t *list, int idx);
+elem_t *libcddb_list_get(libcddb_list_t *list, int idx);
 
 /**
  * Returns the first list element.
@@ -126,16 +126,16 @@ elem_t *list_get(list_t *list, int idx);
  * @param list The linked list.
  * @return The first element or NULL if the list is empty.
  */
-elem_t *list_first(list_t *list);
+elem_t *libcddb_list_first(libcddb_list_t *list);
 
 /**
  * Returns the next list element.  Before using this function you
- * should call list_first to initialize the iterator.
+ * should call libcddb_list_first to initialize the iterator.
  *
  * @param list The linked list.
  * @return The next element or NULL if not found.
  */
-elem_t *list_next(list_t *list);
+elem_t *libcddb_list_next(libcddb_list_t *list);
 
 
 /* --- iteration */

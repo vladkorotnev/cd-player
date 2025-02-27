@@ -37,7 +37,7 @@ struct elem_s {
     void *data;                 /**< the actual data of the element */
 };
 
-struct list_s {
+struct libcddb_list_s {
     int cnt;                    /**< number of elements in the list */
     elem_destroy_cb *free_data; /**< callback used to free element data */
     elem_t *first;              /**< the first element in the list  */
@@ -87,24 +87,24 @@ static elem_t *elem_destroy(elem_t *elem, elem_destroy_cb *cb)
 /* --- construction / destruction */
 
 
-list_t *list_new(elem_destroy_cb *cb)
+libcddb_list_t *libcddb_list_new(elem_destroy_cb *cb)
 {
-    list_t *list;
+    libcddb_list_t *list;
 
-    list = (list_t*)calloc(1, sizeof(list_t));
+    list = (libcddb_list_t*)calloc(1, sizeof(libcddb_list_t));
     list->free_data = cb;
     return list;
 }
 
-void list_destroy(list_t *list)
+void libcddb_list_destroy(libcddb_list_t *list)
 {
-    list_flush(list);
+    libcddb_list_flush(list);
     if (list) {
         free(list);
     }
 }
 
-void list_flush(list_t *list)
+void libcddb_list_flush(libcddb_list_t *list)
 {
     elem_t *elem;
 
@@ -134,7 +134,7 @@ void *element_data(elem_t *elem)
 /* --- getters & setters --- */
 
 
-elem_t *list_append(list_t *list, void *data)
+elem_t *libcddb_list_append(libcddb_list_t *list, void *data)
 {
     elem_t *elem = NULL;
 
@@ -154,7 +154,7 @@ elem_t *list_append(list_t *list, void *data)
     return elem;
 }
 
-int list_size(list_t *list)
+int libcddb_list_size(libcddb_list_t *list)
 {
     if (list) {
         return list->cnt;
@@ -162,7 +162,7 @@ int list_size(list_t *list)
     return 0;
 }
 
-elem_t *list_get(list_t *list, int idx)
+elem_t *libcddb_list_get(libcddb_list_t *list, int idx)
 {
     elem_t *elem = NULL;
 
@@ -178,7 +178,7 @@ elem_t *list_get(list_t *list, int idx)
     return elem;
 }
 
-elem_t *list_first(list_t *list)
+elem_t *libcddb_list_first(libcddb_list_t *list)
 {
     if (list) {
         list->it = list->first;
@@ -187,7 +187,7 @@ elem_t *list_first(list_t *list)
     return NULL;
 }
 
-elem_t *list_next(list_t *list)
+elem_t *libcddb_list_next(libcddb_list_t *list)
 {
     if (list) {
         if (list->it) {
