@@ -4,6 +4,8 @@
 #include <CommonHelix.h>
 #include <lwip/sockets.h>
 
+// memo: adding if(j % 100 == 0) delay(1); to the httplinereader also makes things better?
+
 class AllocatorFastRAM : public Allocator {
     void* do_allocate(size_t size) {
       void* result = nullptr;
@@ -24,7 +26,7 @@ static AllocatorFastRAM fastAlloc;
 class InternetRadioMode::StreamingPipeline {
     public:
         StreamingPipeline(Platform::AudioRouter * router):
-            bufferNetData(128 * 1024/*, 1, portMAX_DELAY, portMAX_DELAY, fastAlloc*/),
+            bufferNetData(192 * 1024),
             bufferPcmData(8 * 1024, 1, portMAX_DELAY, portMAX_DELAY, fastAlloc),
             queueNetData(bufferNetData),
             queuePcmData(bufferPcmData),
@@ -95,8 +97,7 @@ class InternetRadioMode::StreamingPipeline {
                     TickType_t last_stats = xTaskGetTickCount();
 
                     codecTask.begin([this]() { 
-                        xSemaphoreTake(semaCodec, portMAX_DELAY);
-                        while(!bufferNetData.isFull() && running) { 
+                        while(bufferNetData.levelPercent() < 75.0 && running) { 
                             delay(125);
                         }
                         
@@ -107,9 +108,11 @@ class InternetRadioMode::StreamingPipeline {
                             vTaskDelay(portMAX_DELAY);
                         }
     
-                        while(running && copierDecoding.copy() > 0) {
-                            delay(5);
+                        while(copierDecoding.copy() > 0 && !bufferNetData.isEmpty() && running) {
+                            delay(12);
                         }
+                        while(!bufferNetData.isFull() && running) delay(250);
+
     
                         if(!running) {
                             ESP_LOGI(LOG_TAG, "Finishing up codec task");
@@ -118,7 +121,7 @@ class InternetRadioMode::StreamingPipeline {
                             vTaskDelay(portMAX_DELAY);
                         }
 
-                        delay(20);
+                        delay(5);
                         xSemaphoreGive(semaCodec);
                     });
 
@@ -148,12 +151,9 @@ class InternetRadioMode::StreamingPipeline {
                         int copied = copierDownloading.copy();
                         if(copied > 0) {
                             last_successful_copy = now;
-                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(6000) /* && !bufferNetData.isFull() */) {
+                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(6000)  && bufferNetData.levelPercent() < 20.0) {
                             ESP_LOGE(LOG_TAG, "streamer is stalled!?");
-                            if(bufferNetData.isEmpty() || bufferPcmData.isEmpty()) {
-                                bufferNetData.clear();
-                                loadingCallback(true);
-                            }
+                            loadingCallback(true);
                             urlStream.end();
                             int retryDelay = 100;
                             do {
@@ -166,7 +166,7 @@ class InternetRadioMode::StreamingPipeline {
                         } else if(copied < 0) {
                             ESP_LOGE(LOG_TAG, "copied = %i ???", copied);
                         }
-                        if(now - last_stats >= pdTICKS_TO_MS(5000)) {
+                        if(now - last_stats >= pdTICKS_TO_MS(2000)) {
                             ESP_LOGI(LOG_TAG, "Stats: PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
                             last_stats = now;
                         }

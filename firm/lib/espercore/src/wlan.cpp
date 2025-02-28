@@ -85,6 +85,8 @@ namespace Core::Services {
                     WiFi.begin(ssid.c_str(), pass.c_str());
                     WiFi.waitForConnectResult();
                     WiFi.setSleep(false);
+                    WiFi.setTxPower(wifi_power_t::WIFI_POWER_19_5dBm);
+                    ESP_LOGI(LOG_TAG, "Power mode = %i", WiFi.getTxPower());
                 } else {
                     ESP_LOGI(LOG_TAG, "No saved network, use AP fallback");
                     ap_fallback();
@@ -131,6 +133,9 @@ namespace Core::Services {
                 ESP_LOGI(LOG_TAG, "WiFi connection error (%i): fallback to SoftAP");
                 ap_fallback();
             }
+            WiFi.setTxPower(wifi_power_t::WIFI_POWER_19_5dBm);
+            ESP_LOGI(LOG_TAG, "Power mode = %i", WiFi.getTxPower());
+            WiFi.setSleep(false);
         }
 
         int rssi() {

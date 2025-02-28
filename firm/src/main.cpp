@@ -73,7 +73,6 @@ TaskHandle_t keypadTaskHandle = 0;
 void keypadTask(void *) {
   while(true) {
     keypad->update();
-    // remote->update();
     vTaskDelay(pdMS_TO_TICKS(33));
   }
 }
@@ -129,7 +128,7 @@ void setup(void) {
   app = new InternetRadioMode({
     .i2c = i2c,
     .keypad = keypad,
-    .remote = nullptr,
+    .remote = remote,
     .router = router
   });
 
