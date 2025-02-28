@@ -10,23 +10,12 @@ static bool has_ip = false;
 static std::string ssid = "";
 static std::string pass = "";
 
-const std::string getChipId() {
-    uint64_t macAddress = ESP.getEfuseMac();
-    uint32_t id         = 0;
-  
-    for (int i = 0; i < 17; i = i + 8) {
-      id |= ((macAddress >> (40 - i)) & 0xff) << i;
-    }
-    return std::to_string(id);
-  }
-  
-
 namespace Core::Services {
     namespace WLAN {
         static void ap_fallback() {
             WiFi.disconnect(false, true);
             WiFi.mode(WIFI_MODE_AP);
-            ssid = "esper_" + getChipId();
+            ssid = "esper_" + chip_id();
             ESP_LOGI(LOG_TAG, "Starting AP");
             WiFi.softAP(ssid.c_str());
         }
@@ -67,6 +56,16 @@ namespace Core::Services {
             }
         }
         
+        const std::string chip_id() {
+            uint64_t macAddress = ESP.getEfuseMac();
+            uint32_t id         = 0;
+            
+            for (int i = 0; i < 17; i = i + 8) {
+                id |= ((macAddress >> (40 - i)) & 0xff) << i;
+            }
+            return std::to_string(id);
+        }        
+
         void start() {
             // TODO load from settings
             initial_connection_succeeded = false;

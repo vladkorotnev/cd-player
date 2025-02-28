@@ -16,6 +16,7 @@ static char LOG_TAG[] = "APL_MAIN";
 
 Core::ThreadSafeI2C * i2c;
 Platform::Keypad * keypad;
+Platform::Remote * remote;
 Graphics::Hardware::FutabaGP1232ADriver * disp;
 Graphics::Compositor * compositor;
 Platform::AudioRouter * router;
@@ -69,10 +70,10 @@ void renderTask(void*) {
 }
 
 TaskHandle_t keypadTaskHandle = 0;
-void keypadTask(void * pvArgs) {
-  Platform::Keypad * kp = reinterpret_cast<Platform::Keypad*>(pvArgs);
+void keypadTask(void *) {
   while(true) {
-    kp->update();
+    keypad->update();
+    // remote->update();
     vTaskDelay(pdMS_TO_TICKS(33));
   }
 }
@@ -82,7 +83,7 @@ void keypadTask(void * pvArgs) {
 void setup(void) { 
   ESP_LOGI(LOG_TAG, "CPU speed = %i", getCpuFrequencyMhz());
 #ifdef BOARD_HAS_PSRAM
-  heap_caps_malloc_extmem_enable(1024);
+  heap_caps_malloc_extmem_enable(128);
 #endif
   // Open Serial 
   Serial.begin(115200);
@@ -106,6 +107,7 @@ void setup(void) {
   Core::Services::NTP::start();
 
   keypad = new Platform::Keypad(i2c);
+  // remote = new Platform::Remote();
 
   spdif = new Platform::WM8805(i2c);
   spdif->initialize();
@@ -124,9 +126,10 @@ void setup(void) {
     }
   );
 
-  app = new BluetoothMode({
+  app = new InternetRadioMode({
     .i2c = i2c,
     .keypad = keypad,
+    .remote = nullptr,
     .router = router
   });
 
@@ -147,13 +150,13 @@ void setup(void) {
     keypadTask,
     "KEYP",
     4000,
-    keypad,
+    nullptr,
     2,
     &keypadTaskHandle,
     0
   );
-
-  
+    // classic bt only in this project
+    if(esp_bt_controller_mem_release(ESP_BT_MODE_BLE) != ESP_OK) ESP_LOGE(LOG_TAG, "BLE dealloc failed");
 }
 
 

@@ -26,12 +26,10 @@ private:
     void play_status_callback(esp_avrc_playback_stat_t);
     void metadata_callback(uint8_t id, const char *text);
 
+    Button stopEject;
     Button playPause;
     Button next;
     Button prev;
 
-    bool was_connected = false;
     esp_avrc_playback_stat_t cur_sts;
-    std::string cur_artist;
-    std::string cur_title;
 };

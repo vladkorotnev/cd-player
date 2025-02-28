@@ -10,30 +10,122 @@ static BluetoothMode * _that = nullptr;
 
 class BluetoothMode::BluetoothView: public UI::View {
 public:
-    shared_ptr<UI::TinySpinner> loading;
-    shared_ptr<UI::Label> lblTitle;
-    shared_ptr<UI::Label> lblSubtitle;
-
-
     BluetoothView(EGRect f): View(f) {
         lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         lblSubtitle = make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
-
-        loading = make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 32 - 7}, {5, 5}}));
-        loading->hidden = true;
+        lblSource = make_shared<UI::Label>(UI::Label({{0, 24}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth"));
 
         lblTitle->auto_scroll = true;
         lblTitle->synchronize_scrolling_to(&lblSubtitle);
         lblSubtitle->auto_scroll = true;
         lblSubtitle->synchronize_scrolling_to(&lblTitle);
+        lblSource->hidden = true;
 
         subviews.push_back(lblTitle);
         subviews.push_back(lblSubtitle);
-        subviews.push_back(loading);
+        subviews.push_back(lblSource);
     }
 
-    void set_loading(bool isLoading) {
-        loading->hidden = !isLoading;
+    void set_disconnected() {
+        state.connection = DISCONNECTED;
+        state.artist = "";
+        state.title = "";
+        update();
+    }
+
+    void set_pairing(int pin) {
+        state.connection = PAIRING_PIN;
+        state.pincode = pin;
+        update();
+    }
+
+    void set_connected(const char * dev_name) {
+        const std::string disp_name = (dev_name == nullptr) ? "" : dev_name;
+        if((state.connection != CONNECTED && state.connection != PLAYING) || disp_name != state.device_name) {
+            if(state.connection != CONNECTED && state.connection != PLAYING) {
+                state.connection = CONNECTED;
+            }
+            state.device_name = (disp_name.empty() ? "(BT Device)" : disp_name);
+            update();
+        }
+    }
+
+    void update_metadata(const char * text, esp_avrc_md_attr_mask_t id) {
+        if(state.connection != CONNECTED && state.connection != PLAYING) return;
+
+        std::string val = (text == nullptr) ? "" : std::string(text);
+        if(val == "unavailable" || val == "Not Provided") val = "";
+
+        switch(id) {
+            case ESP_AVRC_MD_ATTR_ARTIST:
+                state.artist = val;
+                break;
+
+            case ESP_AVRC_MD_ATTR_TITLE:
+                state.title = val;
+                break;
+
+            default:
+                ESP_LOGI(LOG_TAG, "Unsupported meta type 0x%02x received: '%s'", id, val.c_str());
+                return;
+        }
+
+        update();
+    }
+
+    void set_playing(bool playing) {
+        if(state.connection != CONNECTED && state.connection != PLAYING) return;
+        state.connection = playing ? PLAYING : CONNECTED;
+        update();
+    }
+
+protected:
+    shared_ptr<UI::Label> lblTitle;
+    shared_ptr<UI::Label> lblSubtitle;
+    shared_ptr<UI::Label> lblSource;
+
+    enum ConnectionStatus {
+        DISCONNECTED,
+        PAIRING_PIN,
+        CONNECTED,
+        PLAYING
+    };
+
+    struct State {
+        ConnectionStatus connection;
+        int pincode;
+        std::string device_name;
+        std::string artist;
+        std::string title;
+    };
+
+    State state;
+
+    void update() {
+        if(state.connection == DISCONNECTED) {
+            lblSource->hidden = true;
+            lblSubtitle->hidden = true;
+            lblTitle->set_value("Bluetooth");
+        }
+        else if(state.connection == PAIRING_PIN) {
+            lblSource->hidden = false;
+            lblSubtitle->hidden = false;
+            lblSource->set_value(state.device_name);
+            lblSubtitle->set_value("Confirm PIN and press PLAY");
+            lblTitle->set_value(std::to_string(state.pincode));
+        }
+        else if(state.connection == CONNECTED) {
+            lblSource->hidden = true;
+            lblSubtitle->hidden = true;
+            lblTitle->set_value(state.device_name);
+        }
+        else if(state.connection == PLAYING) {
+            lblSource->hidden = state.title.empty();
+            lblSubtitle->hidden = state.title.empty();
+            lblSource->set_value(state.device_name);
+            lblTitle->set_value(state.title.empty() ? state.device_name : state.title);
+            lblSubtitle->set_value(state.artist);
+        }
     }
 };
 
@@ -47,6 +139,7 @@ void BluetoothMode::avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playbac
 
 BluetoothMode::BluetoothMode(const PlatformSharedResources res):
     a2dp(*res.router->get_output_port()),
+    stopEject(res.keypad, (1 << 0)),
     playPause(res.keypad, (1 << 1)),
     prev(res.keypad, (1 << 4)),
     next(res.keypad, (1 << 5)),
@@ -56,8 +149,7 @@ BluetoothMode::BluetoothMode(const PlatformSharedResources res):
 }
 
 void BluetoothMode::setup() {
-    rootView->lblTitle->set_value("Bluetooth");
-    rootView->lblSubtitle->set_value("");
+    rootView->set_disconnected();
     AudioToolsLogger.begin(Serial, AudioToolsLogLevel::Warning);
     resources.router->activate_route(Platform::AudioRoute::ROUTE_INTERNAL_CPU);
     Core::Services::WLAN::stop();
@@ -66,16 +158,13 @@ void BluetoothMode::setup() {
     a2dp.set_avrc_metadata_callback(avrc_metadata_callback);
     a2dp.set_avrc_rn_playstatus_callback(avrc_rn_playstatus_callback);
     a2dp.activate_pin_code(true);
-    a2dp.start("ESPer-CDP", true);
+    a2dp.start(("ESPer-CDP_" + Core::Services::WLAN::chip_id()).c_str(), true);
     a2dp.set_discoverability(esp_bt_discovery_mode_t::ESP_BT_GENERAL_DISCOVERABLE);
 }
 
 void BluetoothMode::loop() {
     if(a2dp.is_connected()) {
-        if(!was_connected) {
-            rootView->lblTitle->set_value(a2dp.get_peer_name());
-        }
-        was_connected = true;
+        rootView->set_connected(a2dp.get_peer_name());
         if(playPause.is_clicked()) {
             if(cur_sts == ESP_AVRC_PLAYBACK_PLAYING || cur_sts == ESP_AVRC_PLAYBACK_FWD_SEEK || cur_sts == ESP_AVRC_PLAYBACK_REV_SEEK) {
                 a2dp.pause();
@@ -86,21 +175,18 @@ void BluetoothMode::loop() {
         }
         else if(next.is_clicked()) a2dp.next();
         else if(prev.is_clicked()) a2dp.previous();
+        else if(stopEject.is_clicked()) a2dp.stop();
     } else {
         if(a2dp.pin_code() != 0) {
-            rootView->lblSubtitle->set_value("Confirm PIN matches and press PLAY if so");
-            rootView->lblTitle->set_value(std::to_string(a2dp.pin_code()));
+            rootView->set_pairing(a2dp.pin_code());
 
             if(playPause.is_clicked()) {
-                rootView->lblSubtitle->set_value("");
-                rootView->lblTitle->set_value("Pairing...");
                 a2dp.confirm_pin_code();
+                delay(1000);
             }
         }
-        else if(was_connected) {
-            rootView->lblTitle->set_value("Bluetooth");
-            rootView->lblSubtitle->set_value("");
-            was_connected = false;
+        else {
+            rootView->set_disconnected();
         }
     }
     delay(125);
@@ -108,36 +194,11 @@ void BluetoothMode::loop() {
 
 void BluetoothMode::play_status_callback(esp_avrc_playback_stat_t sts) {
     cur_sts = sts;
-    if(cur_sts == ESP_AVRC_PLAYBACK_PLAYING || cur_sts == ESP_AVRC_PLAYBACK_FWD_SEEK || cur_sts == ESP_AVRC_PLAYBACK_REV_SEEK) {
-        rootView->lblTitle->set_value(cur_title);
-        rootView->lblSubtitle->set_value(cur_artist);
-    }
+    rootView->set_playing(cur_sts == ESP_AVRC_PLAYBACK_PLAYING || cur_sts == ESP_AVRC_PLAYBACK_FWD_SEEK || cur_sts == ESP_AVRC_PLAYBACK_REV_SEEK);
 }
 
 void BluetoothMode::metadata_callback(uint8_t id, const char *text) {
-    std::string val = (text == nullptr) ? "" : std::string(text);
-    if(val == "unavailable" || val == "Not Provided") val = "";
-
-    switch(id) {
-        case ESP_AVRC_MD_ATTR_ARTIST:
-            cur_artist = val;
-            break;
-
-        case ESP_AVRC_MD_ATTR_TITLE:
-            cur_title = val;
-            break;
-
-        default:
-            ESP_LOGI(LOG_TAG, "Unsupported meta type 0x%02x received: '%s'", id, val.c_str());
-            break;
-    }
-
-    rootView->lblSubtitle->set_value(cur_artist);
-    if(cur_title != "") {
-        rootView->lblTitle->set_value(cur_title);
-    } else {
-        rootView->lblTitle->set_value(a2dp.get_peer_name());
-    }
+    rootView->update_metadata(text, (esp_avrc_md_attr_mask_t) id);
 }
 
 void BluetoothMode::teardown() {

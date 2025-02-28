@@ -172,7 +172,7 @@ InternetRadioMode::InternetRadioMode(const PlatformSharedResources res):
 }
 
 void InternetRadioMode::setup() {
-    rootView->reset_meta("Radio");
+    rootView->reset_meta("");
     AudioToolsLogger.begin(Serial, AudioToolsLogLevel::Warning);
     resources.router->activate_route(Platform::AudioRoute::ROUTE_INTERNAL_CPU);
 }

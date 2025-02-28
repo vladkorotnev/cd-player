@@ -21,5 +21,7 @@ namespace Core::Services {
 
         /// @brief Get the active connection RSSI
         int rssi();
+
+        const std::string chip_id();
     }
 }

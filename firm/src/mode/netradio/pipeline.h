@@ -4,18 +4,35 @@
 #include <CommonHelix.h>
 #include <lwip/sockets.h>
 
+class AllocatorFastRAM : public Allocator {
+    void* do_allocate(size_t size) {
+      void* result = nullptr;
+      if (size == 0) size = 1;
+      if (result == nullptr) result = heap_caps_calloc(1, size, MALLOC_CAP_8BIT | MALLOC_CAP_INTERNAL);
+      if (result == nullptr) {
+        LOGE("Internal-RAM alloc failed for %zu bytes", size);
+        stop();
+      }
+      // initialize object
+      memset(result, 0, size);
+      return result;
+    }
+  };
+
+static AllocatorFastRAM fastAlloc;
+
 class InternetRadioMode::StreamingPipeline {
     public:
         StreamingPipeline(Platform::AudioRouter * router):
-            bufferNetData(512 * 1024),
-            bufferPcmData(128 * 1024),
+            bufferNetData(128 * 1024/*, 1, portMAX_DELAY, portMAX_DELAY, fastAlloc*/),
+            bufferPcmData(8 * 1024, 1, portMAX_DELAY, portMAX_DELAY, fastAlloc),
             queueNetData(bufferNetData),
             queuePcmData(bufferPcmData),
             urlStream(),
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
             sndTask("IRASND", 8192, 2, 0),
-            codecTask("IRADEC", 40000, 8, 1),
+            codecTask("IRADEC", 40000, 6, 1),
             netTask("IRANET", 20000, 14, 1),
             copierDownloading(queueNetData, urlStream),
             copierDecoding(decoder, queueNetData),
@@ -49,7 +66,6 @@ class InternetRadioMode::StreamingPipeline {
                     ESP_LOGI(LOG_TAG, "Streamer did begin URL");
 
                     const char * _srv_mime = urlStream.httpRequest().reply().get("Content-Type");
-                    netBufferLowWaterMark = 20.0; // essentially start with a small buffer to get a quick start, and have it grow when a hiccup occurs
                     if(_srv_mime != nullptr) {
                         const std::string srv_mime = _srv_mime;
                         ESP_LOGI(LOG_TAG, "Server reports content-type: %s", srv_mime.c_str());
@@ -78,9 +94,9 @@ class InternetRadioMode::StreamingPipeline {
                     TickType_t last_successful_copy = xTaskGetTickCount();
                     TickType_t last_stats = xTaskGetTickCount();
 
-                    codecTask.begin([this, loadingCallback]() { 
+                    codecTask.begin([this]() { 
                         xSemaphoreTake(semaCodec, portMAX_DELAY);
-                        while(bufferNetData.levelPercent() < (netBufferLowWaterMark+1) && running) { 
+                        while(!bufferNetData.isFull() && running) { 
                             delay(125);
                         }
                         
@@ -92,7 +108,7 @@ class InternetRadioMode::StreamingPipeline {
                         }
     
                         while(running && copierDecoding.copy() > 0) {
-                            delay(25);
+                            delay(5);
                         }
     
                         if(!running) {
@@ -109,9 +125,9 @@ class InternetRadioMode::StreamingPipeline {
                     sndTask.begin([this, loadingCallback]() { 
                         xSemaphoreTake(semaSnd, portMAX_DELAY);
                         if(!copierPlaying.copy() && running) {
-                            ESP_LOGE(LOG_TAG, "copierPlaying underrun!? PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
-                            netBufferLowWaterMark = std::min(99.0f, netBufferLowWaterMark + 10.0f);
-                            while(bufferPcmData.levelPercent() < 25.0f && running) { 
+                            ESP_LOGD(LOG_TAG, "copierPlaying underrun!? PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
+                            loadingCallback(true);
+                            while(bufferPcmData.isEmpty() && running) { 
                                 xSemaphoreGive(semaSnd);
                                 delay(100);
                                 xSemaphoreTake(semaSnd, portMAX_DELAY);
@@ -132,10 +148,9 @@ class InternetRadioMode::StreamingPipeline {
                         int copied = copierDownloading.copy();
                         if(copied > 0) {
                             last_successful_copy = now;
-                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(4000) /* && !bufferNetData.isFull() */) {
+                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(6000) /* && !bufferNetData.isFull() */) {
                             ESP_LOGE(LOG_TAG, "streamer is stalled!?");
                             if(bufferNetData.isEmpty() || bufferPcmData.isEmpty()) {
-                                netBufferLowWaterMark = std::min(99.0f, netBufferLowWaterMark + 10.0f);
                                 bufferNetData.clear();
                                 loadingCallback(true);
                             }
@@ -144,6 +159,7 @@ class InternetRadioMode::StreamingPipeline {
                             do {
                                 delay(retryDelay);
                                 retryDelay += 1000;
+                                if(retryDelay > 10000) retryDelay = 10000;
                                 ESP_LOGE(LOG_TAG, "streamer is trying to begin URL again");
                             } while(!urlStream.begin(url.c_str()));
                             last_successful_copy = now;
@@ -154,6 +170,7 @@ class InternetRadioMode::StreamingPipeline {
                             ESP_LOGI(LOG_TAG, "Stats: PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
                             last_stats = now;
                         }
+
                         xSemaphoreGive(semaNet);
                     }
                     ESP_LOGI(LOG_TAG, "Finishing up net task");
@@ -171,7 +188,6 @@ class InternetRadioMode::StreamingPipeline {
 
             running = false;
             ESP_LOGI(LOG_TAG, "Streamer finalizing net task");
-            xSemaphoreTake(semaNet, portMAX_DELAY);
             netTask.end();
     
             ESP_LOGI(LOG_TAG, "Streamer finalizing url");
@@ -199,15 +215,10 @@ class InternetRadioMode::StreamingPipeline {
                 delete activeCodec;
                 activeCodec = nullptr;
             }
-            
-            ESP_LOGI(LOG_TAG, "Streamer finalizing buffers");    
-            queuePcmData.end();
-            queueNetData.end();
         }
     
     protected:
         bool running = false;
-        float netBufferLowWaterMark = 5.0;
         StreamCopy copierPlaying;
         StreamCopy copierDecoding;
         StreamCopy copierDownloading;

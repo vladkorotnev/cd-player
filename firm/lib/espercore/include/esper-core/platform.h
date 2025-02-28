@@ -4,3 +4,4 @@
 #include "spdif.h"
 #include "ide.h"
 #include "audio_router.h"
+#include "remote.h"
