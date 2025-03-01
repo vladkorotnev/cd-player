@@ -59,7 +59,7 @@ class InternetRadioMode::StreamingPipeline {
             urlStream(),
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
-            sndTask("IRASND", 8192, 2, 0),
+            sndTask("IRASND", 8192, 4, 0),
             codecTask("IRADEC", 40000, 6, 1),
             netTask("IRANET", 20000, 14, 1),
             copierDownloading(queueNetData, urlStream),
@@ -96,7 +96,8 @@ class InternetRadioMode::StreamingPipeline {
             netTask.begin([this, url, loadingCallback]() { 
                     TickType_t last_shart_time = xTaskGetTickCount();
                     urlStream.setMetadataCallback(_update_meta_global);
-                    urlStream.setTimeout(NET_CLIENT_TIMEOUT);
+                    urlStream.httpRequest().setTimeout(NET_CLIENT_TIMEOUT);
+                    urlStream.httpRequest().header().setProtocol("HTTP/1.0"); // <- important, because chunked transfer of some servers seems to cause trouble with buffering!
                     urlStream.begin(url.c_str());
                     ESP_LOGI(LOG_TAG, "Streamer did begin URL");
 
@@ -185,6 +186,7 @@ class InternetRadioMode::StreamingPipeline {
                         int copied = copierDownloading.copy();
                         if(copied > 0) {
                             last_successful_copy = now;
+                            delay(2);
                         } else if(now - last_successful_copy >= pdTICKS_TO_MS(NET_NO_DATA_TIMEOUT)  && (bufferNetData.levelPercent() < 20.0 || bufferPcmData.isEmpty())) {
                             ESP_LOGE(LOG_TAG, "streamer is stalled!? time since last shart = [ %i ms ]", now - last_shart_time);
                             last_shart_time = now;

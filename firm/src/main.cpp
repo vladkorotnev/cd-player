@@ -119,9 +119,10 @@ void setup(void) {
     .display = disp
   };
 
-  host = new ModeHost(rsrc);
+  ModeSelection startup_mode = ESPER_MODE_NET_RADIO; // TODO from NVRAM
 
-  host->activate_mode(ESPER_MODE_BLUETOOTH);
+  host = new ModeHost(rsrc);
+  host->activate_mode(startup_mode);
 
   xTaskCreatePinnedToCore(
     keypadTask,

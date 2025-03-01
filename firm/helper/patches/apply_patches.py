@@ -1,5 +1,7 @@
 from os.path import join, isfile
 
+raise Exception("Disabled!!")
+
 Import("env")
 
 FRAMEWORK_DIR = join(".pio", "libdeps", "esp32dev", "ArduinoAudioTools")

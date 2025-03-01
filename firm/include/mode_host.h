@@ -8,8 +8,8 @@
 
 enum ModeSelection {
     ESPER_MODE_CD,
-    // ESPER_MODE_NET_RADIO,
-    ESPER_MODE_BLUETOOTH,
+    ESPER_MODE_NET_RADIO,
+    // ESPER_MODE_BLUETOOTH,
 
     ESPER_MODE_MAX_INVALID
 };
@@ -82,13 +82,13 @@ private:
                 activeMode = new CDMode(resources, this);
                 break;
 
-            case ESPER_MODE_BLUETOOTH:
-                activeMode = new BluetoothMode(resources, this);
-                break;
-
-            // case ESPER_MODE_NET_RADIO:
-            //     activeMode = new InternetRadioMode(resources, this);
+            // case ESPER_MODE_BLUETOOTH:
+            //     activeMode = new BluetoothMode(resources, this);
             //     break;
+
+            case ESPER_MODE_NET_RADIO:
+                activeMode = new InternetRadioMode(resources, this);
+                break;
 
             default:
                 ESP_LOGE(LOG_TAG, "Unsupported mode ID 0x%02x", req_mode);
