@@ -5,7 +5,7 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 ## System Requirements
 
 * ESPer-CDP platform dev board with IDE bus
-* ESP32-WROVER newer than rev1, with 8MB Flash and 4MB PSRAM (HIMEM is not used currently)
+* ESP32-WROVER **with ESP32 REV 3 or newer**, with 8MB QIO Flash and 4MB QIO PSRAM (HIMEM is not used currently)
 * ESPer Keypad
 * Futaba GP1232A02 VFD display (take it out of a broken arcade cabinet... or write a driver for something less obscure, but preferably also VFD :-)
 * optional: IR remote receiver (not yet implemented)

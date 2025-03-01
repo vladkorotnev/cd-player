@@ -61,7 +61,7 @@ protected:
 
         while(wchar_t ch = EGStr_utf8_iterate(&val_utf)) {
             str_len--;
-            if(ch != ' ' && ch != '　') {
+            if(ch != ' ' && ch != 0x3000 /* '　' jp space */) {
                 cur_word.push_back(ch);
                 auto glyph = Fonts::EGFont_glyph(font, ch);
                 word_len_px += glyph.size.width;
@@ -138,7 +138,6 @@ protected:
             }
 
             lines.push_back(buffer);
-            ESP_LOGD(LOG_TAG, "Wrapped final line %i: %hs", lines.size(), buffer.c_str());
         }
 
         return true;

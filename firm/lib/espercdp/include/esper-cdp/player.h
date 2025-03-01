@@ -40,13 +40,7 @@ namespace CD {
                 case State::PAUSE: return "Pause";
                 case State::SEEK_FF: return "FFwd";
                 case State::SEEK_REW: return "Rew"; 
-                default:
-                    {
-                        static char tmp[8] = { 0 };
-                        snprintf(tmp, 8, "Unknown (%i)", sts);
-                        return tmp;
-                    }
-                    break;
+                default: return "Unknown";
             }
         }
 
@@ -108,7 +102,7 @@ namespace CD {
         const MSF get_current_track_time() { return rel_ts; }
         const TrackNo get_current_track_number() { return cur_track; }
         bool is_processing_metadata() { return !_metaQueue.empty(); }
-        const PlayMode get_play_mode() { return play_mode; }
+        PlayMode get_play_mode() { return play_mode; }
         void set_play_mode(PlayMode mode);
 
         void do_command(Command);

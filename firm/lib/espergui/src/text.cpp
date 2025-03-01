@@ -332,7 +332,7 @@ namespace Fonts {
             dest->data = bitmap;
             dest->valid = true;
         
-            ESP_LOGI(LOG_TAG, "Got font: encoding=%x, glyphfmt=%x, cursor=%x, invalid=%x, w=%u, h=%u, range_cnt=%u, data=0x%x, ranges=0x%x", dest->encoding, dest->glyph_format, dest->cursor_character, dest->invalid_character, dest->size.width, dest->size.height, dest->range_count, dest->data, dest->ranges);
+            ESP_LOGI(LOG_TAG, "Got font: encoding=%x, glyphfmt=%x, cursor=%x, invalid=%x, w=%u, h=%u, range_cnt=%u, data=%p, ranges=%p", dest->encoding, dest->glyph_format, dest->cursor_character, dest->invalid_character, dest->size.width, dest->size.height, dest->range_count, dest->data, dest->ranges);
             return true;
         }
 
@@ -380,7 +380,7 @@ namespace Fonts {
                 low = mid + 1;
             }
         }
-        return (const EGRawGraphBuf) glyph_ptr;
+        return (EGRawGraphBuf) glyph_ptr;
     }
 
     static std::vector<Font> font_registry = {};

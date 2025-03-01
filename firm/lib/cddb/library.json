@@ -7,7 +7,7 @@
     "build": {
         "libArchive": false,
 		"flags": [
-			"-Iinclude"
+			"-Iinclude", "-Wno-cast-function-type", "-Wno-implicit-fallthrough"
 		]
     }
 }

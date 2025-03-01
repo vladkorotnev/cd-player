@@ -84,6 +84,7 @@ namespace CD {
 
     class MetadataProvider {
     public:
+        virtual ~MetadataProvider() = default;
         virtual void fetch_album(Album&) {}
         virtual bool cacheable() { return false; }
     };

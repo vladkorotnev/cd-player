@@ -124,6 +124,10 @@ namespace CD {
             // Now here comes The State Machine
 
             switch(sts) {
+                case State::INIT:
+                    // WTF?
+                    break;
+                    
                 case State::OPEN:
                     if(media_type != ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
                         sts = State::CLOSE;

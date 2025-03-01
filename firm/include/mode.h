@@ -8,6 +8,7 @@ class ModeHost;
 class Mode {
 public:
     Mode(const PlatformSharedResources res, ModeHost * host): resources(res), _host(host) {}
+    virtual ~Mode() = default;
     virtual void setup() {};
     virtual UI::View& main_view();
     virtual void loop() {};

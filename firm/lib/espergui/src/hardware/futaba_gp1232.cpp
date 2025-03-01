@@ -39,7 +39,7 @@ namespace Graphics::Hardware {
 
     void FutabaGP1232ADriver::set_power(bool on) {
         ESP_LOGV(LOG_TAG, "Power = %i", on);
-        const uint8_t cmd[] = {0x1B, 0x21, on ? 0x1 : 0x0};
+        const uint8_t cmd[] = {0x1B, 0x21, (uint8_t)(on ? 0x1 : 0x0)};
         uart_write_bytes(_port, (const void*) cmd, 3);
     }
 
@@ -64,7 +64,7 @@ namespace Graphics::Hardware {
 
     void FutabaGP1232ADriver::flip_pages() {
         int new_dsa = (visible_dsa == DSA_FIRST ? DSA_SECOND : DSA_FIRST);
-        const uint8_t cmd[] = {0x1B, 0x22, (new_dsa >> 8), (new_dsa & 0xFF)};
+        const uint8_t cmd[] = {0x1B, 0x22, (uint8_t)(new_dsa >> 8), (uint8_t)(new_dsa & 0xFF)};
         uart_write_bytes(_port, (const void*) cmd, 4);
         visible_dsa = new_dsa;
     }
@@ -81,7 +81,7 @@ namespace Graphics::Hardware {
         int actual_x = address.x;
         if(anti_tearing) actual_x += (visible_dsa == DSA_FIRST ? DSA_SECOND : DSA_FIRST);
 
-        const uint8_t cmd[] = {0x1B, 0x2E, (actual_x >> 8), (actual_x & 0xFF), (address.y / 8), (w >> 8), (w & 0xFF), h - 1};
+        const uint8_t cmd[] = {0x1B, 0x2E, (uint8_t) (actual_x >> 8), (uint8_t) (actual_x & 0xFF), (uint8_t) (address.y / 8), (uint8_t) (w >> 8), (uint8_t) (w & 0xFF), (uint8_t) (h - 1)};
         uart_write_bytes(_port, (const void*) cmd, 8);
 
         ESP_LOGV(LOG_TAG, "Blitting address=(%i, %i) size=(%i, %i) stride=%i sidx=%i", address.x, address.y, w, h, stride, start_idx_in_buffer);

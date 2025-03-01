@@ -305,6 +305,8 @@ void CDMode::loop() {
         rootView->set_lyric_show(false, 0);
         kp_sts = kp_new_sts;
     }
+
+    delay(100);
 }
 
 void CDMode::teardown() {

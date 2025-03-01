@@ -16,6 +16,7 @@ public:
     std::vector<std::shared_ptr<View>> subviews;
 
     View(EGRect f = EGRectZero): frame {f}, subviews{} {}
+    virtual ~View() = default;
 
     /// @brief Render a representation of the view into the buffer. The buffer shall be of the size more than or equal to the view's `frame`.
     virtual void render(EGGraphBuf * buffer) {
@@ -52,7 +53,7 @@ protected:
     bool need_layout() {
         if(hidden) return false;
         if(!EGRectEqual(was_frame, frame) || subview_count != subviews.size()) {
-            ESP_LOGW("Layout", "View(0x%x) needs a layout pass! Hidden=(%i -> %i) Frame=(%i %i %i %i -> %i %i %i %i) Subviews=(%i -> %i)", this, was_hidden, hidden, was_frame.origin.x, was_frame.origin.y, was_frame.size.width, was_frame.size.height, frame.origin.x, frame.origin.y, frame.size.width, frame.size.height, subview_count, subviews.size());
+            ESP_LOGW("Layout", "View(%p) needs a layout pass! Hidden=(%i -> %i) Frame=(%i %i %i %i -> %i %i %i %i) Subviews=(%i -> %i)", this, was_hidden, hidden, was_frame.origin.x, was_frame.origin.y, was_frame.size.width, was_frame.size.height, frame.origin.x, frame.origin.y, frame.size.width, frame.size.height, subview_count, subviews.size());
             return true;
         }
 

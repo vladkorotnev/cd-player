@@ -44,8 +44,8 @@ public:
             trackbar->maximum = duration_frames - 2*MSF::FRAMES_IN_SECOND; // add some leeway for the bar to appear full on the last 2 seconds
             trackbar->value = MSF_TO_FRAMES(cur_msf);
             
-            char buf[8] = { 0 };
-            snprintf(buf, 8, "%d:%02d", duration_min, duration_sec);
+            char buf[9] = { 0 };
+            snprintf(buf, 9, "%d:%02d", duration_min, duration_sec);
             lblRight->set_value(std::string(buf));
         }
         

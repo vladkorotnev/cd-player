@@ -60,7 +60,7 @@ namespace CD {
                         token = false;
                         int total_millis = (decas + 100 * (sec + 60 * min)) * 10;
                         times.push_back(total_millis);
-                        ESP_LOGD(LOG_TAG, "Time: %02im%02is.%02id = %iF", min, sec, decas, total_frames);
+                        ESP_LOGD(LOG_TAG, "Time: %02im%02is.%02id = %i ms", min, sec, decas, total_millis);
                         first_token = true;
                     }
                     else if(c >= '0' && c <= '9') {

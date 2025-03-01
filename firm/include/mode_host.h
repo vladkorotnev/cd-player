@@ -9,7 +9,7 @@
 enum ModeSelection {
     ESPER_MODE_CD,
     ESPER_MODE_NET_RADIO,
-    // ESPER_MODE_BLUETOOTH,
+    ESPER_MODE_BLUETOOTH,
 
     ESPER_MODE_MAX_INVALID
 };
@@ -82,9 +82,9 @@ private:
                 activeMode = new CDMode(resources, this);
                 break;
 
-            // case ESPER_MODE_BLUETOOTH:
-            //     activeMode = new BluetoothMode(resources, this);
-            //     break;
+            case ESPER_MODE_BLUETOOTH:
+                activeMode = new BluetoothMode(resources, this);
+                break;
 
             case ESPER_MODE_NET_RADIO:
                 activeMode = new InternetRadioMode(resources, this);

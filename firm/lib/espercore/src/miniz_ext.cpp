@@ -473,7 +473,7 @@ void * decompress_emplace(void * compressed_data, uint32_t src_size, uint32_t de
     unsigned long dst_sz = decomp_size;
     void * dest = malloc(dst_sz);
     if(dest == nullptr) {
-        ESP_LOGE(LOG_TAG, "OOM allocating decompression buffer of %i bytes", dst_sz);
+        ESP_LOGE(LOG_TAG, "OOM allocating decompression buffer of %lu bytes", dst_sz);
         free(compressed_data);
         return nullptr;
     }

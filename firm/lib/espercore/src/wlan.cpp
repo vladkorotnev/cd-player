@@ -105,7 +105,7 @@ namespace Core::Services {
         }
 
         bool is_softAP() {
-            return (WiFi.getMode() == WIFI_AP && (WiFi.getStatusBits() & AP_STARTED_BIT != 0));
+            return (WiFi.getMode() == WIFI_AP && ((WiFi.getStatusBits() & AP_STARTED_BIT) != 0));
         }
 
         const std::string current_ip() {
@@ -130,7 +130,7 @@ namespace Core::Services {
             WiFi.mode(WIFI_MODE_STA);
             wl_status_t rslt = WiFi.begin(s, p);
             if(rslt != WL_CONNECTED) {
-                ESP_LOGI(LOG_TAG, "WiFi connection error (%i): fallback to SoftAP");
+                ESP_LOGI(LOG_TAG, "WiFi connection error (%i): fallback to SoftAP", (int)rslt);
                 ap_fallback();
             }
             WiFi.setTxPower(wifi_power_t::WIFI_POWER_19_5dBm);

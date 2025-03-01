@@ -53,7 +53,7 @@ namespace Platform {
 
             if(pll_not_locked_gpio != GPIO_NUM_NC) {
                 const gpio_config_t cfg = {
-                    .pin_bit_mask = 1 << pll_not_locked_gpio,
+                    .pin_bit_mask = (uint64_t) (1u << pll_not_locked_gpio),
                     .mode = GPIO_MODE_INPUT,
                     .pull_up_en = GPIO_PULLUP_DISABLE,
                     .pull_down_en = GPIO_PULLDOWN_DISABLE,
