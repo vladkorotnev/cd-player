@@ -113,5 +113,13 @@ namespace Platform {
 
     void AudioRouter::spdif_teardown_muting_hax() {
         // TODO revert all the hax above
+
+        ESP_ERROR_CHECK(mcpwm_stop(MCPWM_UNIT_0, MCPWM_TIMER_0));
+        
+        gpio_config_t conf = { 0 };
+            conf.mode = GPIO_MODE_OUTPUT;
+            conf.pin_bit_mask = 
+                (1 << dac_pins.demph) | (1 << dac_pins.unmute);
+            gpio_config(&conf);
     }
 }

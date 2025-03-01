@@ -137,13 +137,13 @@ void BluetoothMode::avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playbac
     if(_that != nullptr) _that->play_status_callback(playback);
 }
 
-BluetoothMode::BluetoothMode(const PlatformSharedResources res):
+BluetoothMode::BluetoothMode(const PlatformSharedResources res, ModeHost * host):
     a2dp(*res.router->get_output_port()),
     stopEject(res.keypad, (1 << 0)),
     playPause(res.keypad, (1 << 1)),
     prev(res.keypad, (1 << 4)),
     next(res.keypad, (1 << 5)),
-    Mode(res) {
+    Mode(res, host) {
         rootView = new BluetoothView({{0, 0}, {160, 32}});
         _that = this;
 }

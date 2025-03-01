@@ -258,10 +258,10 @@ namespace ATAPI {
         ESP_LOGI(LOG_TAG, "Drive Model = '%s', SN = '%s', FW = '%s', packet size = %i", info.model.c_str(),  info.serial.c_str(), info.firmware.c_str(), packet_size);
     }
 
-    void Device::start() {
+    void Device::start(bool state) {
         const Requests::StartStopUnit req = {
             .opcode = OperationCodes::START_STOP_UNIT,
-            .start = true,
+            .start = state,
             .load_eject = false
         };
         xSemaphoreTake(semaphore, portMAX_DELAY);

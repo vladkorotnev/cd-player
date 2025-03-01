@@ -33,7 +33,7 @@ namespace ATAPI {
         /// @note The changer might not move right away (e.g. TEAC CD-C68E does not). In this case maybe follow up the command with `eject(false)`.
         void load_unload(SlotNumber slot);
         /// @brief Sends a device start command to ask the drive to read the disc.
-        void start();
+        void start(bool state = true);
 
         /// @brief Request the player to play audio data
         /// @param start Start of the played segment. Set to beginning of first track (usually M00S02F00, but can vary disc by disc)

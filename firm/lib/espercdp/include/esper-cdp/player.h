@@ -88,12 +88,16 @@ namespace CD {
             cdrom(device),
             meta(meta_provider)
         {
+            ESP_LOGI("CDP", "CREATE");
             setup_tasks();
         }
 
         ~Player() {
+            ESP_LOGI("CDP", "DELETE");
             teardown_tasks();
         }
+
+        void teardown_tasks();
 
         State get_status() { return sts; }
         /// @brief Returns the changer slots statuses, even if the device is not a changer — in such case it will be just one slot. 
@@ -108,6 +112,8 @@ namespace CD {
         void set_play_mode(PlayMode mode);
 
         void do_command(Command);
+
+        void power_down();
 
         void poll_state();
 
@@ -150,7 +156,6 @@ namespace CD {
         PlayMode play_mode = PlayMode::PLAYMODE_CONTINUE;
 
         void setup_tasks();
-        void teardown_tasks();
         void start_seeking(bool ffwd);
         bool change_discs(bool forward);
         void change_tracks(bool ffwd);

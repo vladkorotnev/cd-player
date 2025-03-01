@@ -107,7 +107,7 @@ private:
     TickType_t last_lyric_time = 0;
 };
 
-CDMode::CDMode(const PlatformSharedResources res): 
+CDMode::CDMode(const PlatformSharedResources res, ModeHost * host): 
         ide { Platform::IDEBus(res.i2c) },
         cdrom { ATAPI::Device(&ide) },
         meta { CD::CachingMetadataAggregateProvider("/mnt/cddb") },
@@ -120,7 +120,7 @@ CDMode::CDMode(const PlatformSharedResources res):
         nextTrackDisc { Button(resources.keypad, (1 << 5)) },
         playMode { Button(resources.keypad, (1 << 6)) },
         chgSource { Button(resources.keypad, (1 << 7)) },
-    Mode(res) {
+    Mode(res, host) {
 
     meta.providers.push_back(new CD::CDTextMetadataProvider());
     meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
@@ -308,11 +308,7 @@ void CDMode::loop() {
 }
 
 void CDMode::teardown() {
-    if(player.get_status() == Player::State::OPEN) {
-        player.do_command(Player::Command::CLOSE);
-    } else {
-        player.do_command(Player::Command::STOP);
-    }
+    player.do_command(Player::Command::STOP);
 
     resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
 
@@ -320,6 +316,9 @@ void CDMode::teardown() {
         delete meta.providers.back();
         meta.providers.pop_back();
     }
+
+    player.teardown_tasks();
+    player.power_down();
 
     delete rootView;
 }

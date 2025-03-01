@@ -6,7 +6,7 @@ using Platform::Button;
 
 class CDMode: public Mode {
 public:
-    CDMode(const PlatformSharedResources res);
+    CDMode(const PlatformSharedResources res, ModeHost *);
     ~CDMode();
     void setup() override;
     UI::View& main_view() override;

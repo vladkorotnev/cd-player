@@ -46,7 +46,7 @@ namespace Graphics {
             
             EGRawGraphBuf tmp_surface = nullptr;
             if(!EGRectEqual(view.frame, {EGPointZero, framebuffer.size})) {
-                tmp_surface = (EGRawGraphBuf) calloc(surface_size, 1);
+                tmp_surface = (EGRawGraphBuf) heap_caps_calloc(surface_size, 1, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
             } else {
                 // save memory by rendering fullscreen views directly into the framebuffer
                 tmp_surface = framebuffer.data;

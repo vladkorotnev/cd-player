@@ -5,7 +5,7 @@ using Platform::Button;
 
 class InternetRadioMode: public Mode {
 public:
-    InternetRadioMode(const PlatformSharedResources res);
+    InternetRadioMode(const PlatformSharedResources res, ModeHost *);
     ~InternetRadioMode();
     void setup() override;
     UI::View& main_view() override;
@@ -18,6 +18,7 @@ protected:
     static void _update_meta_global(MetaDataType type, const char * str, int len);
 
     void play(const std::string url);
+    void stop();
     void select_station(int index);
 private:
     class InternetRadioView;
@@ -26,7 +27,6 @@ private:
     StreamingPipeline * streamer;
 
     std::vector<Button> station_buttons;
-    Button chgSource;
-    Button moreStations;
+    Button stopBtn;
     TickType_t last_stream_health_check = 0;
 };

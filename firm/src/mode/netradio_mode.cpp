@@ -162,12 +162,11 @@ private:
 };
 
 
-InternetRadioMode::InternetRadioMode(const PlatformSharedResources res):
+InternetRadioMode::InternetRadioMode(const PlatformSharedResources res, ModeHost * host):
     streamer(nullptr),
-    station_buttons({}), // todo
-    chgSource(Button(res.keypad, (1 << 0))),
-    moreStations(Button(res.keypad, (1 << 7))),
-    Mode(res) {
+    station_buttons({}),
+    stopBtn(Button(res.keypad, (1 << 0))),
+    Mode(res, host) {
         _that = this;
         rootView = new InternetRadioView({{0, 0}, {160, 32}});
 
@@ -183,6 +182,14 @@ void InternetRadioMode::setup() {
 }
 
 void InternetRadioMode::select_station(int index) {
+    if(index <= -1) {
+        stop();
+        rootView->lblWarning->hidden = true;
+        rootView->channelBar->set_active_ch_idx(-1);
+        rootView->reset_meta("");
+        rootView->set_loading(false);
+        return;
+    }
 
     // TODO: database
     switch(index) {
@@ -211,13 +218,7 @@ void InternetRadioMode::update_meta(MetaDataType type, const char * str, int len
 
 void InternetRadioMode::play(const std::string url) {
     rootView->set_loading(true);
-
-    if(streamer != nullptr) {
-        ESP_LOGI(LOG_TAG, "Delete old streamer");
-        delete streamer;
-        streamer = nullptr;
-    }
-
+    stop();
     ESP_LOGI(LOG_TAG, "Create new streamer");
     streamer = new StreamingPipeline(resources.router);
     ESP_LOGI(LOG_TAG, "Start new streamer");
@@ -226,6 +227,14 @@ void InternetRadioMode::play(const std::string url) {
         url,
         [this](bool isLoading) { rootView->set_loading(isLoading); }
     );
+}
+
+void InternetRadioMode::stop() {
+    if(streamer != nullptr) {
+        ESP_LOGI(LOG_TAG, "Delete old streamer");
+        delete streamer;
+        streamer = nullptr;
+    }
 }
 
 void InternetRadioMode::loop() {
@@ -239,6 +248,11 @@ void InternetRadioMode::loop() {
         else if(station_buttons[i].is_held()) {
             // TODO: settings?
         }
+    }
+
+    if(stopBtn.is_clicked()) {
+        select_station(-1);
+        return;
     }
 
     if(now - last_stream_health_check >= pdMS_TO_TICKS(500) && streamer != nullptr) {

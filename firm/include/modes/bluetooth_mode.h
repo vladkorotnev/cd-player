@@ -8,7 +8,7 @@ using Platform::Button;
 
 class BluetoothMode: public Mode {
 public:
-    BluetoothMode(const PlatformSharedResources res);
+    BluetoothMode(const PlatformSharedResources, ModeHost *);
     ~BluetoothMode();
     void setup() override;
     UI::View& main_view() override;

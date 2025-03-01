@@ -8,6 +8,7 @@ struct PlatformSharedResources {
     Platform::Keypad * keypad;
     Platform::Remote * remote;
     Platform::AudioRouter * router;
+    Graphics::Hardware::DisplayDriver * display;
 };
 
 const EGSize DISPLAY_SIZE = {160, 32};

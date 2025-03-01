@@ -5,12 +5,9 @@
 #include <esper-core/service.h>
 #include <esper-core/platform.h>
 #include <esper-gui/hardware/futaba_gp1232.h>
-#include <esper-gui/compositing.h>
 #include <esper-gui/text.h>
 
-#include <modes/cd_mode.h>
-#include <modes/netradio_mode.h>
-#include <modes/bluetooth_mode.h>
+#include <mode_host.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -18,19 +15,17 @@ Core::ThreadSafeI2C * i2c;
 Platform::Keypad * keypad;
 Platform::Remote * remote;
 Graphics::Hardware::FutabaGP1232ADriver * disp;
-Graphics::Compositor * compositor;
 Platform::AudioRouter * router;
 Platform::WM8805 * spdif;
-
-Mode * app;
+ModeHost * host;
 
 static TickType_t memory_last_print = 0;
 static void print_memory() {
     TickType_t now = xTaskGetTickCount();
     if(now - memory_last_print > pdMS_TO_TICKS(30000)) {
-        ESP_LOGI(LOG_TAG, "HEAP: %d free of %d (%d minimum)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap());
+        ESP_LOGI(LOG_TAG, "HEAP: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
 #ifdef BOARD_HAS_PSRAM
-        ESP_LOGI(LOG_TAG, "PSRAM: %d free of %d (%d minimum)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram());
+        ESP_LOGI(LOG_TAG, "PSRAM: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram(), ESP.getMaxAllocPsram());
 #endif
         memory_last_print = now;
     }
@@ -61,14 +56,6 @@ void load_all_fonts() {
   fclose(f);
 }
 
-TaskHandle_t renderTaskHandle = 0;
-void renderTask(void*) {
-  while(true) {
-    compositor->render(app->main_view());
-    vTaskDelay(33);
-  }
-}
-
 TaskHandle_t keypadTaskHandle = 0;
 void keypadTask(void *) {
   while(true) {
@@ -82,7 +69,7 @@ void keypadTask(void *) {
 void setup(void) { 
   ESP_LOGI(LOG_TAG, "CPU speed = %i", getCpuFrequencyMhz());
 #ifdef BOARD_HAS_PSRAM
-  heap_caps_malloc_extmem_enable(128);
+  heap_caps_malloc_extmem_enable(64);
 #endif
   // Open Serial 
   Serial.begin(115200);
@@ -92,7 +79,6 @@ void setup(void) {
   disp->initialize();
   disp->set_power(true);
   disp->set_brightness(Graphics::Hardware::Brightness::DISP_BRIGHTNESS_50);
-  compositor = new Graphics::Compositor(disp);
 
   Wire.begin(32, 33, 400000);
   i2c = new Core::ThreadSafeI2C(&Wire);
@@ -125,25 +111,17 @@ void setup(void) {
     }
   );
 
-  app = new InternetRadioMode({
+  const PlatformSharedResources rsrc = {
     .i2c = i2c,
     .keypad = keypad,
-    .remote = remote,
-    .router = router
-  });
+    .remote = nullptr,
+    .router = router,
+    .display = disp
+  };
 
-  app->setup();
-  app->main_view().set_needs_display();
+  host = new ModeHost(rsrc);
 
-  xTaskCreatePinnedToCore(
-    renderTask,
-    "RENDER",
-    16000,
-    nullptr,
-    2,
-    &renderTaskHandle,
-    0
-  );
+  host->activate_mode(ESPER_MODE_BLUETOOTH);
 
   xTaskCreatePinnedToCore(
     keypadTask,
@@ -154,13 +132,14 @@ void setup(void) {
     &keypadTaskHandle,
     0
   );
-    // classic bt only in this project
-    if(esp_bt_controller_mem_release(ESP_BT_MODE_BLE) != ESP_OK) ESP_LOGE(LOG_TAG, "BLE dealloc failed");
+
+  // classic bt only in this project
+  if(esp_bt_controller_mem_release(ESP_BT_MODE_BLE) != ESP_OK) ESP_LOGE(LOG_TAG, "BLE dealloc failed");
 }
 
 
 // cppcheck-suppress unusedFunction
 void loop() {
   print_memory();
-  app->loop();
+  host->loop();
 }

@@ -45,13 +45,23 @@ namespace CD {
     }
 
     void Player::teardown_tasks() {
-        if(_pollTask) {
+        if(_pollTask != NULL) {
+            ESP_LOGI(LOG_TAG, "Deleting poll task");
             vTaskDelete(_pollTask);
             _pollTask = NULL;
         }
-        if(_metaTask) {
+        if(_metaTask != NULL) {
+            ESP_LOGI(LOG_TAG, "Deleting metadata task");
             vTaskDelete(_metaTask);
             _metaTask = NULL;
+        }
+        if(_metaSemaphore != NULL) {
+            vSemaphoreDelete(_metaSemaphore);
+            _metaSemaphore = NULL;
+        }
+        if(_cmdSemaphore != NULL) {
+            vSemaphoreDelete(_cmdSemaphore);
+            _cmdSemaphore = NULL;
         }
     }
 
@@ -604,5 +614,9 @@ namespace CD {
         cdrom->play(tracklist[trk_idx].disc_position.position, (trk_idx == (tracklist.size() - 1)) ? get_active_slot().disc->duration : tracklist[trk_idx + 1].disc_position.position);
         sts = State::PLAY;
         return true;
+    }
+
+    void Player::power_down() {
+        cdrom->start(false);
     }
 }
