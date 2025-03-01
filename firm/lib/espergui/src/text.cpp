@@ -62,6 +62,12 @@ size_t EGStr_utf8_strlen(const char * str) {
 
 namespace Fonts {
     static const uint8_t _TinyDigitFontData[] = {
+        0b00100000,
+        0b00100000,
+        0b00100000,
+        0b00000000,
+        0b00100000,
+
         0b00000000,
         0b00000000,
         0b01110000,
@@ -149,9 +155,14 @@ namespace Fonts {
     
     static const Range _TinyDigitFontRanges[] = {
         Range {
+            .start = '!',
+            .end = '!',
+            .data_offset = 0
+        },
+        Range {
             .start = '-',
             .end = ':',
-            .data_offset = 0
+            .data_offset = 5
         }
     };
     static const Font _TinyDigitFont = {
@@ -161,7 +172,7 @@ namespace Fonts {
         .cursor_character = 0x0,
         .invalid_character = '0',
         .size = {4, 5},
-        .range_count = 1,
+        .range_count = 2,
         .data = _TinyDigitFontData,
         .ranges = _TinyDigitFontRanges
     };

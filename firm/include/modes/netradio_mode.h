@@ -28,4 +28,5 @@ private:
     std::vector<Button> station_buttons;
     Button chgSource;
     Button moreStations;
+    TickType_t last_stream_health_check = 0;
 };

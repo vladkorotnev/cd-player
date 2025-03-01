@@ -95,6 +95,7 @@ class InternetRadioMode::InternetRadioView: public UI::View {
 public:
     shared_ptr<WiFiIcon> wifi;
     shared_ptr<UI::TinySpinner> loading;
+    shared_ptr<UI::Label> lblWarning;
 
     shared_ptr<UI::Label> lblTitle;
     shared_ptr<UI::Label> lblSubtitle;
@@ -111,6 +112,9 @@ public:
         lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         lblSubtitle = make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
 
+        lblWarning = make_shared<UI::Label>(UI::Label({{160 - 6, 32 - 7}, {5, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Center, "!"));
+        lblWarning->hidden = true;
+
         lblTitle->auto_scroll = true;
         lblTitle->synchronize_scrolling_to(&lblSubtitle);
         lblSubtitle->auto_scroll = true;
@@ -118,6 +122,7 @@ public:
 
         subviews.push_back(wifi);
         subviews.push_back(channelBar);
+        subviews.push_back(lblWarning);
         subviews.push_back(loading);
         subviews.push_back(lblTitle);
         subviews.push_back(lblSubtitle);
@@ -216,6 +221,7 @@ void InternetRadioMode::play(const std::string url) {
     ESP_LOGI(LOG_TAG, "Create new streamer");
     streamer = new StreamingPipeline(resources.router);
     ESP_LOGI(LOG_TAG, "Start new streamer");
+    last_stream_health_check = xTaskGetTickCount();
     streamer->start(
         url,
         [this](bool isLoading) { rootView->set_loading(isLoading); }
@@ -223,6 +229,8 @@ void InternetRadioMode::play(const std::string url) {
 }
 
 void InternetRadioMode::loop() {
+    TickType_t now = xTaskGetTickCount();
+
     for(int i = 0; i < 6; i++) {
         if(station_buttons[i].is_clicked()) {
             select_station(i);
@@ -232,6 +240,13 @@ void InternetRadioMode::loop() {
             // TODO: settings?
         }
     }
+
+    if(now - last_stream_health_check >= pdMS_TO_TICKS(500) && streamer != nullptr) {
+        last_stream_health_check = now;
+        int health = streamer->getNetBufferHealth();
+        rootView->lblWarning->hidden = (health > 30);
+    }
+
     delay(100);
 }
 

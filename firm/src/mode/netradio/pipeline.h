@@ -4,8 +4,6 @@
 #include <CommonHelix.h>
 #include <lwip/sockets.h>
 
-// memo: adding if(j % 100 == 0) delay(1); to the httplinereader also makes things better?
-
 class AllocatorFastRAM : public Allocator {
     void* do_allocate(size_t size) {
       void* result = nullptr;
@@ -23,11 +21,39 @@ class AllocatorFastRAM : public Allocator {
 
 static AllocatorFastRAM fastAlloc;
 
+// Ah yes, the hellscape of embedded internet radio streaming!
+// I haven't seen such challenges since doing demoscene on ZX Spectrum I think, where you had all the stuff with contiguous memory et al.
+// Probably a lot of this shite could have been made easier by just supplying a hardware MP3/AAC decoder chip on the board. But ESPer 1.0 was not made by someone smart, it was made by me, so
+// on top of ATAPI over I2C now we also have the wonders of software decoding of high bitrate internet streams.
+//
+// How this is setup now is basically:
+// (Network) -> ICYStream -> Net Buffer (PSRAM) -> Decoder -> PCM Buffer (DRAM) -> Output nub of the AudioRouter
+// The issue here is being able to copy everything in time from each end while leaving time for the inbuilt tasks of LWIP and WiFi drivers so we actually also get data from the network.
+// On top of which we need to also watch out for excess DRAM usage, since the HTTPS stack for some reason dislikes PSRAM all too much. As long as we are hovering around 90k on the heap we seem to be fine.
+//
+// Biggest challenges were experienced with WaveRadio Network, e.g. https://provoda.ch. Their server hands out enormous chunks in the chunked HTTP stream or something? 
+// NDR-1 from Germany was also somewhat challenging to get playing at a stable rate.
+
+// These parameters have been fine tuned for the current situation of the firmware, they might fail once remote or other background processing is added.
+
+/// Size of compressed data buffer in PS-RAM
+const size_t NET_DATA_BUFFER_SIZE = 256 * 1024;
+/// Size of PCM data buffer in DRAM
+const size_t PCM_DATA_BUFFER_SIZE = 8 * 1024;
+/// Percent of compressed data buffer that must be full to start playing
+const float NET_DATA_ENOUGH_MARK_PCT = 50.0; // %
+/// Timeout for net client
+const int NET_CLIENT_TIMEOUT = 10000; // ms
+/// Timeout to consider no copies from network a stall
+const int NET_NO_DATA_TIMEOUT = 10000; // ms
+/// Interval for printing periodic stats logs (buffer %'s etc)
+const int LOG_STATS_INTERVAL = 3000; // ms
+
 class InternetRadioMode::StreamingPipeline {
     public:
         StreamingPipeline(Platform::AudioRouter * router):
-            bufferNetData(192 * 1024),
-            bufferPcmData(8 * 1024, 1, portMAX_DELAY, portMAX_DELAY, fastAlloc),
+            bufferNetData(NET_DATA_BUFFER_SIZE),
+            bufferPcmData(PCM_DATA_BUFFER_SIZE, 1, portMAX_DELAY, portMAX_DELAY, fastAlloc),
             queueNetData(bufferNetData),
             queuePcmData(bufferPcmData),
             urlStream(),
@@ -55,6 +81,11 @@ class InternetRadioMode::StreamingPipeline {
             vSemaphoreDelete(semaNet);
             vSemaphoreDelete(semaCodec);
         }
+
+        int getNetBufferHealth() {
+            if(!running) return 100;
+            return trunc(bufferNetData.levelPercent());
+        }
     
         void start(const std::string url, std::function<void(bool)> loadingCallback) {
             running = true;
@@ -63,7 +94,9 @@ class InternetRadioMode::StreamingPipeline {
             queueNetData.begin();
             queuePcmData.begin();
             netTask.begin([this, url, loadingCallback]() { 
+                    TickType_t last_shart_time = xTaskGetTickCount();
                     urlStream.setMetadataCallback(_update_meta_global);
+                    urlStream.setTimeout(NET_CLIENT_TIMEOUT);
                     urlStream.begin(url.c_str());
                     ESP_LOGI(LOG_TAG, "Streamer did begin URL");
 
@@ -79,6 +112,7 @@ class InternetRadioMode::StreamingPipeline {
                         }
                         else {
                             ESP_LOGE(LOG_TAG, "Content-type is not supported, TODO show error");
+                            loadingCallback(false);
                             vTaskDelay(portMAX_DELAY);
                         }
                         decoder.setDecoder(activeCodec);
@@ -97,7 +131,7 @@ class InternetRadioMode::StreamingPipeline {
                     TickType_t last_stats = xTaskGetTickCount();
 
                     codecTask.begin([this]() { 
-                        while(bufferNetData.levelPercent() < 75.0 && running) { 
+                        while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) { 
                             delay(125);
                         }
                         
@@ -109,9 +143,9 @@ class InternetRadioMode::StreamingPipeline {
                         }
     
                         while(copierDecoding.copy() > 0 && !bufferNetData.isEmpty() && running) {
-                            delay(12);
+                            delay(10);
                         }
-                        while(!bufferNetData.isFull() && running) delay(250);
+                        while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) delay(250);
 
     
                         if(!running) {
@@ -151,22 +185,30 @@ class InternetRadioMode::StreamingPipeline {
                         int copied = copierDownloading.copy();
                         if(copied > 0) {
                             last_successful_copy = now;
-                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(6000)  && bufferNetData.levelPercent() < 20.0) {
-                            ESP_LOGE(LOG_TAG, "streamer is stalled!?");
+                        } else if(now - last_successful_copy >= pdTICKS_TO_MS(NET_NO_DATA_TIMEOUT)  && (bufferNetData.levelPercent() < 20.0 || bufferPcmData.isEmpty())) {
+                            ESP_LOGE(LOG_TAG, "streamer is stalled!? time since last shart = [ %i ms ]", now - last_shart_time);
+                            last_shart_time = now;
                             loadingCallback(true);
                             urlStream.end();
                             int retryDelay = 100;
                             do {
+                                if(bufferPcmData.isEmpty()) bufferNetData.clear(); // prevent click artifact on restart playback
                                 delay(retryDelay);
                                 retryDelay += 1000;
-                                if(retryDelay > 10000) retryDelay = 10000;
+                                if(retryDelay > NET_CLIENT_TIMEOUT) retryDelay = NET_CLIENT_TIMEOUT;
                                 ESP_LOGE(LOG_TAG, "streamer is trying to begin URL again");
                             } while(!urlStream.begin(url.c_str()));
                             last_successful_copy = now;
                         } else if(copied < 0) {
                             ESP_LOGE(LOG_TAG, "copied = %i ???", copied);
+                        } else if(bufferNetData.isFull()) {
+                            ESP_LOGW(LOG_TAG, "Net buffer full, no space to receive more data!!");
+                            delay(10);
+                        } else {
+                            // copied nothing, maybe yield to another task
+                            delay(10);
                         }
-                        if(now - last_stats >= pdTICKS_TO_MS(2000)) {
+                        if(now - last_stats >= pdTICKS_TO_MS(LOG_STATS_INTERVAL)) {
                             ESP_LOGI(LOG_TAG, "Stats: PCM buffer %.00f%%, net buffer %.00f%%", bufferPcmData.levelPercent(), bufferNetData.levelPercent()); 
                             last_stats = now;
                         }
