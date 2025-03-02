@@ -217,6 +217,7 @@ void BluetoothMode::teardown() {
 
 BluetoothMode::~BluetoothMode() {
     _that = nullptr;
+    delete rootView;
 }
 
 UI::View& BluetoothMode::main_view() {

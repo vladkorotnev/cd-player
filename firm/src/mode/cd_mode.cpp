@@ -321,8 +321,6 @@ void CDMode::teardown() {
 
     player.teardown_tasks();
     player.power_down();
-
-    delete rootView;
 }
 
 UI::View& CDMode::main_view() {
