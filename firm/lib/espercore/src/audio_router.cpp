@@ -4,6 +4,14 @@
 #include <soc/dport_reg.h>
 #include <soc/mcpwm_reg.h>
 
+// Enable null output to allow JTAG to work
+// #define ESPER_NULL_OUTPUT
+
+#ifdef ESPER_NULL_OUTPUT
+NullStream null;
+AudioStreamWrapper nullAs(null);
+#endif
+
 namespace Platform {
     AudioRouter::AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s) :
         _spdif{spdif},
@@ -39,6 +47,7 @@ namespace Platform {
             spdif_teardown_muting_hax();
             _spdif->set_enabled(false);
 
+        #ifndef ESPER_NULL_OUTPUT
             auto cfg = _i2s->defaultConfig(TX_MODE);
             cfg.copyFrom(cpuOutputParams);
             cfg.pin_bck = i2s_pins.bck;
@@ -48,6 +57,7 @@ namespace Platform {
             cfg.buffer_count = ESPER_AUDIO_BUFFER_COUNT;
             cfg.buffer_size = ESPER_AUDIO_BUFFER_SIZE;
             _i2s->begin(cfg);
+        #endif
 
             set_mute_internal(false);
         }
@@ -56,7 +66,11 @@ namespace Platform {
     }
 
     AudioStream * AudioRouter::get_output_port() {
+    #ifdef ESPER_NULL_OUTPUT
+        return &nullAs;
+    #else
         return _i2s;
+    #endif
     }
 
     void AudioRouter::i2s_bus_release_local() {

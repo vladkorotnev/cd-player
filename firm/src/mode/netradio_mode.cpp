@@ -232,6 +232,7 @@ void InternetRadioMode::play(const std::string url) {
 void InternetRadioMode::stop() {
     if(streamer != nullptr) {
         ESP_LOGI(LOG_TAG, "Delete old streamer");
+        streamer->stop();
         delete streamer;
         streamer = nullptr;
     }

@@ -119,7 +119,7 @@ void setup(void) {
     .display = disp
   };
 
-  ModeSelection startup_mode = ESPER_MODE_NET_RADIO; // TODO from NVRAM
+  ModeSelection startup_mode = ESPER_MODE_CD; // TODO from NVRAM
 
   host = new ModeHost(rsrc);
   host->activate_mode(startup_mode);

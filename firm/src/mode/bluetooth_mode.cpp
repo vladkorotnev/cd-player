@@ -26,6 +26,13 @@ public:
         subviews.push_back(lblSource);
     }
 
+    void set_wait() {
+        state.connection = WAIT;
+        state.artist = "";
+        state.title = "";
+        update();
+    }
+
     void set_disconnected() {
         state.connection = DISCONNECTED;
         state.artist = "";
@@ -88,7 +95,8 @@ protected:
         DISCONNECTED,
         PAIRING_PIN,
         CONNECTED,
-        PLAYING
+        PLAYING,
+        WAIT
     };
 
     struct State {
@@ -125,6 +133,11 @@ protected:
             lblSource->set_value(state.device_name);
             lblTitle->set_value(state.title.empty() ? state.device_name : state.title);
             lblSubtitle->set_value(state.artist);
+        }
+        else if(state.connection == WAIT) {
+            lblSource->hidden = true;
+            lblSubtitle->hidden = true;
+            lblTitle->set_value("Please Wait");
         }
     }
 };
@@ -181,6 +194,7 @@ void BluetoothMode::loop() {
             rootView->set_pairing(a2dp.pin_code());
 
             if(playPause.is_clicked()) {
+                rootView->set_wait();
                 a2dp.confirm_pin_code();
                 delay(1000);
             }
@@ -202,6 +216,8 @@ void BluetoothMode::metadata_callback(uint8_t id, const char *text) {
 }
 
 void BluetoothMode::teardown() {
+    rootView->set_wait();
+
     if(a2dp.is_connected()) {
         a2dp.disconnect();
     }

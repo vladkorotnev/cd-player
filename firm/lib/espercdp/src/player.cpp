@@ -23,7 +23,8 @@ namespace CD {
         _cmdSemaphore = xSemaphoreCreateBinary();
         xSemaphoreGive(_cmdSemaphore);
 
-        _metaSemaphore = xSemaphoreCreateCounting(10, 0);
+        _metaSemaphore = xSemaphoreCreateBinary();
+        xSemaphoreGive(_metaSemaphore);
 
         xTaskCreate(
             pollTask,
@@ -47,11 +48,13 @@ namespace CD {
     void Player::teardown_tasks() {
         if(_pollTask != NULL) {
             ESP_LOGI(LOG_TAG, "Deleting poll task");
+            xSemaphoreTake(_cmdSemaphore, portMAX_DELAY);
             vTaskDelete(_pollTask);
             _pollTask = NULL;
         }
         if(_metaTask != NULL) {
             ESP_LOGI(LOG_TAG, "Deleting metadata task");
+            xSemaphoreTake(_metaSemaphore, portMAX_DELAY);
             vTaskDelete(_metaTask);
             _metaTask = NULL;
         }
@@ -67,10 +70,13 @@ namespace CD {
 
     void Player::process_metadata_queue() {
         if(xSemaphoreTake(_metaSemaphore, portMAX_DELAY)) {
-            std::shared_ptr<Album> album_ptr = _metaQueue.front();
+            if(!_metaQueue.empty()) {
+                std::shared_ptr<Album> album_ptr = _metaQueue.front();
 
-            meta->fetch_album(*album_ptr);
-            _metaQueue.pop();
+                meta->fetch_album(*album_ptr);
+                _metaQueue.pop();
+            }
+            xSemaphoreGive(_metaSemaphore);
         }
     }
 
@@ -143,7 +149,7 @@ namespace CD {
                     rel_ts = { .M = 0, .S = 0, .F = 0 };
                     cdrom->wait_ready();
                     if((media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN && media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN_ALT) || (cdrom->get_quirks().no_media_codes && media_type == ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN)) {
-                        sts = State::LOAD;
+                        sts = (media_type != ATAPI::MediaTypeCode::MTC_DOOR_OPEN) ? State::LOAD : State::OPEN;
                     } else {
                         delay = 2000; //<- some drives cannot load while processing other commands
                     }
@@ -165,6 +171,7 @@ namespace CD {
                             slots[cur_slot].disc = std::make_shared<Album>(Album(toc));
                             
                             // NB: std::queue is not thread safe, can this lead to a problem? realistically we shouldn't have more than one in the pipeline anyway...
+                            xSemaphoreTake(_metaSemaphore, portMAX_DELAY);
                             _metaQueue.push(slots[cur_slot].disc);
                             xSemaphoreGive(_metaSemaphore); // let the background task go
 
