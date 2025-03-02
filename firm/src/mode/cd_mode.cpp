@@ -72,6 +72,9 @@ public:
         allButLyric->subviews.push_back(lblSmallTop);
         allButLyric->subviews.push_back(lblBigMiddle);
 
+        lblSmallTop->synchronize_scrolling_to(&lblBigMiddle);
+        lblBigMiddle->synchronize_scrolling_to(&lblSmallTop);
+
         subviews.push_back(wifi);
         subviews.push_back(loading);
         subviews.push_back(timeBar);
