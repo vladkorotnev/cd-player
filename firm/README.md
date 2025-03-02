@@ -14,10 +14,12 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 ### Tested CD drives
 
 * **Recommended: NEC ND-3500A**: just works! Wish every one of the others was like this.
-* *Matsushita SR-8171 (slimline)*: mostly works. TOC read after disc change is unstable (goes through on 3rd retry, timing/busyflag issue?) Needs a standard JAE 50pin to IDE 40pin adapter. Does not require 12V supply. Analog output only.
-* *NEC CDR-1400C*: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes properly
+* *Philips/Lite-On DH-20A4P* aka *Buffalo DVSM-XE1219FB*: Load a bit on the slow side, noisy mech! Janky ffwd/rewind (using software timer because the drive doesn't do SCAN commands).
+* *MATSHITADVD-RAM SW-9583S*: Works mostly. No SPDIF output even though the jack is there?? Do we need to alter the Mode Select page?
 * *TEAC DV-W58G*: works, janky ffwd/rewind (using software timer because the drive doesn't do SCAN commands). Most of the initial development was done with this drive.
+* *NEC CDR-1400C*: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes properly
 * *TEAC CD-C68E*: works including changer, sometimes TOC reads are broken, workaround is in place but still. *No SPDIF output, so you have to resort to analog.*
+* *Matsushita SR-8171 (slimline)*: mostly works. TOC read after disc change is unstable (goes through on 3rd retry, timing/busyflag issue?) Needs a standard JAE 50pin to IDE 40pin adapter. Does not require 12V supply. Analog output only.
 
 ## Capabilities
 

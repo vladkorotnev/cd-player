@@ -241,7 +241,7 @@ namespace ATAPI {
             quirks.busy_ass = true;
             quirks.no_media_codes = true;
         }
-        else if(info.model == "TEAC DV-W58G-A") {
+        else if(info.model == "TEAC DV-W58G-A" || info.model == "PLDS    DVD A  DH20A4P") {
             ESP_LOGW(LOG_TAG, "Detected a drive that doesn't support hardware ffwd/rewind");
             quirks.must_use_softscan = true;
         }
