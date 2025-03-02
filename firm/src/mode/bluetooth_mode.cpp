@@ -207,6 +207,11 @@ void BluetoothMode::teardown() {
     }
     a2dp.end();
     resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
+
+    // a2dp.end(true) would have called those for us but went too far and actually deinited the controller, we want to just stop it until we come back into this mode again
+    esp_bluedroid_disable();
+    esp_bt_controller_disable();
+
     Core::Services::WLAN::start();
 }
 
