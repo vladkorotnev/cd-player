@@ -12,7 +12,7 @@ class BluetoothMode::BluetoothView: public UI::View {
 public:
     BluetoothView(EGRect f): View(f) {
         lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
-        lblSubtitle = make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
+        lblSubtitle = make_shared<UI::Label>(UI::Label({EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
         lblSource = make_shared<UI::Label>(UI::Label({{0, 24}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth"));
 
         lblTitle->auto_scroll = true;
@@ -157,7 +157,7 @@ BluetoothMode::BluetoothMode(const PlatformSharedResources res, ModeHost * host)
     prev(res.keypad, (1 << 4)),
     next(res.keypad, (1 << 5)),
     Mode(res, host) {
-        rootView = new BluetoothView({{0, 0}, {160, 32}});
+        rootView = new BluetoothView({EGPointZero, DISPLAY_SIZE});
         _that = this;
 }
 
@@ -204,6 +204,55 @@ void BluetoothMode::loop() {
         }
     }
     delay(125);
+}
+
+void BluetoothMode::on_key_pressed(VirtualKey key) {
+    if(a2dp.is_connected()) {
+        switch(key) {
+            case RVK_PLAY:
+                a2dp.play();
+                break;
+
+            case RVK_PAUSE:
+                a2dp.pause();
+                break;
+
+            case RVK_STOP:
+                a2dp.stop();
+                break;
+            
+            case RVK_TRACK_NEXT:
+                a2dp.next();
+                break;
+
+            case RVK_TRACK_PREV:
+                a2dp.previous();
+                break;
+
+            case RVK_CURS_UP:
+                a2dp.volume_up();
+                break;
+
+            case RVK_CURS_DOWN:
+                a2dp.volume_down();
+                break;
+
+            case RVK_SEEK_BACK:
+                a2dp.rewind();
+                break;
+
+            case RVK_SEEK_FWD:
+                a2dp.fast_forward();
+                break;
+
+            default: break;
+        }
+    }
+    else if(a2dp.pin_code() != 0 && (key == RVK_PLAY || key == RVK_CURS_ENTER)) {
+        rootView->set_wait();
+        a2dp.confirm_pin_code();
+        delay(1000);
+    }
 }
 
 void BluetoothMode::play_status_callback(esp_avrc_playback_stat_t sts) {

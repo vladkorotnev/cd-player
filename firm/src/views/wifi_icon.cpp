@@ -57,7 +57,7 @@ static const UI::Image icons[] = {
 };
 
 WiFiIcon::WiFiIcon(EGRect f): UI::View(f) {
-    _img = std::make_shared<UI::ImageView>(UI::ImageView(nullptr, {{0, 0}, f.size}));
+    _img = std::make_shared<UI::ImageView>(UI::ImageView(nullptr, {EGPointZero, f.size}));
     subviews.push_back(_img);
     cur_lvl = 0;
 }

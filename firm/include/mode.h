@@ -12,6 +12,7 @@ public:
     virtual void setup() {};
     virtual UI::View& main_view();
     virtual void loop() {};
+    virtual void on_key_pressed(VirtualKey key) {};
     virtual void teardown() {};
 protected:
     const PlatformSharedResources resources;

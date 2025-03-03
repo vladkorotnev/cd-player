@@ -59,7 +59,7 @@ class InternetRadioMode::StreamingPipeline {
             urlStream(),
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
-            sndTask("IRASND", 8192, 4, 0),
+            sndTask("IRASND", 8192, 5, 1),
             codecTask("IRADEC", 40000, 6, 1),
             netTask("IRANET", 20000, 14, 1),
             copierDownloading(queueNetData, urlStream),
@@ -243,11 +243,6 @@ class InternetRadioMode::StreamingPipeline {
     
             // Small shitshow because the codec thread sometimes gets stuck and never exits and leaves the semaphore
             ESP_LOGI(LOG_TAG, "Streamer finalizing codec task");
-            queueNetData.clear();
-            bufferNetData.clear();
-            bufferPcmData.clear();
-            queuePcmData.clear();
-            decoder.end();
             bool codecNotStuck = xSemaphoreTake(semaCodec, pdMS_TO_TICKS(1000));
             codecTask.end();
 

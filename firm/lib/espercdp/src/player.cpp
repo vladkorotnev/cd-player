@@ -85,7 +85,7 @@ namespace CD {
         xSemaphoreTake(_cmdSemaphore, portMAX_DELAY);
 
         if(sts == State::INIT) {
-            cdrom->reset();
+            cdrom->start();
             cdrom->wait_ready();
             vTaskDelay(pdMS_TO_TICKS(500));
             cdrom->eject(false); // <- close aka start unit, otherwise any disc is BAD_DISC on some drives
@@ -489,7 +489,7 @@ namespace CD {
 
             case State::SEEK_FF:
             case State::SEEK_REW:
-                if(cmd == Command::END_SEEK) {
+                if(cmd == Command::END_SEEK || (cmd == Command::SEEK_FF && sts == State::SEEK_FF) || (cmd == Command::SEEK_REW && sts == State::SEEK_REW)) {
                     if(pre_seek_sts == State::PLAY) {
                         cdrom->play(abs_ts, get_active_slot().disc->duration);
                         sts = State::PLAY;
@@ -498,6 +498,24 @@ namespace CD {
                         cdrom->pause(true);
                         sts = State::PAUSE;
                     }
+                }
+                else if(cmd == Command::PLAY) {
+                    cdrom->play(abs_ts, get_active_slot().disc->duration);
+                    sts = State::PLAY;
+                }
+                else if(cmd == Command::STOP) {
+                    sts = State::STOP;
+                    cur_track.track = 1;
+                    cur_track.index = 1;
+                    cdrom->stop();
+                }
+                else if(cmd == Command::SEEK_FF) {
+                    sts = pre_seek_sts;
+                    start_seeking(true);
+                }
+                else if(cmd == Command::SEEK_REW) {
+                    sts = pre_seek_sts;
+                    start_seeking(false);
                 }
             break;
         }

@@ -11,13 +11,12 @@ public:
     void setup() override;
     UI::View& main_view() override;
     void loop() override;
+    void on_key_pressed(VirtualKey key) override;
     void teardown() override;
 private:
     class CDPView;
     LyricPlayer lrc;
     CDPView * rootView;
-    Platform::IDEBus ide;
-    ATAPI::Device cdrom;
     CD::Player player;
     CD::CachingMetadataAggregateProvider meta;
     
@@ -31,5 +30,9 @@ private:
     Button chgSource;
 
     bool must_show_title_stopped = false;
+    bool seek_from_button = false;
     void update_title(const std::shared_ptr<CD::Album> disc, const CD::Track& metadata, const CD::Player::TrackNo trk);
+
+    void prev_trk_button();
+    void next_trk_button();
 };

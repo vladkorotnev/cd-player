@@ -110,7 +110,7 @@ public:
         channelBar = make_shared<ChannelGridBar>(ChannelGridBar({{5, 32 - 7}, {160 - 12, 7}}));
 
         lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
-        lblSubtitle = make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
+        lblSubtitle = make_shared<UI::Label>(UI::Label({EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
 
         lblWarning = make_shared<UI::Label>(UI::Label({{160 - 6, 32 - 7}, {5, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Center, "!"));
         lblWarning->hidden = true;
@@ -130,9 +130,15 @@ public:
 
     void update_meta(MetaDataType type, const char * str, int len) {
         if(type == MetaDataType::Title) {
-            has_metadata = true;
-            lblSubtitle->set_value(station);
-            lblTitle->set_value(str);
+            if(len > 0) {
+                has_metadata = true;
+                lblSubtitle->set_value(station);
+                lblTitle->set_value(str);
+            } else if(has_metadata) {
+                has_metadata = false;
+                lblSubtitle->set_value("");
+                lblTitle->set_value(station);
+            }
         }
         else if(type == MetaDataType::Name) {
             // usually just the station ID
@@ -168,7 +174,7 @@ InternetRadioMode::InternetRadioMode(const PlatformSharedResources res, ModeHost
     stopBtn(Button(res.keypad, (1 << 0))),
     Mode(res, host) {
         _that = this;
-        rootView = new InternetRadioView({{0, 0}, {160, 32}});
+        rootView = new InternetRadioView({EGPointZero, DISPLAY_SIZE});
 
         for(int i = 1; i <= 6; i++) {
             station_buttons.push_back(Button(res.keypad, (1 << i)));
@@ -182,6 +188,8 @@ void InternetRadioMode::setup() {
 }
 
 void InternetRadioMode::select_station(int index) {
+    cur_station_index = index;
+
     if(index <= -1) {
         stop();
         rootView->lblWarning->hidden = true;
@@ -263,6 +271,39 @@ void InternetRadioMode::loop() {
     }
 
     delay(100);
+}
+
+void InternetRadioMode::on_key_pressed(VirtualKey key) {
+    if(key >= RVK_START_OF_NUMBERS && key < RVK_END_OF_NUMBERS) {
+        int station_no = (key - RVK_START_OF_NUMBERS);
+        if(station_no > 0 && station_no <= 6)
+            select_station(station_no - 1);
+        return;
+    }
+
+    switch(key) {
+        case RVK_SHUFFLE:
+            select_station(esp_random() % 6);
+            break;
+
+        case RVK_STOP:
+            select_station(-1);
+            break;
+
+        case RVK_DISK_PREV:
+        case RVK_TRACK_PREV:
+        case RVK_CURS_LEFT:
+            select_station((cur_station_index == 0) ? 5 : (cur_station_index - 1));
+            break;
+
+        case RVK_DISK_NEXT:
+        case RVK_TRACK_NEXT:
+        case RVK_CURS_RIGHT:
+            select_station((cur_station_index + 1) % 6);
+            break;
+
+        default: break;
+    }
 }
 
 void InternetRadioMode::teardown() {

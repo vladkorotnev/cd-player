@@ -52,8 +52,8 @@ public:
     std::shared_ptr<WiFiIcon> wifi;
 
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
-        allButLyric = std::make_shared<UI::View>(UI::View({{0, 0}, {160, 27}}));
-        lblSmallTop = std::make_shared<UI::Label>(UI::Label({{0, 0}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
+        allButLyric = std::make_shared<UI::View>(UI::View({EGPointZero, {160, 27}}));
+        lblSmallTop = std::make_shared<UI::Label>(UI::Label({EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
         lblBigMiddle = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
@@ -61,7 +61,7 @@ public:
         lblDiscIndicator = std::make_shared<UI::Label>(UI::Label({{5, 27}, {12, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left));
         imgShuffleIcon = std::make_shared<UI::ImageView>(UI::ImageView(&shuffle_icon, {{152, 27}, {8, 5}}));
         imgShuffleIcon->hidden = true;
-        lblLyric = std::make_shared<LyricLabel>(LyricLabel({{0, 0}, {160, 27}}));
+        lblLyric = std::make_shared<LyricLabel>(LyricLabel({EGPointZero, {160, 27}}));
         lblLyric->hidden = true;
         timeBar = std::make_shared<TimeBar>(TimeBar({{20, 27}, {120, 5}}));
 
@@ -111,10 +111,8 @@ private:
 };
 
 CDMode::CDMode(const PlatformSharedResources res, ModeHost * host): 
-        ide { Platform::IDEBus(res.i2c) },
-        cdrom { ATAPI::Device(&ide) },
         meta { CD::CachingMetadataAggregateProvider("/mnt/cddb") },
-        player { Player(&cdrom, &meta) },
+        player { Player(res.cdrom, &meta) },
         stopEject { Button(resources.keypad, (1 << 0)) },
         playPause { Button(resources.keypad, (1 << 1)) },
         rewind { Button(resources.keypad, (1 << 2)) },
@@ -261,7 +259,7 @@ void CDMode::loop() {
     }
 
     // now you know why we have constraints autolayout all that shite in the "real world", duh
-    rootView->lblBigMiddle->frame = (rootView->lblSmallTop->hidden && !rootView->timeBar->hidden && (!rootView->lblTrackIndicator->hidden || !rootView->imgShuffleIcon->hidden)) ? EGRect {{0, 0}, {160, 24}} : EGRect {{0, 8}, {160, 16}};
+    rootView->lblBigMiddle->frame = (rootView->lblSmallTop->hidden && !rootView->timeBar->hidden && (!rootView->lblTrackIndicator->hidden || !rootView->imgShuffleIcon->hidden)) ? EGRect {EGPointZero, {160, 24}} : EGRect {{0, 8}, {160, 16}};
 
     if(stopEject.is_clicked()) {
         player.do_command((sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW) ? Player::Command::STOP : Player::Command::OPEN_CLOSE);
@@ -273,23 +271,24 @@ void CDMode::loop() {
     }
     else if(forward.is_pressed() && sts != Player::State::SEEK_FF && sts != Player::State::SEEK_REW) {
         player.do_command(Player::Command::SEEK_FF);
+        seek_from_button = true;
     }
     else if(rewind.is_pressed() && sts != Player::State::SEEK_FF && sts != Player::State::SEEK_REW) {
         player.do_command(Player::Command::SEEK_REW);
+        seek_from_button = true;
     }
-    else if((!forward.is_pressed() && sts == Player::State::SEEK_FF) || (!rewind.is_pressed() && sts == Player::State::SEEK_REW)) {
+    else if(((!forward.is_pressed() && sts == Player::State::SEEK_FF) || (!rewind.is_pressed() && sts == Player::State::SEEK_REW)) && seek_from_button) {
         player.do_command(Player::Command::END_SEEK);
+        seek_from_button = false;
     }
     else if(prevTrackDisc.is_clicked()) {
-        if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(Player::Command::PREV_TRACK);
-        if(sts == Player::State::STOP) must_show_title_stopped = true;
+        prev_trk_button();
     }
     else if(prevTrackDisc.is_held()) {
         player.do_command(Player::Command::PREV_DISC);
     }
     else if(nextTrackDisc.is_clicked()) {
-        if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(Player::Command::NEXT_TRACK);
-        if(sts == Player::State::STOP) must_show_title_stopped = true;
+        next_trk_button();
     }
     else if(nextTrackDisc.is_held()) {
         player.do_command(Player::Command::NEXT_DISC);
@@ -309,7 +308,55 @@ void CDMode::loop() {
         kp_sts = kp_new_sts;
     }
 
-    delay(100);
+    delay(10);
+}
+
+void CDMode::prev_trk_button() {
+    auto const sts = player.get_status();
+    if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(Player::Command::PREV_TRACK);
+    if(sts == Player::State::STOP) must_show_title_stopped = true;
+}
+
+void CDMode::next_trk_button() {
+    auto const sts = player.get_status();
+    if(sts != Player::State::STOP || must_show_title_stopped) player.do_command(Player::Command::NEXT_TRACK);
+    if(sts == Player::State::STOP) must_show_title_stopped = true;
+}
+
+void CDMode::on_key_pressed(VirtualKey key) {
+    // any key cancels lyrics
+    rootView->set_lyric_show(false, 0);
+
+    const std::unordered_map<VirtualKey, Player::Command> key_to_cmd = {
+        {RVK_DISK_NEXT, Player::Command::NEXT_DISC},
+        {RVK_DISK_PREV, Player::Command::PREV_DISC},
+        {RVK_SEEK_FWD, Player::Command::SEEK_FF},
+        {RVK_SEEK_BACK, Player::Command::SEEK_REW},
+        {RVK_PLAY, Player::Command::PLAY},
+        {RVK_PAUSE, Player::Command::PAUSE},
+        {RVK_STOP, Player::Command::STOP},
+        {RVK_EJECT, Player::Command::OPEN_CLOSE}
+    };
+    
+    auto const cmd = key_to_cmd.find(key);
+    if(cmd != key_to_cmd.cend()) {
+        player.do_command(cmd->second);
+    }
+    else if(key == RVK_SHUFFLE) {
+        if(player.get_play_mode() == Player::PlayMode::PLAYMODE_SHUFFLE) {
+            player.set_play_mode(Player::PlayMode::PLAYMODE_CONTINUE);
+        } else {
+            player.set_play_mode(Player::PlayMode::PLAYMODE_SHUFFLE);
+        }
+    }
+    else if(key == RVK_TRACK_NEXT) {
+        next_trk_button();
+    }
+    else if(key == RVK_TRACK_PREV) {
+        prev_trk_button();
+    }
+    // TODO else: show-hide lyrics forcefully (DISP, LYRIC keys)
+    // TODO else: numbers and stuff
 }
 
 void CDMode::teardown() {

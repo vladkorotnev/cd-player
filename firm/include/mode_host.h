@@ -48,10 +48,41 @@ public:
         if(activeMode != nullptr) {
             activeMode->loop();
         }
-        if(modeSw.is_clicked()) {
+
+        if(resources.remote->has_new_code()) {
+            auto code = resources.remote->code();
+            if(code == RVK_MODE_CD) {
+                activate_mode(ESPER_MODE_CD);
+            }
+            else if(code == RVK_MODE_RADIO) {
+                activate_mode(ESPER_MODE_NET_RADIO);
+            }
+            else if(code == RVK_MODE_BLUETOOTH) {
+                activate_mode(ESPER_MODE_BLUETOOTH);
+            }
+            else if(code == RVK_MODE_SETTINGS) {
+                // TBD
+            }
+            else if(code == RVK_DIMMER) {
+                int new_brightness = (((int)resources.display->get_brightness() + 1) % Graphics::Hardware::Brightness::DISP_BRIGHTNESS_MAX_INVALID);
+                ESP_LOGD(LOG_TAG, "Brightness = %i -> %i", (int) resources.display->get_brightness(), new_brightness);
+                resources.display->set_brightness((Graphics::Hardware::Brightness) new_brightness);
+                // TODO save to nvram
+            }
+            else if(code == RVK_EJECT && cur_mode != ESPER_MODE_CD) {
+                // eject when not in CD mode is handled by us
+                auto cd = resources.cdrom;
+                cd->eject(cd->check_media() != ATAPI::MediaTypeCode::MTC_DOOR_OPEN);
+            }
+            else if(activeMode != nullptr) {
+                activeMode->on_key_pressed((VirtualKey)code);
+            }
+        }
+        else if(modeSw.is_clicked()) {
             ModeSelection m = (ModeSelection) (((int)cur_mode + 1) % ESPER_MODE_MAX_INVALID);
             activate_mode(m);
         }
+        
         if(cur_mode != req_mode) {
             switch_to_req_mode_locked();
         }
@@ -61,7 +92,6 @@ public:
 private:
     const char * LOG_TAG = "APPHOST";
     PlatformSharedResources resources;
-    Graphics::Hardware::DisplayDriver * display;
     Graphics::Compositor compositor;
     TaskHandle_t hostTaskHandle = NULL;
     Mode * activeMode = nullptr;

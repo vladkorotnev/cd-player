@@ -8,6 +8,9 @@ class FutabaGP1232ADriver: public DisplayDriver {
 public:
     const EGSize DISPLAY_SIZE = {160, 32};
     FutabaGP1232ADriver(uart_port_t uart_num = 1, gpio_num_t rx_pin = GPIO_NUM_23, gpio_num_t tx_pin = GPIO_NUM_22, int baud = 115200);
+    ~FutabaGP1232ADriver() {
+        vSemaphoreDelete(_portSema);
+    }
 
     /// @brief Enable anti tearing mode using multiple DSA pages to avoid visible tearing when updating large chunks of the display
     bool anti_tearing = false;
@@ -23,6 +26,7 @@ private:
     int visible_dsa = 0;
     void flip_pages();
     uart_port_t _port;
+    SemaphoreHandle_t _portSema;
 };
 
 }

@@ -45,7 +45,7 @@ public:
 private:
     bool dirty = true; // first draw is imminent
     bool was_hidden = false;
-    EGRect was_frame = {{0, 0}, {0, 0}};
+    EGRect was_frame = EGRectZero;
     int subview_count = 0;
 
 protected:

@@ -3,7 +3,6 @@
 #include <LittleFS.h>
 
 #include <esper-core/service.h>
-#include <esper-core/platform.h>
 #include <esper-gui/hardware/futaba_gp1232.h>
 #include <esper-gui/text.h>
 
@@ -17,6 +16,9 @@ Platform::Remote * remote;
 Graphics::Hardware::FutabaGP1232ADriver * disp;
 Platform::AudioRouter * router;
 Platform::WM8805 * spdif;
+Platform::IDEBus * ide;
+ATAPI::Device * cdrom;
+
 ModeHost * host;
 
 static TickType_t memory_last_print = 0;
@@ -60,10 +62,12 @@ TaskHandle_t keypadTaskHandle = 0;
 void keypadTask(void *) {
   while(true) {
     keypad->update();
-    vTaskDelay(pdMS_TO_TICKS(33));
+    remote->update();
   }
 }
 
+static Core::Remote::Sony20bitDecoder sony;
+static Core::Remote::KeymapDecoder keymap(sony, Platform::PS2_REMOTE_KEYMAP);
 
 // cppcheck-suppress unusedFunction
 void setup(void) { 
@@ -92,10 +96,14 @@ void setup(void) {
   Core::Services::NTP::start();
 
   keypad = new Platform::Keypad(i2c);
-  // remote = new Platform::Remote();
+  remote = new Platform::Remote(keymap);
 
   spdif = new Platform::WM8805(i2c);
   spdif->initialize();
+
+  ide = new Platform::IDEBus(i2c);
+  cdrom = new ATAPI::Device(ide);
+  cdrom->reset();
 
   router = new Platform::AudioRouter(
     spdif,
@@ -114,12 +122,17 @@ void setup(void) {
   const PlatformSharedResources rsrc = {
     .i2c = i2c,
     .keypad = keypad,
-    .remote = nullptr,
+    .remote = remote,
     .router = router,
-    .display = disp
+    .display = disp,
+    .ide = ide,
+    .cdrom = cdrom
   };
 
   ModeSelection startup_mode = ESPER_MODE_CD; // TODO from NVRAM
+  if(startup_mode != ESPER_MODE_CD) {
+    cdrom->start(false); // power down the cd drive if not going to CD mode
+  }
 
   host = new ModeHost(rsrc);
   host->activate_mode(startup_mode);

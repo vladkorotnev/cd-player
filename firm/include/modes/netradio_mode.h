@@ -10,6 +10,7 @@ public:
     void setup() override;
     UI::View& main_view() override;
     void loop() override;
+    void on_key_pressed(VirtualKey key) override;
     void teardown() override;
 
 protected:
@@ -28,5 +29,6 @@ private:
 
     std::vector<Button> station_buttons;
     Button stopBtn;
+    int cur_station_index = -1;
     TickType_t last_stream_health_check = 0;
 };

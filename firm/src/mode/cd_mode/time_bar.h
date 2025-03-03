@@ -15,7 +15,7 @@ public:
     shared_ptr<ProgressBar> trackbar;
 
     TimeBar(EGRect frame): View(frame) {
-        lblLeft = make_shared<Label>(Label({{0, 0}, {20, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Right));
+        lblLeft = make_shared<Label>(Label({EGPointZero, {20, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Right));
         lblRight = make_shared<Label>(Label({{frame.size.width - 20, 0}, {20, frame.size.height}}, Fonts::TinyDigitFont, Label::Alignment::Left));
         trackbar = make_shared<ProgressBar>(ProgressBar({{lblLeft->frame.size.width + 1, 0},{frame.size.width - lblLeft->frame.size.width - lblRight->frame.size.width - 2, frame.size.height}}));
 

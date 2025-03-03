@@ -36,7 +36,7 @@ namespace ATAPI {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Reset");
         ide->reset();
-        delay(3000);
+        delay(1000);
         wait_not_busy();
         ide->write(IDE::Register::Command, {{.low = 0x91, .high = 0xFF}});
         xSemaphoreGive(semaphore);
