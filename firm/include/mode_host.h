@@ -1,12 +1,14 @@
 #pragma once
 #include "mode.h"
+#include "modes/boot_mode.h"
+#include <esper-core/prefs.h>
 #include <esper-gui/views/framework.h>
 #include <platform.h>
 #include <modes/cd_mode.h>
 #include <modes/netradio_mode.h>
 #include <modes/bluetooth_mode.h>
 
-enum ModeSelection {
+enum ModeSelection: int {
     ESPER_MODE_CD,
     ESPER_MODE_NET_RADIO,
     ESPER_MODE_BLUETOOTH,
@@ -21,8 +23,11 @@ public:
         compositor(res.display),
         modeSw(res.keypad, (1 << 7)) {
             modeSwitchSema = xSemaphoreCreateBinary();
+            activeMode = new BootMode(res, this);
             xSemaphoreGive(modeSwitchSema);
             
+            resources.display->set_brightness((Graphics::Hardware::Brightness) Prefs::get(PREFS_KEY_CUR_BRIGHTNESS));
+
             xTaskCreatePinnedToCore(
                 host_task,
                 "APPHOST",
@@ -43,44 +48,59 @@ public:
         req_mode = sel;
     }
 
+    void activate_last_used_mode() {
+        auto last_mode = (ModeSelection) Prefs::get(PREFS_KEY_CUR_MODE);
+        if(last_mode != ESPER_MODE_CD) {
+            resources.cdrom->start(false); // power down the cd drive if not going to CD mode
+        }
+        activate_mode(last_mode);
+    }
+
     void loop() {
         xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
         if(activeMode != nullptr) {
             activeMode->loop();
         }
 
-        if(resources.remote->has_new_code()) {
-            auto code = resources.remote->code();
-            if(code == RVK_MODE_CD) {
-                activate_mode(ESPER_MODE_CD);
+        if(cur_mode != ESPER_MODE_MAX_INVALID) {
+            // Controls inert until booted
+            if(resources.remote->has_new_code()) {
+                auto code = resources.remote->code();
+                if(code == RVK_MODE_CD) {
+                    activate_mode(ESPER_MODE_CD);
+                }
+                else if(code == RVK_MODE_RADIO) {
+                    activate_mode(ESPER_MODE_NET_RADIO);
+                }
+                else if(code == RVK_MODE_BLUETOOTH) {
+                    activate_mode(ESPER_MODE_BLUETOOTH);
+                }
+                else if(code == RVK_MODE_SETTINGS) {
+                    // TBD
+                }
+                else if(code == RVK_DIMMER) {
+                    int new_brightness = (((int)resources.display->get_brightness() + 1) % Graphics::Hardware::Brightness::DISP_BRIGHTNESS_MAX_INVALID);
+                    ESP_LOGD(LOG_TAG, "Brightness = %i -> %i", (int) resources.display->get_brightness(), new_brightness);
+                    resources.display->set_brightness((Graphics::Hardware::Brightness) new_brightness);
+    
+                    // don't save 0 into the nvram to avoid confusion on next power on
+                    if(new_brightness == Graphics::Hardware::Brightness::DISP_BRIGHTNESS_0) 
+                        new_brightness = Graphics::Hardware::Brightness::DISP_BRIGHTNESS_25;
+                    Prefs::set(PREFS_KEY_CUR_BRIGHTNESS, new_brightness);
+                }
+                else if(code == RVK_EJECT && cur_mode != ESPER_MODE_CD) {
+                    // eject when not in CD mode is handled by us
+                    auto cd = resources.cdrom;
+                    cd->eject(cd->check_media() != ATAPI::MediaTypeCode::MTC_DOOR_OPEN);
+                }
+                else if(activeMode != nullptr) {
+                    activeMode->on_remote_key_pressed((VirtualKey)code);
+                }
             }
-            else if(code == RVK_MODE_RADIO) {
-                activate_mode(ESPER_MODE_NET_RADIO);
+            else if(modeSw.is_clicked()) {
+                ModeSelection m = (ModeSelection) (((int)cur_mode + 1) % ESPER_MODE_MAX_INVALID);
+                activate_mode(m);
             }
-            else if(code == RVK_MODE_BLUETOOTH) {
-                activate_mode(ESPER_MODE_BLUETOOTH);
-            }
-            else if(code == RVK_MODE_SETTINGS) {
-                // TBD
-            }
-            else if(code == RVK_DIMMER) {
-                int new_brightness = (((int)resources.display->get_brightness() + 1) % Graphics::Hardware::Brightness::DISP_BRIGHTNESS_MAX_INVALID);
-                ESP_LOGD(LOG_TAG, "Brightness = %i -> %i", (int) resources.display->get_brightness(), new_brightness);
-                resources.display->set_brightness((Graphics::Hardware::Brightness) new_brightness);
-                // TODO save to nvram
-            }
-            else if(code == RVK_EJECT && cur_mode != ESPER_MODE_CD) {
-                // eject when not in CD mode is handled by us
-                auto cd = resources.cdrom;
-                cd->eject(cd->check_media() != ATAPI::MediaTypeCode::MTC_DOOR_OPEN);
-            }
-            else if(activeMode != nullptr) {
-                activeMode->on_key_pressed((VirtualKey)code);
-            }
-        }
-        else if(modeSw.is_clicked()) {
-            ModeSelection m = (ModeSelection) (((int)cur_mode + 1) % ESPER_MODE_MAX_INVALID);
-            activate_mode(m);
         }
         
         if(cur_mode != req_mode) {
@@ -91,6 +111,8 @@ public:
 
 private:
     const char * LOG_TAG = "APPHOST";
+    const Prefs::Key<int> PREFS_KEY_CUR_MODE {"last_mode", (int)ESPER_MODE_CD};
+    const Prefs::Key<int> PREFS_KEY_CUR_BRIGHTNESS {"last_dimmer", (int)Graphics::Hardware::Brightness::DISP_BRIGHTNESS_100};
     PlatformSharedResources resources;
     Graphics::Compositor compositor;
     TaskHandle_t hostTaskHandle = NULL;
@@ -130,6 +152,7 @@ private:
         }
 
         cur_mode = req_mode;
+        Prefs::set(PREFS_KEY_CUR_MODE, (int) cur_mode);
     }
 
     void composition_pass() {

@@ -17,7 +17,7 @@ namespace Core::Services {
         const std::string network_name();
 
         /// @brief Connect to a specified network. If connection succeeds, the network credentials are saved into NVRAM.
-        void connect(const char * ssid, const char * pass);
+        void connect(const std::string& ssid, const std::string& pass);
 
         /// @brief Get the active connection RSSI
         int rssi();

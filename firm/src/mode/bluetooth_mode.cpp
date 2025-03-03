@@ -206,7 +206,7 @@ void BluetoothMode::loop() {
     delay(125);
 }
 
-void BluetoothMode::on_key_pressed(VirtualKey key) {
+void BluetoothMode::on_remote_key_pressed(VirtualKey key) {
     if(a2dp.is_connected()) {
         switch(key) {
             case RVK_PLAY:
@@ -230,11 +230,11 @@ void BluetoothMode::on_key_pressed(VirtualKey key) {
                 break;
 
             case RVK_CURS_UP:
-                a2dp.volume_up();
+                a2dp.set_volume(std::min(127, a2dp.get_volume() + 10));
                 break;
 
             case RVK_CURS_DOWN:
-                a2dp.volume_down();
+                a2dp.set_volume(std::max(0, a2dp.get_volume() - 10));
                 break;
 
             case RVK_SEEK_BACK:

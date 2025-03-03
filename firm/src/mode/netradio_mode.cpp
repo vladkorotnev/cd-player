@@ -273,7 +273,7 @@ void InternetRadioMode::loop() {
     delay(100);
 }
 
-void InternetRadioMode::on_key_pressed(VirtualKey key) {
+void InternetRadioMode::on_remote_key_pressed(VirtualKey key) {
     if(key >= RVK_START_OF_NUMBERS && key < RVK_END_OF_NUMBERS) {
         int station_no = (key - RVK_START_OF_NUMBERS);
         if(station_no > 0 && station_no <= 6)

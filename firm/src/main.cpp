@@ -75,36 +75,21 @@ void setup(void) {
 #ifdef BOARD_HAS_PSRAM
   heap_caps_malloc_extmem_enable(64);
 #endif
-  // Open Serial 
+
   Serial.begin(115200);
   while(!Serial);
 
   disp = new Graphics::Hardware::FutabaGP1232ADriver();
   disp->initialize();
-  disp->set_power(true);
-  disp->set_brightness(Graphics::Hardware::Brightness::DISP_BRIGHTNESS_50);
 
   Wire.begin(32, 33, 400000);
+
   i2c = new Core::ThreadSafeI2C(&Wire);
-  i2c->log_all_devices();
-
-  LittleFS.begin(true, "/mnt");
-  ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
-  load_all_fonts();
-  
-  Core::Services::WLAN::start();
-  Core::Services::NTP::start();
-
   keypad = new Platform::Keypad(i2c);
   remote = new Platform::Remote(keymap);
-
-  spdif = new Platform::WM8805(i2c);
-  spdif->initialize();
-
   ide = new Platform::IDEBus(i2c);
   cdrom = new ATAPI::Device(ide);
-  cdrom->reset();
-
+  spdif = new Platform::WM8805(i2c);
   router = new Platform::AudioRouter(
     spdif,
     {
@@ -129,14 +114,18 @@ void setup(void) {
     .cdrom = cdrom
   };
 
-  ModeSelection startup_mode = ESPER_MODE_CD; // TODO from NVRAM
-  if(startup_mode != ESPER_MODE_CD) {
-    cdrom->start(false); // power down the cd drive if not going to CD mode
-  }
-
   host = new ModeHost(rsrc);
-  host->activate_mode(startup_mode);
 
+  i2c->log_all_devices();
+
+  LittleFS.begin(true, "/mnt");
+  ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
+  load_all_fonts();
+  
+  Core::Services::WLAN::start();
+  Core::Services::NTP::start();
+  spdif->initialize();
+  cdrom->reset();
   xTaskCreatePinnedToCore(
     keypadTask,
     "KEYP",
@@ -149,6 +138,8 @@ void setup(void) {
 
   // classic bt only in this project
   if(esp_bt_controller_mem_release(ESP_BT_MODE_BLE) != ESP_OK) ESP_LOGE(LOG_TAG, "BLE dealloc failed");
+
+  host->activate_last_used_mode(); // when done booting, go to last used app
 }
 
 

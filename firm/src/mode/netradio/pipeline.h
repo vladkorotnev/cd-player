@@ -122,6 +122,7 @@ class InternetRadioMode::StreamingPipeline {
                         decoder.setOutput(queuePcmData);
                     } else {
                         ESP_LOGE(LOG_TAG, "No content-type reported, TODO show error");
+                        loadingCallback(false);
                         vTaskDelay(portMAX_DELAY);
                     }
                     decoder.setNotifyActive(true);

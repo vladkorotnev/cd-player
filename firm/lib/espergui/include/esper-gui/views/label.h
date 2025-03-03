@@ -55,7 +55,7 @@ namespace UI {
             TickType_t now = xTaskGetTickCount();
             if(will_scroll() && (now - last_scroll_tick >= pdMS_TO_TICKS(33))) {
                 last_scroll_tick = now;
-                bool is_follower = scroll_synchro != nullptr && (*scroll_synchro)->will_scroll() && (*scroll_synchro)->str_size.width > str_size.width;
+                bool is_follower = scroll_synchro != nullptr && (*scroll_synchro)->will_scroll() && (*scroll_synchro)->str_size.width > str_size.width && !(*scroll_synchro)->hidden;
                 if((scroll_holdoff == 0 && (!is_follower || (is_follower && (*scroll_synchro)->scroll_holdoff == 0))) || scroll_offset != 0) {
                     scroll_offset += 2;
                     if(scroll_offset >= str_size.width + 16) {

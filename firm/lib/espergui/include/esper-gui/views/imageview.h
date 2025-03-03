@@ -29,12 +29,14 @@ namespace UI {
                     .data = (EGRawGraphBuf) image->data
                 };
                 EGBlitBuffer(buf, EGPointZero, &tmp_buf);
+            } else {
+                ESP_LOGW("IVIEW", "No image or null image");
             }
 
             View::render(buf);
         }
 
     protected:
-        const Image * image = nullptr;
+        const Image * image;
     };
 }

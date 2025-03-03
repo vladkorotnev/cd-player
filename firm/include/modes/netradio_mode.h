@@ -10,7 +10,7 @@ public:
     void setup() override;
     UI::View& main_view() override;
     void loop() override;
-    void on_key_pressed(VirtualKey key) override;
+    void on_remote_key_pressed(VirtualKey key) override;
     void teardown() override;
 
 protected:

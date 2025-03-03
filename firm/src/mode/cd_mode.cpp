@@ -1,4 +1,5 @@
 #include <modes/cd_mode.h>
+#include <shared_prefs.h>
 #include "cd_mode/time_bar.h"
 #include "cd_mode/lyric_label.h"
 #include <esper-gui/views/framework.h>
@@ -7,6 +8,7 @@
 #include <string>
 
 static const char LOG_TAG[] = "APL_CDP";
+
 using CD::Player;
 
 static const char * HumanReadablePlayerStateString(Player::State sts) {
@@ -125,8 +127,10 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
 
     meta.providers.push_back(new CD::CDTextMetadataProvider());
     meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
-    meta.providers.push_back(new CD::CDDBMetadataProvider("gnudb.gnudb.org", "asdfasdf@example-esp32.com"));
+    meta.providers.push_back(new CD::CDDBMetadataProvider(Prefs::get(PREFS_KEY_CDDB_ADDRESS), Prefs::get(PREFS_KEY_CDDB_EMAIL)));
     meta.providers.push_back(new CD::LrcLibLyricProvider());
+
+    lyrics_enabled = Prefs::get(PREFS_KEY_CD_LYRICS_ENABLED);
 
     rootView = new CDPView();
 }
@@ -252,7 +256,7 @@ void CDMode::loop() {
         lrc.feed_track(trk, metadata);
         int line_len = 0;
         auto line = lrc.feed_position(msf_now, &line_len);
-        if(!line.empty()) {
+        if(!line.empty() && lyrics_enabled) {
             rootView->lblLyric->set_value(line);
             rootView->set_lyric_show(true, line_len + 5000);
         }
@@ -323,7 +327,7 @@ void CDMode::next_trk_button() {
     if(sts == Player::State::STOP) must_show_title_stopped = true;
 }
 
-void CDMode::on_key_pressed(VirtualKey key) {
+void CDMode::on_remote_key_pressed(VirtualKey key) {
     // any key cancels lyrics
     rootView->set_lyric_show(false, 0);
 
@@ -355,7 +359,15 @@ void CDMode::on_key_pressed(VirtualKey key) {
     else if(key == RVK_TRACK_PREV) {
         prev_trk_button();
     }
-    // TODO else: show-hide lyrics forcefully (DISP, LYRIC keys)
+    else if(key == RVK_LYRICS) {
+        lyrics_enabled = true;
+        Prefs::set(PREFS_KEY_CD_LYRICS_ENABLED, lyrics_enabled);
+    }
+    else if(key == RVK_DISP) {
+        lyrics_enabled = false;
+        Prefs::set(PREFS_KEY_CD_LYRICS_ENABLED, lyrics_enabled);
+        rootView->set_lyric_show(false, 0);
+    }
     // TODO else: numbers and stuff
 }
 

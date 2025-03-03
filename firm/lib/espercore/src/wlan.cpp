@@ -1,4 +1,5 @@
 #include <esper-core/wlan.h>
+#include <esper-core/prefs.h>
 #include <WiFi.h>
 
 static char LOG_TAG[] = "WLAN";
@@ -10,8 +11,23 @@ static bool has_ip = false;
 static std::string ssid = "";
 static std::string pass = "";
 
+#ifndef WIFI_NAME
+#define WIFI_NAME ""
+#endif
+#ifndef WIFI_PASS
+#define WIFI_PASS ""
+#endif
+
+static const Prefs::Key<std::string> PREFS_KEY_WIFI_NAME{"wifi_ssid", WIFI_NAME};
+static const Prefs::Key<std::string> PREFS_KEY_WIFI_PASS{"wifi_ssid", WIFI_PASS};
+
 namespace Core::Services {
     namespace WLAN {
+        static void save_current_network() {
+            Prefs::set(PREFS_KEY_WIFI_NAME, ssid);
+            Prefs::set(PREFS_KEY_WIFI_PASS, pass);
+        }
+
         static void ap_fallback() {
             WiFi.disconnect(false, true);
             WiFi.mode(WIFI_MODE_AP);
@@ -46,7 +62,7 @@ namespace Core::Services {
                     if(initial_connection_ongoing) {
                         initial_connection_succeeded = true;
                     } else {
-                        // TODO: save_current_network();
+                        save_current_network();
                     }
                     ESP_LOGI(LOG_TAG, "RSSI: %i dB", rssi());
                     break;
@@ -67,18 +83,16 @@ namespace Core::Services {
         }        
 
         void start() {
-            // TODO load from settings
+            ssid = Prefs::get(PREFS_KEY_WIFI_NAME);
+            pass = Prefs::get(PREFS_KEY_WIFI_PASS);
             initial_connection_succeeded = false;
 
             WiFi.persistent(false);
             WiFi.onEvent(wifi_event);
             
             if(WiFi.status() != WL_CONNECTED) {
-                if(true) {
+                if(!ssid.empty()) {
                     ESP_LOGI(LOG_TAG, "Attempt initial connection to saved network...");
-
-                    ssid = WIFI_NAME;
-                    pass = WIFI_PASS;
 
                     initial_connection_ongoing = true;
                     WiFi.mode(WIFI_MODE_STA);
@@ -121,14 +135,14 @@ namespace Core::Services {
             return ssid;
         }
 
-        void connect(const char * s, const char * p) {
-            ssid = std::string(s);
-            pass = std::string(p);
+        void connect(const std::string& s, const std::string& p) {
+            ssid = s;
+            pass = p;
             reconnecting = true;
             has_ip = false;
             WiFi.disconnect(false, true);
             WiFi.mode(WIFI_MODE_STA);
-            wl_status_t rslt = WiFi.begin(s, p);
+            wl_status_t rslt = WiFi.begin(ssid.c_str(), pass.c_str());
             if(rslt != WL_CONNECTED) {
                 ESP_LOGI(LOG_TAG, "WiFi connection error (%i): fallback to SoftAP", (int)rslt);
                 ap_fallback();
