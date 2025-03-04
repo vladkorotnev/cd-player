@@ -91,6 +91,7 @@ bool WiFiIcon::needs_display() {
 }
 
 void WiFiIcon::set_level(int level) {
+    if(cur_lvl == level) return; // prevent redraw if no change
     level = std::min(3, std::max(0, level));
     cur_lvl = level;
     set_image(level);

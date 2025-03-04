@@ -25,9 +25,9 @@ static TickType_t memory_last_print = 0;
 static void print_memory() {
     TickType_t now = xTaskGetTickCount();
     if(now - memory_last_print > pdMS_TO_TICKS(30000)) {
-        ESP_LOGI(LOG_TAG, "HEAP: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
+        ESP_LOGV(LOG_TAG, "HEAP: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
 #ifdef BOARD_HAS_PSRAM
-        ESP_LOGI(LOG_TAG, "PSRAM: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram(), ESP.getMaxAllocPsram());
+        ESP_LOGV(LOG_TAG, "PSRAM: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram(), ESP.getMaxAllocPsram());
 #endif
         memory_last_print = now;
     }
@@ -71,6 +71,7 @@ static Core::Remote::KeymapDecoder keymap(sony, Platform::PS2_REMOTE_KEYMAP);
 
 // cppcheck-suppress unusedFunction
 void setup(void) { 
+  TickType_t start = xTaskGetTickCount();
   ESP_LOGI(LOG_TAG, "CPU speed = %i", getCpuFrequencyMhz());
 #ifdef BOARD_HAS_PSRAM
   heap_caps_malloc_extmem_enable(64);
@@ -140,6 +141,8 @@ void setup(void) {
   if(esp_bt_controller_mem_release(ESP_BT_MODE_BLE) != ESP_OK) ESP_LOGE(LOG_TAG, "BLE dealloc failed");
 
   host->activate_last_used_mode(); // when done booting, go to last used app
+  TickType_t end = xTaskGetTickCount();
+  ESP_LOGI(LOG_TAG, "Booted in %i ms", pdTICKS_TO_MS(end - start));
 }
 
 
