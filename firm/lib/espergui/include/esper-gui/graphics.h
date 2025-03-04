@@ -49,3 +49,4 @@ void EGBlitBuffer(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * 
 void EGDrawPixel(EGGraphBuf * dst, const EGPoint& location, bool state);
 void EGDrawLine(EGGraphBuf * dst, const EGPoint& start, const EGPoint& end, bool state = true);
 void EGDrawRect(EGGraphBuf * dst, const EGRect rect, bool filled = false, bool state = true);
+void EGBufferInvert(EGGraphBuf * dst);

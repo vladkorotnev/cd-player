@@ -45,4 +45,4 @@ class StandbyMode: public Mode {
         UI::View rootView;
         std::shared_ptr<UI::Label> lbl;
         const char * LOG_TAG = "STBY";
-    };
+};

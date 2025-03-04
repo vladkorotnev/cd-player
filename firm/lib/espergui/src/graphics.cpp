@@ -38,6 +38,19 @@ void EGBlitNative2Native(EGGraphBuf * dst, const EGPoint& location, const EGGrap
     }
 }
 
+void EGBufferInvert(EGGraphBuf * dst) {
+    size_t byte_count;
+    if(dst->fmt == EG_FMT_HORIZONTAL) {
+        byte_count = dst->size.height * ((dst->size.width/8) + ((dst->size.width%8) != 0));
+    } else {
+        byte_count = dst->size.width * ((dst->size.height/8) + ((dst->size.height%8) != 0));
+    }
+
+    for(int i = 0; i < byte_count; i++) {
+        dst->data[i] = ~dst->data[i];
+    }
+}
+
 void EGBlitHorizontal2Native(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * src) {
     // Does this have ass performance? Who knows...
     size_t view_stride = std::max(src->size.width/8, 1);

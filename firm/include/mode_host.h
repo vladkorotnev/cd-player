@@ -7,12 +7,14 @@
 #include <modes/cd_mode.h>
 #include <modes/netradio_mode.h>
 #include <modes/bluetooth_mode.h>
+#include <modes/settings_mode.h>
 #include <modes/standby_mode.h>
 
 enum ModeSelection: int {
     ESPER_MODE_CD,
     ESPER_MODE_NET_RADIO,
     ESPER_MODE_BLUETOOTH,
+    ESPER_MODE_SETTINGS,
     ESPER_MODE_STANDBY,
 
     ESPER_MODE_MAX_INVALID
@@ -86,7 +88,7 @@ public:
                     }
                 }
                 else if(code == RVK_MODE_SETTINGS && cur_mode != ESPER_MODE_STANDBY) {
-                    // TBD
+                    activate_mode(ESPER_MODE_SETTINGS);
                 }
                 else if(code == RVK_DIMMER && cur_mode != ESPER_MODE_STANDBY) {
                     Graphics::Hardware::Brightness brightness = resources.display->get_brightness();
@@ -176,6 +178,10 @@ private:
 
             case ESPER_MODE_NET_RADIO:
                 activeMode = new InternetRadioMode(resources, this);
+                break;
+
+            case ESPER_MODE_SETTINGS:
+                activeMode = new SettingsMode(resources, this);
                 break;
 
             case ESPER_MODE_STANDBY:
