@@ -41,6 +41,7 @@ enum VirtualKey: uint32_t {
     RVK_MODE_RADIO,
     RVK_MODE_BLUETOOTH,
     RVK_MODE_SETTINGS,
+    RVK_MODE_STANDBY,
 
     RVK_CURS_UP,
     RVK_CURS_DOWN,

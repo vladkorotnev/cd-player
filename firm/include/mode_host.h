@@ -7,11 +7,13 @@
 #include <modes/cd_mode.h>
 #include <modes/netradio_mode.h>
 #include <modes/bluetooth_mode.h>
+#include <modes/standby_mode.h>
 
 enum ModeSelection: int {
     ESPER_MODE_CD,
     ESPER_MODE_NET_RADIO,
     ESPER_MODE_BLUETOOTH,
+    ESPER_MODE_STANDBY,
 
     ESPER_MODE_MAX_INVALID
 };
@@ -75,20 +77,37 @@ public:
                 else if(code == RVK_MODE_BLUETOOTH) {
                     activate_mode(ESPER_MODE_BLUETOOTH);
                 }
-                else if(code == RVK_MODE_SETTINGS) {
+                else if(code == RVK_MODE_STANDBY) {
+                    if(cur_mode == ESPER_MODE_STANDBY) {
+                        activate_last_used_mode();
+                    }
+                    else {
+                        activate_mode(ESPER_MODE_STANDBY);
+                    }
+                }
+                else if(code == RVK_MODE_SETTINGS && cur_mode != ESPER_MODE_STANDBY) {
                     // TBD
                 }
-                else if(code == RVK_DIMMER) {
-                    int new_brightness = (((int)resources.display->get_brightness() + 1) % Graphics::Hardware::Brightness::DISP_BRIGHTNESS_MAX_INVALID);
-                    ESP_LOGD(LOG_TAG, "Brightness = %i -> %i", (int) resources.display->get_brightness(), new_brightness);
-                    resources.display->set_brightness((Graphics::Hardware::Brightness) new_brightness);
+                else if(code == RVK_DIMMER && cur_mode != ESPER_MODE_STANDBY) {
+                    Graphics::Hardware::Brightness brightness = resources.display->get_brightness();
+                    if(brightness == Graphics::Hardware::Brightness::DISP_BRIGHTNESS_50) {
+                        brightness = Graphics::Hardware::DISP_BRIGHTNESS_25;
+                    }
+                    else if(brightness == Graphics::Hardware::Brightness::DISP_BRIGHTNESS_25) {
+                        brightness = Graphics::Hardware::DISP_BRIGHTNESS_0;
+                    }
+                    else {
+                        brightness = Graphics::Hardware::DISP_BRIGHTNESS_50;
+                    }
+                    
+                    ESP_LOGD(LOG_TAG, "Brightness = %i -> %i", (int) resources.display->get_brightness(), (int) brightness);
+                    resources.display->set_brightness(brightness);
     
                     // don't save 0 into the nvram to avoid confusion on next power on
-                    if(new_brightness == Graphics::Hardware::Brightness::DISP_BRIGHTNESS_0) 
-                        new_brightness = Graphics::Hardware::Brightness::DISP_BRIGHTNESS_25;
-                    Prefs::set(PREFS_KEY_CUR_BRIGHTNESS, new_brightness);
+                    if(brightness != Graphics::Hardware::Brightness::DISP_BRIGHTNESS_0)
+                        Prefs::set(PREFS_KEY_CUR_BRIGHTNESS, (int) brightness);
                 }
-                else if(code == RVK_EJECT && cur_mode != ESPER_MODE_CD) {
+                else if(code == RVK_EJECT && cur_mode != ESPER_MODE_CD && cur_mode != ESPER_MODE_STANDBY) {
                     // eject when not in CD mode is handled by us
                     auto cd = resources.cdrom;
                     cd->eject(cd->check_media() != ATAPI::MediaTypeCode::MTC_DOOR_OPEN);
@@ -98,8 +117,23 @@ public:
                 }
             }
             else if(modeSw.is_clicked()) {
-                ModeSelection m = (ModeSelection) (((int)cur_mode + 1) % ESPER_MODE_MAX_INVALID);
+                ModeSelection m;
+                if(cur_mode == ESPER_MODE_STANDBY) {
+                    m = (ModeSelection) Prefs::get(PREFS_KEY_CUR_MODE);
+                }
+                else if(cur_mode == ESPER_MODE_CD) {
+                    m = ESPER_MODE_NET_RADIO;
+                }
+                else if(cur_mode == ESPER_MODE_NET_RADIO) {
+                    m = ESPER_MODE_BLUETOOTH;
+                }
+                else {
+                    m = ESPER_MODE_CD;
+                }
                 activate_mode(m);
+            }
+            else if(modeSw.is_held_continuously() && cur_mode != ESPER_MODE_STANDBY) {
+                activate_mode(ESPER_MODE_STANDBY);
             }
         }
         
@@ -123,12 +157,14 @@ private:
     Button modeSw;
 
     void switch_to_req_mode_locked() {
+        if(req_mode == cur_mode) return;
+
         if(activeMode != nullptr) {
             activeMode->teardown();
             delete activeMode;
             activeMode = nullptr;
         }
-        
+
         switch(req_mode) {
             case ESPER_MODE_CD:
                 activeMode = new CDMode(resources, this);
@@ -142,6 +178,9 @@ private:
                 activeMode = new InternetRadioMode(resources, this);
                 break;
 
+            case ESPER_MODE_STANDBY:
+                activeMode = new StandbyMode(resources, this);
+                break;
             default:
                 ESP_LOGE(LOG_TAG, "Unsupported mode ID 0x%02x", req_mode);
                 break;
@@ -152,7 +191,8 @@ private:
         }
 
         cur_mode = req_mode;
-        Prefs::set(PREFS_KEY_CUR_MODE, (int) cur_mode);
+        if(cur_mode != ESPER_MODE_STANDBY)
+            Prefs::set(PREFS_KEY_CUR_MODE, (int) cur_mode);
     }
 
     void composition_pass() {

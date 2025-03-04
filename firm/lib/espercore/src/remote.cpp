@@ -132,7 +132,7 @@ Core::Remote::RemoteKeyMap Platform::PS2_REMOTE_KEYMAP = {
     {0x5AD5C,       RVK_EJECT}, // Triangle
     {0x5AD5F,       RVK_STOP},  // Square
     {0x5AD5D,       RVK_CURS_ENTER}, // Circle
-    {0x5AD5E,       RVK_DEL}, // Cross
+    {0x5AD5E,       RVK_MODE_STANDBY}, // Cross
 
     {0x5AD50,       RVK_STOP}, // Select
     {0x5AD53,       RVK_PLAY}, // Start

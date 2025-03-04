@@ -45,7 +45,7 @@ namespace Graphics {
             size_t surface_size = view.frame.size.width * view_stride;
             
             EGRawGraphBuf tmp_surface = nullptr;
-            if(!EGRectEqual(view.frame, {EGPointZero, framebuffer.size})) {
+            if(!EGRectEqual({abs_origin, view.frame.size}, {EGPointZero, framebuffer.size})) {
                 tmp_surface = (EGRawGraphBuf) heap_caps_calloc(surface_size, 1, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
             } else {
                 // save memory by rendering fullscreen views directly into the framebuffer
@@ -68,9 +68,8 @@ namespace Graphics {
             if(!view.hidden) view.render(&buf);
             view.clear_needs_display();
 
-            EGBlitBuffer(&framebuffer, abs_origin, &buf);
-
             if(tmp_surface != framebuffer.data) {
+                EGBlitBuffer(&framebuffer, abs_origin, &buf);
                 free(tmp_surface);
             }
 
