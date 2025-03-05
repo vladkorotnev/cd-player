@@ -118,10 +118,13 @@ public:
 
 class ListMenuNode: public MenuPresentable, public MenuNode,  public UI::ListView {
 public:
-    ListMenuNode(const std::string title, const std::vector<std::shared_ptr<MenuNode>>& items, const UI::Image* icon = nullptr): 
+    ListMenuNode(const std::string title, const UI::Image* icon, const std::vector<std::shared_ptr<MenuNode>>& items): 
         subnodes(items),
         UI::ListView(EGRectZero, {}), MenuNode(title, icon) {
     }
+
+    ListMenuNode(const std::string title, const std::vector<std::shared_ptr<MenuNode>>& items): 
+        ListMenuNode(title, nullptr, items) {}
 
     bool is_submenu() const override { return true; }
 
@@ -162,11 +165,11 @@ class SettingsMode: public Mode {
                     "Settings",
                     {
                         std::make_shared<MenuNode>("Item 1", &icn_wifi),
-                        std::make_shared<ListMenuNode>(ListMenuNode("Drill Down", {
+                        std::make_shared<ListMenuNode>(ListMenuNode("Drill Down", &icn_about, {
                             std::make_shared<MenuNode>("Drill Item 1", &icn_cd),
                             std::make_shared<MenuNode>("Drill Item 2", &icn_bt),
                             std::make_shared<MenuNode>("Drill Item 3", &icn_radio),
-                        }, &icn_about))
+                        }))
                     }
                 )
             ), {EGPointZero, {160, 32}}),
