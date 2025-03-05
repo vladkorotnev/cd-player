@@ -23,9 +23,11 @@ private:
 
     static void avrc_rn_playstatus_callback(esp_avrc_playback_stat_t);
     static void avrc_metadata_callback(uint8_t id, const uint8_t *text);
+    static void avrc_volume_callback(int vol);
 
     void play_status_callback(esp_avrc_playback_stat_t);
     void metadata_callback(uint8_t id, const char *text);
+    void volume_callback(int vol);
 
     Button stopEject;
     Button playPause;

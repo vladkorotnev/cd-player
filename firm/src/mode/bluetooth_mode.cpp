@@ -8,12 +8,29 @@ using std::shared_ptr;
 static const char LOG_TAG[] = "APL_A2DP";
 static BluetoothMode * _that = nullptr;
 
+static const uint8_t vol_icn_data[] ={
+    0b00010010,
+    0b00110001,
+    0b11010101,
+    0b10110101,
+    0b11110101,
+    0b11110101,
+    0b00110001,
+    0b00010010,
+};
+
+static const UI::Image vol_icn = {
+    .format = EG_FMT_HORIZONTAL,
+    .size = {8, 8},
+    .data = vol_icn_data
+};
+
 class BluetoothMode::BluetoothView: public UI::View {
 public:
     BluetoothView(EGRect f): View(f) {
-        lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
-        lblSubtitle = make_shared<UI::Label>(UI::Label({EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
-        lblSource = make_shared<UI::Label>(UI::Label({{0, 24}, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth"));
+        lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
+        lblSubtitle = make_shared<UI::Label>(UI::Label({EGPointZero, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
+        lblSource = make_shared<UI::Label>(UI::Label({{0, 24}, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth"));
 
         lblTitle->auto_scroll = true;
         lblTitle->synchronize_scrolling_to(&lblSubtitle);
@@ -21,9 +38,18 @@ public:
         lblSubtitle->synchronize_scrolling_to(&lblTitle);
         lblSource->hidden = true;
 
+        volGrp = make_shared<UI::View>(EGRect { {0, 24}, {frame.size.width, 8} });
+        volBar = make_shared<UI::ProgressBar>(EGRect {{vol_icn.size.width + 4, 0}, {volGrp->frame.size.width - vol_icn.size.width - 4, 8}});
+        auto volIcn = make_shared<UI::ImageView>(&vol_icn, EGRect {EGPointZero, vol_icn.size});
+        volGrp->subviews.push_back(volIcn);
+        volGrp->subviews.push_back(volBar);
+        volGrp->hidden = true;
+        volBar->maximum = 127;
+
         subviews.push_back(lblTitle);
         subviews.push_back(lblSubtitle);
         subviews.push_back(lblSource);
+        subviews.push_back(volGrp);
     }
 
     void set_wait() {
@@ -86,10 +112,29 @@ public:
         update();
     }
 
+    void set_volume(int vol) {
+        if(state.connection != CONNECTED && state.connection != PLAYING) return;
+        state.volume = vol;
+        update();
+        volBarShownAt = xTaskGetTickCount();
+        volGrp->hidden = false;
+    }
+
+    bool needs_display() override  {
+        if(xTaskGetTickCount() - volBarShownAt >= pdMS_TO_TICKS(2000) && !volGrp->hidden) {
+            volGrp->hidden = true;
+            lblSource->set_needs_display();
+        }
+        return View::needs_display();
+    }
+
 protected:
     shared_ptr<UI::Label> lblTitle;
     shared_ptr<UI::Label> lblSubtitle;
     shared_ptr<UI::Label> lblSource;
+
+    shared_ptr<UI::View> volGrp;
+    shared_ptr<UI::ProgressBar> volBar;
 
     enum ConnectionStatus {
         DISCONNECTED,
@@ -105,9 +150,11 @@ protected:
         std::string device_name;
         std::string artist;
         std::string title;
+        int volume;
     };
 
     State state;
+    TickType_t volBarShownAt;
 
     void update() {
         if(state.connection == DISCONNECTED) {
@@ -125,6 +172,7 @@ protected:
         else if(state.connection == CONNECTED) {
             lblSource->hidden = true;
             lblSubtitle->hidden = true;
+            volBar->value = state.volume;
             lblTitle->set_value(state.device_name);
         }
         else if(state.connection == PLAYING) {
@@ -133,6 +181,7 @@ protected:
             lblSource->set_value(state.device_name);
             lblTitle->set_value(state.title.empty() ? state.device_name : state.title);
             lblSubtitle->set_value(state.artist);
+            volBar->value = state.volume;
         }
         else if(state.connection == WAIT) {
             lblSource->hidden = true;
@@ -148,6 +197,10 @@ void BluetoothMode::avrc_metadata_callback(uint8_t id, const uint8_t *text) {
 
 void BluetoothMode::avrc_rn_playstatus_callback(esp_avrc_playback_stat_t playback) {
     if(_that != nullptr) _that->play_status_callback(playback);
+}
+
+void BluetoothMode::avrc_volume_callback(int vol) {
+    if(_that != nullptr) _that->volume_callback(vol);
 }
 
 BluetoothMode::BluetoothMode(const PlatformSharedResources res, ModeHost * host):
@@ -166,7 +219,7 @@ void BluetoothMode::setup() {
     AudioToolsLogger.begin(Serial, AudioToolsLogLevel::Warning);
     resources.router->activate_route(Platform::AudioRoute::ROUTE_INTERNAL_CPU);
     Core::Services::WLAN::stop();
-    a2dp.set_rssi_active(true);
+    a2dp.set_avrc_rn_volumechange(avrc_volume_callback);
     a2dp.set_avrc_metadata_attribute_mask(ESP_AVRC_MD_ATTR_TITLE | ESP_AVRC_MD_ATTR_ARTIST);
     a2dp.set_avrc_metadata_callback(avrc_metadata_callback);
     a2dp.set_avrc_rn_playstatus_callback(avrc_rn_playstatus_callback);
@@ -230,11 +283,19 @@ void BluetoothMode::on_remote_key_pressed(VirtualKey key) {
                 break;
 
             case RVK_CURS_UP:
-                a2dp.set_volume(std::min(127, a2dp.get_volume() + 10));
+                {
+                    int vol = std::min(127, a2dp.get_volume() + 10);
+                    a2dp.set_volume(vol);
+                    rootView->set_volume(vol);
+                }
                 break;
 
             case RVK_CURS_DOWN:
-                a2dp.set_volume(std::max(0, a2dp.get_volume() - 10));
+                {
+                    int vol = std::max(0, a2dp.get_volume() - 10);
+                    a2dp.set_volume(vol);
+                    rootView->set_volume(vol);
+                }
                 break;
 
             case RVK_SEEK_BACK:
@@ -262,6 +323,10 @@ void BluetoothMode::play_status_callback(esp_avrc_playback_stat_t sts) {
 
 void BluetoothMode::metadata_callback(uint8_t id, const char *text) {
     rootView->update_metadata(text, (esp_avrc_md_attr_mask_t) id);
+}
+
+void BluetoothMode::volume_callback(int vol) {
+    rootView->set_volume(vol);
 }
 
 void BluetoothMode::teardown() {

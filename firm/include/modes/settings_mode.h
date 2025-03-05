@@ -67,7 +67,7 @@ class SettingsMode: public Mode {
         SettingsMode(const PlatformSharedResources res, ModeHost * host): 
             rootView({EGPointZero, {160, 32}}, {
                 std::make_shared<UI::ListItem>("WiFi", true, &icn_wifi),
-                std::make_shared<UI::ListItem>("Compact Disc", true, &icn_cd),
+                std::make_shared<UI::ListItem>("CD Audio", true, &icn_cd),
                 std::make_shared<UI::ListItem>("Radio", true, &icn_radio),
                 std::make_shared<UI::ListItem>("Bluetooth", true, &icn_bt),
                 std::make_shared<UI::ListItem>("System", true, &icn_sys),
