@@ -36,11 +36,12 @@ namespace UI {
             EGDrawLine(buf, {midpoint_x, 4}, {midpoint_x, 4 + trackbar_height - 1});
 
             // draw slider
-            int scale_factor = std::max(1, maximum / trackbar_height);
-            int top_of_slider_scaled = current_offset / scale_factor;
-            int bottom_of_slider_scaled = (current_offset + page_size) / scale_factor;
-            ESP_LOGD("ScrlBar", "MAX = %i, PS = %i, POS = %i -> SCALE = %i, TOP = %i, BOTT = %i", maximum, page_size, current_offset, scale_factor, top_of_slider_scaled, bottom_of_slider_scaled);
-            EGDrawRect(buf, {{midpoint_x - 1, 4 + top_of_slider_scaled}, {3, bottom_of_slider_scaled - top_of_slider_scaled}}, true);
+            if(maximum > page_size) {
+                int scale_factor = std::max(1, maximum / trackbar_height);
+                int top_of_slider_scaled = current_offset / scale_factor;
+                int bottom_of_slider_scaled = (current_offset + page_size) / scale_factor;
+                EGDrawRect(buf, {{midpoint_x - 1, 4 + top_of_slider_scaled}, {3, bottom_of_slider_scaled - top_of_slider_scaled}}, true);
+            }
 
             View::render(buf);
         }
@@ -60,7 +61,7 @@ namespace UI {
             };
     };
 
-    class ScrollView: public View {
+    class ScrollView: public virtual View {
         public:
             const std::shared_ptr<UI::View> contentView;
             ScrollView(EGRect frame, EGSize contentSize): 
@@ -135,16 +136,30 @@ namespace UI {
     class ListView: public ScrollView {
         public:
             ListView(EGRect frame, const std::vector<std::shared_ptr<ListItem>> items):
-                _items(items),
+                _items({}),
                 ScrollView(frame, {frame.size.width - 6, 0})
             {
+                set_items(items);
+            }
+
+            void set_items(const std::vector<std::shared_ptr<ListItem>> items) {
+                contentView->subviews.clear();
+                contentView->frame.size.height = 0;
+                _items = items;
+
                 for(auto& item: _items) {
                     item->frame.origin.y = contentView->frame.size.height;
                     item->frame.size.width = contentView->frame.size.width;
                     contentView->frame.size.height += item->frame.size.height;
                     contentView->subviews.push_back(item);
                 }
-                if(!_items.empty()) select(0);
+                if(!_items.empty()) {
+                    select(0);
+                    scrollBar->maximum = contentView->frame.size.height;
+                    scrollBar->page_size = frame.size.height;
+                    scrollBar->current_offset = -contentView->frame.origin.y;
+                    scrollBar->set_needs_display();
+                }
             }
 
             void select(int idx) {
@@ -183,7 +198,7 @@ namespace UI {
             }
 
         protected:
-            const std::vector<std::shared_ptr<ListItem>> _items;
+            std::vector<std::shared_ptr<ListItem>> _items;
             int selection = -1;
     };
 }

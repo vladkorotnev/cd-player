@@ -1,6 +1,7 @@
 #pragma once
 #include <mode.h>
 #include <esper-gui/views/framework.h>
+#include <stack>
 
 namespace {
     // By PiiXL
@@ -62,17 +63,113 @@ namespace {
     };
 }
 
+class MenuNavigator;
+class MenuPresentable: public virtual UI::View {
+public:
+    virtual void on_presented() {}
+    virtual void on_dismissed() {}
+    virtual void on_key_pressed(VirtualKey, MenuNavigator*) {}
+};
+
+class MenuNavigator: public UI::View {
+public:
+    MenuNavigator(std::shared_ptr<MenuPresentable> root, EGRect f): back_stack{}, current{root}, UI::View(f) {
+        set_current(root);
+    }
+
+    void push(std::shared_ptr<MenuPresentable> next_view) {
+        back_stack.push(current);
+        current->on_dismissed();
+        set_current(next_view);
+    }
+
+    void pop() {
+        if(back_stack.empty()) return;
+        set_current(back_stack.top());
+        back_stack.pop();
+    }
+
+    void on_key_pressed(VirtualKey k) { current->on_key_pressed(k, this); }
+
+private:
+    std::shared_ptr<MenuPresentable> current;
+
+    void set_current(std::shared_ptr<MenuPresentable> cur) {
+        subviews.clear();
+        cur->frame = {EGPointZero, {frame.size.width, frame.size.height}};
+        ESP_LOGI("MenuNav", "Cur new w=%i h=%i", cur->frame.size.width, cur->frame.size.height);
+        subviews.push_back(cur);
+        current = cur;
+        current->on_presented();
+    }
+    std::stack<std::shared_ptr<MenuPresentable>> back_stack;
+};
+
+class MenuNode {
+public:
+    MenuNode(const std::string t, const UI::Image* img): title{t}, icon{img} {}
+    virtual ~MenuNode() = default;
+
+    const std::string title;
+    const UI::Image * icon;
+    virtual void execute(MenuNavigator * host) const { ESP_LOGE("MenuNode", "Did you forget to override execute()?"); }
+    virtual bool is_submenu() const { return false; }
+};
+
+class ListMenuNode: public MenuPresentable, public MenuNode,  public UI::ListView {
+public:
+    ListMenuNode(const std::string title, const std::vector<std::shared_ptr<MenuNode>>& items, const UI::Image* icon = nullptr): 
+        subnodes(items),
+        UI::ListView(EGRectZero, {}), MenuNode(title, icon) {
+    }
+
+    bool is_submenu() const override { return true; }
+
+    void execute(MenuNavigator * host) const override {
+        host->push(std::make_shared<ListMenuNode>(*this));
+    }
+
+    void on_presented() override {
+        // update frames of things after push has set our frame correctly
+        contentView->frame = EGRect {EGPointZero, {frame.size.width - 6, 0}};
+        scrollBar->frame = EGRect {{frame.size.width - 5, 0}, {5, frame.size.height}};
+        std::vector<std::shared_ptr<UI::ListItem>> viewItems = {};
+        for(auto& subnode: subnodes) {
+            viewItems.push_back(std::make_shared<UI::ListItem>(subnode->title, subnode->is_submenu(), subnode->icon));
+        }
+        set_items(viewItems);
+    }
+
+    void on_key_pressed(VirtualKey k, MenuNavigator* host) override {
+        if(k == RVK_CURS_DOWN) down();
+        else if(k == RVK_CURS_UP) up();
+        else if(k == RVK_CURS_ENTER || (k == RVK_CURS_RIGHT && subnodes[selection]->is_submenu())) {
+            subnodes[selection]->execute(host);
+        }
+        else if(k == RVK_CURS_LEFT) {
+            host->pop();
+        }
+    }
+protected:
+    const std::vector<std::shared_ptr<MenuNode>> subnodes;
+};
+
 class SettingsMode: public Mode {
     public:
         SettingsMode(const PlatformSharedResources res, ModeHost * host): 
-            rootView({EGPointZero, {160, 32}}, {
-                std::make_shared<UI::ListItem>("WiFi", true, &icn_wifi),
-                std::make_shared<UI::ListItem>("CD Audio", true, &icn_cd),
-                std::make_shared<UI::ListItem>("Radio", true, &icn_radio),
-                std::make_shared<UI::ListItem>("Bluetooth", true, &icn_bt),
-                std::make_shared<UI::ListItem>("System", true, &icn_sys),
-                std::make_shared<UI::ListItem>("About", true, &icn_about),
-            }),
+            rootView(std::make_shared<ListMenuNode>(
+                ListMenuNode(
+                    "Settings",
+                    {
+                        std::make_shared<MenuNode>("Item 1", &icn_wifi),
+                        std::make_shared<ListMenuNode>(ListMenuNode("Drill Down", {
+                            std::make_shared<MenuNode>("Drill Item 1", &icn_cd),
+                            std::make_shared<MenuNode>("Drill Item 2", &icn_bt),
+                            std::make_shared<MenuNode>("Drill Item 3", &icn_radio),
+                        }, &icn_about))
+                    }
+                )
+            ), {EGPointZero, {160, 32}}),
             Mode(res, host) {
         }
     
@@ -84,8 +181,7 @@ class SettingsMode: public Mode {
         }
 
         void on_remote_key_pressed(VirtualKey key) override {
-            if(key == RVK_CURS_DOWN) rootView.down();
-            else if(key == RVK_CURS_UP) rootView.up();
+            rootView.on_key_pressed(key);
         }
 
         void teardown() override {
@@ -96,6 +192,6 @@ class SettingsMode: public Mode {
         }
     
     private:
-        UI::ListView rootView;
+        MenuNavigator rootView;
         const char * LOG_TAG = "SETTING";
 };
