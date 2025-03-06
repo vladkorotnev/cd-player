@@ -134,6 +134,8 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
         meta.providers.push_back(new CD::CDDBMetadataProvider(Prefs::get(PREFS_KEY_CDDB_ADDRESS), Prefs::get(PREFS_KEY_CDDB_EMAIL)));
     if(Prefs::get(PREFS_KEY_CD_LRCLIB_ENABLED))
         meta.providers.push_back(new CD::LrcLibLyricProvider());
+    if(Prefs::get(PREFS_KEY_CD_QQ_ENABLED))
+        meta.providers.push_back(new CD::QQMusicLyricProvider());
 
     lyrics_enabled = Prefs::get(PREFS_KEY_CD_LYRICS_ENABLED);
 

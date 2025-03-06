@@ -134,7 +134,8 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                                 TextPreferenceEditorNode("CDDB e-mail", PREFS_KEY_CDDB_EMAIL)
                             }),
                             ListMenuNode("Lyrics sources", nullptr, std::tuple {
-                                TogglePreferenceMenuNode("LRCLib", PREFS_KEY_CD_LRCLIB_ENABLED)
+                                TogglePreferenceMenuNode("LRCLib", PREFS_KEY_CD_LRCLIB_ENABLED),
+                                TogglePreferenceMenuNode("QQ Music", PREFS_KEY_CD_QQ_ENABLED),
                             })
                         }),
                         ListMenuNode("Last.FM", nullptr, std::tuple {

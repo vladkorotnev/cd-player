@@ -19,6 +19,8 @@ static const Prefs::Key<bool> PREFS_KEY_CD_MUSICBRAINZ_ENABLED {"cd_meta_mb", tr
 static const Prefs::Key<bool> PREFS_KEY_CD_CDDB_ENABLED {"cd_meta_cddb", true};
 /// Whether to use LRCLib
 static const Prefs::Key<bool> PREFS_KEY_CD_LRCLIB_ENABLED {"cd_meta_lrclib", true};
+/// Whether to use QQ Music lyrics
+static const Prefs::Key<bool> PREFS_KEY_CD_QQ_ENABLED {"cd_meta_qq", true};
 /// Whether to scrobble to Last FM or not
 static const Prefs::Key<bool> PREFS_KEY_CD_LASTFM_ENABLED {"cd_lastfm", false};
 

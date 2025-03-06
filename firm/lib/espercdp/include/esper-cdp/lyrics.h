@@ -22,12 +22,19 @@ namespace CD {
     };
 
     class LrcLibLyricProvider: public LyricProvider {
-    // POC
     public:
         LrcLibLyricProvider() {}
 
         void fetch_track(Track& track, const Album& album) override;
     private:
         const char * LOG_TAG = "LRCLIB";
+    };
+
+    class QQMusicLyricProvider: public LyricProvider {
+    public:
+        QQMusicLyricProvider() {}
+        void fetch_track(Track& track, const Album& album) override;
+    private:
+        const char * LOG_TAG = "QQLRC";
     };
 }
