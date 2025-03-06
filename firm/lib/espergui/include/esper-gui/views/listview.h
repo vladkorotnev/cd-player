@@ -2,6 +2,7 @@
 #include "view.h"
 #include "../text.h"
 #include "imageview.h"
+#include <functional>
 
 namespace UI {
     class ScrollBar: public View {
@@ -21,14 +22,14 @@ namespace UI {
 
         void render(EGGraphBuf * buf) override {
             // draw up down arrows
-            EGGraphBuf tmp = {
-                .fmt = EG_FMT_HORIZONTAL,
+            EGImage tmp = {
+                .format = EG_FMT_HORIZONTAL,
                 .size = {5, 4},
-                .data = (EGRawGraphBuf) arrow_up_data
+                .data = arrow_up_data
             };
-            EGBlitBuffer(buf, EGPointZero, &tmp);
+            EGBlitImage(buf, EGPointZero, &tmp);
             tmp.data = (EGRawGraphBuf) arrow_down_data;
-            EGBlitBuffer(buf, {0, frame.size.height - 4}, &tmp);
+            EGBlitImage(buf, {0, frame.size.height - 4}, &tmp);
 
             // draw trackbar
             int midpoint_x = frame.size.width / 2;
@@ -65,7 +66,7 @@ namespace UI {
         public:
             const std::shared_ptr<UI::View> contentView;
             ScrollView(EGRect frame, EGSize contentSize): 
-                contentView(std::make_shared<UI::View>(UI::View({EGPointZero, contentSize}))),
+                contentView(std::make_shared<UI::View>(EGRect {EGPointZero, contentSize})),
                 scrollBar(std::make_shared<ScrollBar>(EGRect {{frame.size.width - 5, 0}, {5, frame.size.height}})),
                 View(frame) {
                     subviews.push_back(contentView);
@@ -92,28 +93,27 @@ namespace UI {
 
     class ListItem: public View {
         public:
-            ListItem(const std::string title, bool disclosureIndicator = false, const UI::Image * icon = nullptr, const Fonts::Font* font = Fonts::FallbackWildcard16px):
+            static void DisclosureIndicatorDrawingFunc(EGGraphBuf* buf, EGSize bounds) {
+                const Fonts::Font* font_to_use;
+                if(bounds.height >= 16) font_to_use = Fonts::FallbackWildcard16px;
+                else font_to_use = Fonts::FallbackWildcard8px;
+                int y = bounds.height/2 - font_to_use->size.height/2;
+                Fonts::EGFont_put_string(font_to_use, "\x10" /* in keyrus0808 it's a filled right arrow in CP866 */, {bounds.width - font_to_use->size.width+1, y}, buf);
+            };
+
+            ListItem(const std::string title, std::function<void(EGGraphBuf*, EGSize)> accessoryDrawingFunc = [](EGGraphBuf*, EGSize){}, const EGImage * icon = nullptr, const Fonts::Font* font = Fonts::FallbackWildcard16px):
                 _font(font),
                 _title(title),
                 _icon(icon),
-                disclosure(disclosureIndicator),
+                _accessoryDrawingFunc(accessoryDrawingFunc),
                 View({EGPointZero, {0, font->size.height}}) {
             }
             virtual ~ListItem() = default;
 
             void render(EGGraphBuf * buf) override {
-                if(_icon != nullptr) {
-                    const EGGraphBuf tmp_buf = {
-                        .fmt = _icon->format,
-                        .size = _icon->size,
-                        .data = (EGRawGraphBuf) _icon->data
-                    };
-                    EGBlitBuffer(buf, {left_margin, 0}, &tmp_buf);
-                }
-                Fonts::EGFont_put_string(_font, _title.c_str(), {left_margin + ((_icon == nullptr) ? 0 : (_icon->size.width + left_margin)), 0}, buf);
-                if(disclosure) {
-                    Fonts::EGFont_put_string(_font, "\x10" /* in keyrus0808 it's a filled right arrow in CP866 */, {frame.size.width - _font->size.width - left_margin, 0}, buf);
-                }
+                EGBlitImage(buf, {2, 0}, _icon);
+                Fonts::EGFont_put_string(_font, _title.c_str(), {2 + ((_icon == nullptr) ? 0 : (_icon->size.width + 2)), 0}, buf);
+                _accessoryDrawingFunc(buf, frame.size);
                 if(is_selected) {
                     EGBufferInvert(buf);
                 }
@@ -126,11 +126,10 @@ namespace UI {
             }
         protected:
             bool is_selected = false;
-            bool disclosure;
-            int left_margin = 2;
+            std::function<void(EGGraphBuf*, EGSize)> _accessoryDrawingFunc;
             const Fonts::Font* _font;
             const std::string _title;
-            const UI::Image* _icon;
+            const EGImage* _icon;
     };
 
     class ListView: public ScrollView {
@@ -147,23 +146,31 @@ namespace UI {
                 contentView->frame.size.height = 0;
                 _items = items;
 
+                layout_items();
+
+                if(!_items.empty()) {
+                    select(0);
+                    update_scrollbar();
+                }
+            }
+
+            void layout_items() {
+                contentView->frame = EGRect {EGPointZero, {frame.size.width - 6, 0}};
+                scrollBar->frame = EGRect {{frame.size.width - 5, 0}, {5, frame.size.height}};
+                contentView->subviews.clear();
                 for(auto& item: _items) {
                     item->frame.origin.y = contentView->frame.size.height;
                     item->frame.size.width = contentView->frame.size.width;
                     contentView->frame.size.height += item->frame.size.height;
                     contentView->subviews.push_back(item);
                 }
-                if(!_items.empty()) {
-                    select(0);
-                    scrollBar->maximum = contentView->frame.size.height;
-                    scrollBar->page_size = frame.size.height;
-                    scrollBar->current_offset = -contentView->frame.origin.y;
-                    scrollBar->set_needs_display();
-                }
+                update_scrollbar();
+                set_needs_display();
             }
 
             void select(int idx) {
-                if(selection < _items.size() && selection >= 0) _items[selection]->set_selected(false);
+                if(selection < _items.size() && selection >= 0) 
+                    _items[selection]->set_selected(false);
                 if(idx < _items.size() && idx >= 0) {
                     selection = idx;
                     _items[idx]->set_selected(true);
@@ -200,5 +207,12 @@ namespace UI {
         protected:
             std::vector<std::shared_ptr<ListItem>> _items;
             int selection = -1;
+
+            void update_scrollbar() {
+                scrollBar->maximum = contentView->frame.size.height;
+                scrollBar->page_size = frame.size.height;
+                scrollBar->current_offset = -contentView->frame.origin.y;
+                scrollBar->set_needs_display();
+            }
     };
 }

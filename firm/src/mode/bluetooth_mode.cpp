@@ -1,6 +1,7 @@
 #include <modes/bluetooth_mode.h>
 #include <esper-core/service.h>
 #include <esper-gui/views/framework.h>
+#include <shared_prefs.h>
 
 using std::make_shared;
 using std::shared_ptr;
@@ -19,7 +20,7 @@ static const uint8_t vol_icn_data[] ={
     0b00010010,
 };
 
-static const UI::Image vol_icn = {
+static const EGImage vol_icn = {
     .format = EG_FMT_HORIZONTAL,
     .size = {8, 8},
     .data = vol_icn_data
@@ -28,9 +29,9 @@ static const UI::Image vol_icn = {
 class BluetoothMode::BluetoothView: public UI::View {
 public:
     BluetoothView(EGRect f): View(f) {
-        lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
-        lblSubtitle = make_shared<UI::Label>(UI::Label({EGPointZero, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
-        lblSource = make_shared<UI::Label>(UI::Label({{0, 24}, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth"));
+        lblTitle = make_shared<UI::Label>(EGRect {{0, 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
+        lblSubtitle = make_shared<UI::Label>(EGRect {EGPointZero, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
+        lblSource = make_shared<UI::Label>(EGRect {{0, 24}, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth");
 
         lblTitle->auto_scroll = true;
         lblTitle->synchronize_scrolling_to(&lblSubtitle);
@@ -223,8 +224,8 @@ void BluetoothMode::setup() {
     a2dp.set_avrc_metadata_attribute_mask(ESP_AVRC_MD_ATTR_TITLE | ESP_AVRC_MD_ATTR_ARTIST);
     a2dp.set_avrc_metadata_callback(avrc_metadata_callback);
     a2dp.set_avrc_rn_playstatus_callback(avrc_rn_playstatus_callback);
-    a2dp.activate_pin_code(true);
-    a2dp.start(("ESPer-CDP_" + Core::Services::WLAN::chip_id()).c_str(), true);
+    a2dp.activate_pin_code(Prefs::get(PREFS_KEY_BT_NEED_PIN));
+    a2dp.start(Prefs::get(PREFS_KEY_BT_NAME).c_str(), Prefs::get(PREFS_KEY_BT_RECONNECT));
     a2dp.set_discoverability(esp_bt_discovery_mode_t::ESP_BT_GENERAL_DISCOVERABLE);
 }
 

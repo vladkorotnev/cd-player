@@ -1,5 +1,6 @@
 #include <modes/cd_mode.h>
 #include <shared_prefs.h>
+#include <consts.h>
 #include "cd_mode/time_bar.h"
 #include "cd_mode/lyric_label.h"
 #include <esper-gui/views/framework.h>
@@ -34,7 +35,7 @@ static const uint8_t shuffle_icon_data[] = {
     0b11000010,
 };
 
-static const UI::Image shuffle_icon = {
+static const EGImage shuffle_icon = {
     .format = EG_FMT_HORIZONTAL,
     .size = {8, 5},
     .data = shuffle_icon_data
@@ -54,21 +55,21 @@ public:
     std::shared_ptr<WiFiIcon> wifi;
 
     CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
-        allButLyric = std::make_shared<UI::View>(UI::View({EGPointZero, {160, 27}}));
-        lblSmallTop = std::make_shared<UI::Label>(UI::Label({EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
-        lblBigMiddle = std::make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
+        allButLyric = std::make_shared<UI::View>(EGRect {EGPointZero, {160, 27}});
+        lblSmallTop = std::make_shared<UI::Label>(EGRect {EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
+        lblBigMiddle = std::make_shared<UI::Label>(EGRect {{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
-        lblTrackIndicator = std::make_shared<UI::Label>(UI::Label({{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right));
-        lblDiscIndicator = std::make_shared<UI::Label>(UI::Label({{5, 27}, {12, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left));
-        imgShuffleIcon = std::make_shared<UI::ImageView>(UI::ImageView(&shuffle_icon, {{152, 27}, {8, 5}}));
+        lblTrackIndicator = std::make_shared<UI::Label>(EGRect {{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right);
+        lblDiscIndicator = std::make_shared<UI::Label>(EGRect {{5, 27}, {12, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left);
+        imgShuffleIcon = std::make_shared<UI::ImageView>(&shuffle_icon, EGRect {{152, 27}, {8, 5}});
         imgShuffleIcon->hidden = true;
-        lblLyric = std::make_shared<LyricLabel>(LyricLabel({EGPointZero, {160, 27}}));
+        lblLyric = std::make_shared<LyricLabel>(EGRect {EGPointZero, {160, 27}});
         lblLyric->hidden = true;
-        timeBar = std::make_shared<TimeBar>(TimeBar({{20, 27}, {120, 5}}));
+        timeBar = std::make_shared<TimeBar>(EGRect {{20, 27}, {120, 5}});
 
-        wifi = std::make_shared<WiFiIcon>(WiFiIcon({{0, 32 - 5}, {5, 5}}));
-        loading = std::make_shared<UI::TinySpinner>(UI::TinySpinner({{0, 32 - 5}, {5, 5}}));
+        wifi = std::make_shared<WiFiIcon>(EGRect {{0, 32 - 5}, {5, 5}});
+        loading = std::make_shared<UI::TinySpinner>(EGRect {{0, 32 - 5}, {5, 5}});
         loading->hidden = true;
 
         allButLyric->subviews.push_back(lblSmallTop);
@@ -113,7 +114,7 @@ private:
 };
 
 CDMode::CDMode(const PlatformSharedResources res, ModeHost * host): 
-        meta { CD::CachingMetadataAggregateProvider("/mnt/cddb") },
+        meta { CD::CachingMetadataAggregateProvider(META_CACHE_PREFIX) },
         player { Player(res.cdrom, &meta) },
         stopEject { Button(resources.keypad, (1 << 0)) },
         playPause { Button(resources.keypad, (1 << 1)) },
@@ -125,10 +126,14 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
         chgSource { Button(resources.keypad, (1 << 7)) },
     Mode(res, host) {
 
+    meta.cache_enabled = Prefs::get(PREFS_KEY_CD_CACHE_META);
     meta.providers.push_back(new CD::CDTextMetadataProvider());
-    meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
-    meta.providers.push_back(new CD::CDDBMetadataProvider(Prefs::get(PREFS_KEY_CDDB_ADDRESS), Prefs::get(PREFS_KEY_CDDB_EMAIL)));
-    meta.providers.push_back(new CD::LrcLibLyricProvider());
+    if(Prefs::get(PREFS_KEY_CD_MUSICBRAINZ_ENABLED)) 
+        meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
+    if(Prefs::get(PREFS_KEY_CD_CDDB_ENABLED))
+        meta.providers.push_back(new CD::CDDBMetadataProvider(Prefs::get(PREFS_KEY_CDDB_ADDRESS), Prefs::get(PREFS_KEY_CDDB_EMAIL)));
+    if(Prefs::get(PREFS_KEY_CD_LRCLIB_ENABLED))
+        meta.providers.push_back(new CD::LrcLibLyricProvider());
 
     lyrics_enabled = Prefs::get(PREFS_KEY_CD_LYRICS_ENABLED);
 

@@ -16,7 +16,7 @@ public:
         int channel_margin = channel_width/2 - font->size.width/2; // assuming one digit
 
         for(int i = 1; i <= channel_count; i++) {
-            auto lbl = make_shared<UI::Label>(UI::Label({{(i-1)*channel_width + channel_margin, 0}, {font->size.width, font->size.height}}, font, UI::Label::Alignment::Center, std::to_string(i)));
+            auto lbl = make_shared<UI::Label>(EGRect {{(i-1)*channel_width + channel_margin, 0}, {font->size.width, font->size.height}}, font, UI::Label::Alignment::Center, std::to_string(i));
             subviews.push_back(lbl);
         }
     }
@@ -103,16 +103,16 @@ public:
     shared_ptr<ChannelGridBar> channelBar;
 
     InternetRadioView(EGRect f): View(f) {
-        wifi = make_shared<WiFiIcon>(WiFiIcon({{0, 32 - 7}, {5, 5}}));
-        loading = make_shared<UI::TinySpinner>(UI::TinySpinner({{160 - 6, 32 - 7}, {5, 5}}));
+        wifi = make_shared<WiFiIcon>(EGRect {{0, 32 - 7}, {5, 5}});
+        loading = make_shared<UI::TinySpinner>(EGRect {{160 - 6, 32 - 7}, {5, 5}});
         loading->hidden = true;
 
-        channelBar = make_shared<ChannelGridBar>(ChannelGridBar({{5, 32 - 7}, {160 - 12, 7}}));
+        channelBar = make_shared<ChannelGridBar>(EGRect {{5, 32 - 7}, {160 - 12, 7}});
 
-        lblTitle = make_shared<UI::Label>(UI::Label({{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center));
-        lblSubtitle = make_shared<UI::Label>(UI::Label({EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center));
+        lblTitle = make_shared<UI::Label>(EGRect {{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
+        lblSubtitle = make_shared<UI::Label>(EGRect {EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
 
-        lblWarning = make_shared<UI::Label>(UI::Label({{160 - 6, 32 - 7}, {5, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Center, "!"));
+        lblWarning = make_shared<UI::Label>(EGRect {{160 - 6, 32 - 7}, {5, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Center, "!");
         lblWarning->hidden = true;
 
         lblTitle->auto_scroll = true;

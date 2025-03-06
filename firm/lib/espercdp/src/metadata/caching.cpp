@@ -198,6 +198,8 @@ namespace CD {
     }
 
     void CachingMetadataAggregateProvider::save_to_cache(const Album& album, const std::string id) {
+        if(!cache_enabled) return;
+        
         size_t initial_space =  LittleFS.totalBytes() - LittleFS.usedBytes();
         CacheDataFileHeader hdr = { 0 };
         hdr.magic = CACHE_DATAFILE_MAGIC;

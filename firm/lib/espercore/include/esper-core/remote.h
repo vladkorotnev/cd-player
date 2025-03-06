@@ -37,6 +37,7 @@ enum VirtualKey: uint32_t {
     RVK_STOP,
     RVK_EJECT,
 
+    RVK_MODE_SWITCH,
     RVK_MODE_CD,
     RVK_MODE_RADIO,
     RVK_MODE_BLUETOOTH,

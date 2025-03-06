@@ -100,6 +100,17 @@ void EGBlitBuffer(EGGraphBuf * dst, const EGPoint& location, const EGGraphBuf * 
     }
 }
 
+void EGBlitImage(EGGraphBuf * buf, const EGPoint location, const EGImage* image) {
+    if(image != nullptr && image->data != nullptr) {
+        const EGGraphBuf tmp_buf = {
+            .fmt = image->format,
+            .size = image->size,
+            .data = (EGRawGraphBuf) image->data
+        };
+        EGBlitBuffer(buf, location, &tmp_buf);
+    }
+}
+
 void EGDrawPixel(EGGraphBuf * dst, const EGPoint& location, bool state) {
     if(location.x < 0 || location.y < 0 || location.x >= dst->size.width || location.y >= dst->size.height) return;
     int byte;

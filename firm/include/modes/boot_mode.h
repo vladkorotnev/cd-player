@@ -47,7 +47,7 @@ namespace {
         0x00, 0x00, 0x00, 0x7c, 0x00, 0x00, 0x00, 0x5c, 0x00, 0x00, 0x00, 0x58, 0x00, 0x00, 0x00, 0x00
     };
 
-    static const UI::Image logoimg = {
+    static const EGImage logoimg = {
         .format = EGBufferFormat::EG_FMT_NATIVE,
         .size = {160, 32},
         .data = logo

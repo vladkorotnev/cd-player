@@ -131,7 +131,7 @@ Core::Remote::RemoteKeyMap Platform::PS2_REMOTE_KEYMAP = {
     // below are just for their shapes, not really used, but to keep the codes handy...
     {0x5AD5C,       RVK_EJECT}, // Triangle
     {0x5AD5F,       RVK_STOP},  // Square
-    {0x5AD5D,       RVK_CURS_ENTER}, // Circle
+    {0x5AD5D,       RVK_MODE_SWITCH}, // Circle
     {0x5AD5E,       RVK_MODE_STANDBY}, // Cross
 
     {0x5AD50,       RVK_STOP}, // Select

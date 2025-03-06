@@ -31,6 +31,8 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * Display timed lyrics for the songs using the awesome [LRCLib](https://lrclib.net/)
 * Receive internet radio stations (as long as no crazy bitrate) in MP3 and AAC formats with up to 6 station presets
 * Receive sound over Bluetooth (SBC only) and control the remote device
+* Settings UI on screen
+* IR Remote (PS2-DVD remote)
 * ... more to come! I need time :P
 
 ## Further goals
@@ -38,11 +40,10 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 ### Software only
 
 * Stretch: Bluetooth transmitter from radio/CD
-* Settings UI on screen
+* Maybe some day: Web interface
 * Connect to WiFi by QR (**upd:** DPP QR doesn't fit in 29x29 or 31x31, must use captive portal or OSD altogether)
 * LastFM scrobble with Oauth by QR
 * More lyric sources (similar to those supported by one popular foobar plugin)
-* IR Remote support
 * Figure out how to disable drive's sleep mode? For now I almost exploded the disc twice from hanging the CPU in the drive, but never got the power condition mode select call to work
 
 ### Rev 2 of hardware if it ever comes

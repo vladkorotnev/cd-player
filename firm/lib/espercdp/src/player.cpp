@@ -123,7 +123,7 @@ namespace CD {
             }
 
             if((media_type == ATAPI::MediaTypeCode::MTC_DOOR_OPEN || mech->is_door_open) && sts != State::CLOSE) {
-                slots[cur_slot].disc = std::make_shared<Album>(Album());
+                slots[cur_slot].disc = std::make_shared<Album>();
                 sts = State::OPEN;
             }
 
@@ -165,10 +165,10 @@ namespace CD {
                             // The CD is not really useful as we cannot seem to read or play it
                             ESP_LOGE(LOG_TAG, "Empty TOC!");
                             sts = State::BAD_DISC;
-                            slots[cur_slot].disc = std::make_shared<Album>(Album());
+                            slots[cur_slot].disc = std::make_shared<Album>();
                             want_auto_play = false;
                         } else {
-                            slots[cur_slot].disc = std::make_shared<Album>(Album(toc));
+                            slots[cur_slot].disc = std::make_shared<Album>(toc);
                             
                             // NB: std::queue is not thread safe, can this lead to a problem? realistically we shouldn't have more than one in the pipeline anyway...
                             xSemaphoreTake(_metaSemaphore, portMAX_DELAY);
@@ -191,7 +191,7 @@ namespace CD {
                         if(sts == State::BAD_DISC) {
                             ESP_LOGE(LOG_TAG, "Bad media code %i", media_type);
                         }
-                        slots[cur_slot].disc = std::make_shared<Album>(Album());
+                        slots[cur_slot].disc = std::make_shared<Album>();
                         want_auto_play = false;
                     }
                 break;

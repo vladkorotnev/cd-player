@@ -94,6 +94,7 @@ namespace CD {
         CachingMetadataAggregateProvider(const char * cache_path);
         void fetch_album(Album&) override;
         std::vector<MetadataProvider *> providers = {};
+        bool cache_enabled = true;
     private:
         std::string path;
 

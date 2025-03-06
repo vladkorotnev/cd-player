@@ -1,7 +1,7 @@
 #pragma once
 #include "mode.h"
 #include "modes/boot_mode.h"
-#include <esper-core/prefs.h>
+#include "shared_prefs.h"
 #include <esper-gui/views/framework.h>
 #include <platform.h>
 #include <modes/cd_mode.h>
@@ -87,6 +87,9 @@ public:
                         activate_mode(ESPER_MODE_STANDBY);
                     }
                 }
+                else if(code == RVK_MODE_SWITCH) {
+                    activate_next_mode();
+                }
                 else if(code == RVK_MODE_SETTINGS && cur_mode != ESPER_MODE_STANDBY) {
                     activate_mode(ESPER_MODE_SETTINGS);
                 }
@@ -119,20 +122,7 @@ public:
                 }
             }
             else if(modeSw.is_clicked()) {
-                ModeSelection m;
-                if(cur_mode == ESPER_MODE_STANDBY) {
-                    m = (ModeSelection) Prefs::get(PREFS_KEY_CUR_MODE);
-                }
-                else if(cur_mode == ESPER_MODE_CD) {
-                    m = ESPER_MODE_NET_RADIO;
-                }
-                else if(cur_mode == ESPER_MODE_NET_RADIO) {
-                    m = ESPER_MODE_BLUETOOTH;
-                }
-                else {
-                    m = ESPER_MODE_CD;
-                }
-                activate_mode(m);
+                activate_next_mode();
             }
             else if(modeSw.is_held_continuously() && cur_mode != ESPER_MODE_STANDBY) {
                 activate_mode(ESPER_MODE_STANDBY);
@@ -147,7 +137,7 @@ public:
 
 private:
     const char * LOG_TAG = "APPHOST";
-    const Prefs::Key<int> PREFS_KEY_CUR_MODE {"last_mode", (int)ESPER_MODE_CD};
+    const Prefs::Key<int> PREFS_KEY_CUR_MODE {"last_mode", (int)ESPER_MODE_SETTINGS};
     const Prefs::Key<int> PREFS_KEY_CUR_BRIGHTNESS {"last_dimmer", (int)Graphics::Hardware::Brightness::DISP_BRIGHTNESS_100};
     PlatformSharedResources resources;
     Graphics::Compositor compositor;
@@ -157,6 +147,50 @@ private:
     ModeSelection cur_mode = ESPER_MODE_MAX_INVALID;
     ModeSelection req_mode = ESPER_MODE_MAX_INVALID;
     Button modeSw;
+
+    void activate_next_mode() {
+        ModeSelection m;
+        if(cur_mode == ESPER_MODE_STANDBY) {
+            m = (ModeSelection) Prefs::get(PREFS_KEY_CUR_MODE);
+        }
+        else if(cur_mode == ESPER_MODE_CD) {
+            if(Prefs::get(PREFS_KEY_RADIO_MODE_INCLUDED)) {
+                m = ESPER_MODE_NET_RADIO;
+            }
+            else if(Prefs::get(PREFS_KEY_BLUETOOTH_MODE_INCLUDED)) {
+                m = ESPER_MODE_BLUETOOTH;
+            }
+            else {
+                // nowhere to go
+                return;
+            }
+        }
+        else if(cur_mode == ESPER_MODE_NET_RADIO) {
+            if(Prefs::get(PREFS_KEY_BLUETOOTH_MODE_INCLUDED)) {
+                m = ESPER_MODE_BLUETOOTH;
+            }
+            else if(Prefs::get(PREFS_KEY_CD_MODE_INCLUDED)) {
+                m = ESPER_MODE_CD;
+            }
+            else {
+                // nowhere to go
+                return;
+            }
+        }
+        else {
+            if(Prefs::get(PREFS_KEY_CD_MODE_INCLUDED)) {
+                m = ESPER_MODE_CD;
+            }
+            else if(Prefs::get(PREFS_KEY_RADIO_MODE_INCLUDED)) {
+                m = ESPER_MODE_NET_RADIO;
+            }
+            else {
+                // nowhere to go
+                return;
+            }
+        }
+        activate_mode(m);
+    }
 
     void switch_to_req_mode_locked() {
         if(req_mode == cur_mode) return;

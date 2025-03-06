@@ -33,7 +33,7 @@ static const uint8_t hi_data[] = {
     0b10101000,
 };
 
-static const UI::Image icons[] = {
+static const EGImage icons[] = {
     {
         .format = EG_FMT_HORIZONTAL,
         .size = {5, 5},
@@ -57,7 +57,7 @@ static const UI::Image icons[] = {
 };
 
 WiFiIcon::WiFiIcon(EGRect f): UI::View(f) {
-    _img = std::make_shared<UI::ImageView>(UI::ImageView(nullptr, {EGPointZero, f.size}));
+    _img = std::make_shared<UI::ImageView>(nullptr, EGRect {EGPointZero, f.size});
     subviews.push_back(_img);
     cur_lvl = 0;
 }

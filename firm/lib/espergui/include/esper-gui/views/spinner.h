@@ -52,37 +52,37 @@ public:
 
     BigSpinner(EGRect f): View(f) {
         int bit_size = 2;
-        auto rect = std::make_shared<FilledRect>(FilledRect());
+        auto rect = std::make_shared<FilledRect>();
         rect->frame = {{0, 0}, {bit_size, bit_size}}; // top left
         subviews.push_back(rect);
 
-        rect = std::make_shared<FilledRect>(FilledRect());
+        rect = std::make_shared<FilledRect>();
         rect->frame = {{(f.size.width / 2 - bit_size / 2), 0}, {bit_size, bit_size}}; // top middle
         rect->hidden = true;
         pos = 1;
         subviews.push_back(rect);
 
-        rect = std::make_shared<FilledRect>(FilledRect());
+        rect = std::make_shared<FilledRect>();
         rect->frame = {{(f.size.width - bit_size), 0}, {bit_size, bit_size}}; // top right
         subviews.push_back(rect);
 
-        rect = std::make_shared<FilledRect>(FilledRect());
+        rect = std::make_shared<FilledRect>();
         rect->frame = {{(f.size.width - bit_size), (f.size.height / 2 - bit_size / 2)}, {bit_size, bit_size}}; // middle right
         subviews.push_back(rect);
 
-        rect = std::make_shared<FilledRect>(FilledRect());
+        rect = std::make_shared<FilledRect>();
         rect->frame = {{(f.size.width - bit_size), (f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom right
         subviews.push_back(rect);
 
-        rect = std::make_shared<FilledRect>(FilledRect());
+        rect = std::make_shared<FilledRect>();
         rect->frame = {{(f.size.width / 2 - bit_size / 2), (f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom middle
         subviews.push_back(rect);
 
-        rect = std::make_shared<FilledRect>(FilledRect());
+        rect = std::make_shared<FilledRect>();
         rect->frame = {{0, (f.size.height - bit_size)}, {bit_size, bit_size}}; // bottom left
         subviews.push_back(rect);
 
-        rect = std::make_shared<FilledRect>(FilledRect());
+        rect = std::make_shared<FilledRect>();
         rect->frame = {{0, (f.size.height / 2 - bit_size / 2)}, {bit_size, bit_size}}; // middle left
         subviews.push_back(rect);
     }

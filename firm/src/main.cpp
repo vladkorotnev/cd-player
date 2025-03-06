@@ -7,6 +7,7 @@
 #include <esper-gui/text.h>
 
 #include <mode_host.h>
+#include <consts.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -25,9 +26,9 @@ static TickType_t memory_last_print = 0;
 static void print_memory() {
     TickType_t now = xTaskGetTickCount();
     if(now - memory_last_print > pdMS_TO_TICKS(30000)) {
-        ESP_LOGV(LOG_TAG, "HEAP: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
+        ESP_LOGW(LOG_TAG, "HEAP: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreeHeap(), ESP.getHeapSize(), ESP.getMinFreeHeap(), ESP.getMaxAllocHeap());
 #ifdef BOARD_HAS_PSRAM
-        ESP_LOGV(LOG_TAG, "PSRAM: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram(), ESP.getMaxAllocPsram());
+        ESP_LOGW(LOG_TAG, "PSRAM: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram(), ESP.getMaxAllocPsram());
 #endif
         memory_last_print = now;
     }
@@ -35,7 +36,7 @@ static void print_memory() {
 
 void load_all_fonts() {
   Fonts::Font tmp;
-  FILE * f = fopen("/mnt/font/default.mofo", "rb");
+  FILE * f = fopen((FONT_DIR_PREFIX "/default.mofo"), "rb");
   fseek(f, 0, SEEK_SET);
   if(!Fonts::MoFo::LoadFromHandle(f, &tmp)) ESP_LOGE(LOG_TAG, "keyrus0808 err");
   else Fonts::EGFont_register(tmp);
@@ -46,13 +47,13 @@ void load_all_fonts() {
   if(!Fonts::MoFo::LoadFromHandle(f, &tmp)) ESP_LOGE(LOG_TAG, "xnu err");
   else Fonts::EGFont_register(tmp);
 
-  if(!Fonts::MoFo::Load("/mnt/font/misaki_mincho.mofo", &tmp)) ESP_LOGE(LOG_TAG, "misaki err");
+  if(!Fonts::MoFo::Load(FONT_DIR_PREFIX "/misaki_mincho.mofo", &tmp)) ESP_LOGE(LOG_TAG, "misaki err");
   else Fonts::EGFont_register(tmp);
 
-  if(!Fonts::MoFo::Load("/mnt/font/jiskan16.mofo", &tmp)) ESP_LOGE(LOG_TAG, "jiskan err");
+  if(!Fonts::MoFo::Load(FONT_DIR_PREFIX "/jiskan16.mofo", &tmp)) ESP_LOGE(LOG_TAG, "jiskan err");
   else Fonts::EGFont_register(tmp);
 
-  if(!Fonts::MoFo::Load("/mnt/font/k8x12.mofo", &tmp)) ESP_LOGE(LOG_TAG, "k8x12 err");
+  if(!Fonts::MoFo::Load(FONT_DIR_PREFIX "/k8x12.mofo", &tmp)) ESP_LOGE(LOG_TAG, "k8x12 err");
   else Fonts::EGFont_register(tmp);
 
   fclose(f);
@@ -119,7 +120,7 @@ void setup(void) {
 
   i2c->log_all_devices();
 
-  LittleFS.begin(true, "/mnt");
+  LittleFS.begin(true, FS_MOUNT_POINT);
   ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
   load_all_fonts();
   
