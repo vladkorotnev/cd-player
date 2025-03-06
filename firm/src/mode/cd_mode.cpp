@@ -6,21 +6,23 @@
 #include <esper-gui/views/framework.h>
 #include <views/wifi_icon.h>
 #include "Arduino.h"
+#include <localize.h>
 #include <string>
 
 static const char LOG_TAG[] = "APL_CDP";
 
 using CD::Player;
 
-static const char * HumanReadablePlayerStateString(Player::State sts) {
+static const std::string HumanReadablePlayerStateString(Player::State sts) {
     switch(sts) {
-        case Player::State::INIT: return "Please Wait";
-        case Player::State::LOAD: return "Reading";
-        case Player::State::CLOSE: return "Reading";
-        case Player::State::NO_DISC: return "No Disc";
-        case Player::State::BAD_DISC: return "No Disc";
-        case Player::State::OPEN: return "Open";
-        case Player::State::CHANGE_DISC: return "Changing Disc";
+        case Player::State::INIT: return localized_string("Please Wait");
+        case Player::State::LOAD: return localized_string("Reading");
+        case Player::State::CLOSE: return localized_string("Reading");
+        case Player::State::NO_DISC: return localized_string("No Disc");
+        case Player::State::BAD_DISC: return localized_string("No Disc");
+        case Player::State::OPEN: return localized_string("Open");
+        case Player::State::CHANGE_DISC: return localized_string("Changing Disc");
+        case Player::State::STOP: return localized_string("Stop");
         default:
             return Player::PlayerStateString(sts);
             break;
@@ -174,9 +176,9 @@ void CDMode::update_title(const std::shared_ptr<CD::Album> disc, const CD::Track
         rootView->lblBigMiddle->set_value(metadata.title);
     } else {
         if(trk.index < 2) {
-            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + "/" + std::to_string(disc->tracks.size()));
+            rootView->lblBigMiddle->set_value(localized_string("Track") + " " + std::to_string(trk.track) + "/" + std::to_string(disc->tracks.size()));
         } else {
-            rootView->lblBigMiddle->set_value("Track " + std::to_string(trk.track) + "-" + std::to_string(trk.index) + "/" + std::to_string(disc->tracks.size()));
+            rootView->lblBigMiddle->set_value(localized_string("Track") + " " + std::to_string(trk.track) + "-" + std::to_string(trk.index) + "/" + std::to_string(disc->tracks.size()));
         }
     }
 }

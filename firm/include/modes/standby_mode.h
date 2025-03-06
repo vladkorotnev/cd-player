@@ -11,7 +11,7 @@ class StandbyMode: public Mode {
         }
     
         void setup() override {
-            lbl->set_value("Goodbye!");
+            lbl->set_value(localized_string("Goodbye!"));
             ESP_LOGW(LOG_TAG, "Entering standby");
             if(resources.cdrom->check_media() == ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
                 resources.cdrom->eject(false);
@@ -30,7 +30,7 @@ class StandbyMode: public Mode {
 
         void teardown() override {
             setCpuFrequencyMhz(240); // less than that breaks UART!!?
-            lbl->set_value("Hello!");
+            lbl->set_value(localized_string("Hello!"));
             resources.display->set_power(true);
             esp_wifi_set_ps(WIFI_PS_NONE);
             Core::Services::WLAN::start();

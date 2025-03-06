@@ -1,0 +1,51 @@
+{
+    "Hello!": "おはこんばんにちは",
+    "Goodbye!": "それではまたね",
+
+    "Please Wait": "暫くお待ちください",
+    "Reading": "読み込み中",
+    "No Disc": "ディスクなし",
+    "Open": "トレイオープン",
+    "Changing Disc": "ディスク切替中",
+    "Stop": "ストップ",
+    "Track": "トラック",
+
+    "(BT Device)": "(BT端末)",
+    "Confirm PIN and press PLAY": "暗証番号が一致する場合はPLAYを押してください",
+
+    "Free Memory": "メモリー残量",
+
+    "Source": "再生する",
+    "Web Radio": "ネットラジオ",
+
+    "Settings": "設定を変更する",
+    "Show Lyrics": "歌詞の表示",
+    "Metadata": "曲名の取得設定",
+    "Cache Metadata": "メモリに保存",
+    "Clear Cache": "保存したデータ削除",
+
+    "Cache cleared": "データを削除しました",
+    "Failed to clear cache": "削除に失敗しました",
+
+    "Metadata sources": "曲名データ取得元",
+    "CDDB server": "CDDBサーバー",
+    "CDDB e-mail": "CDDB用メール",
+    "Lyrics sources": "歌詞データ取得元",
+    "Enable": "利用する",
+
+    "Radio Stations": "ネットラジオURL設定",
+
+    "Device Name": "デバイス名",
+    "Require PIN code": "暗証番号の要求",
+    "Auto-connect": "自動接続",
+    "Language": "言語",
+    "Mode toggle button": "モード切替ボタン",
+    "Check for Updates": "バージョンアップ",
+    "NTP server": "NTPサーバー",
+    "Full Reset": "初期化",
+    "Yes, Erase All!": "設定を初期化する",
+    "Yes, I Am Sure!": "本当に初期化する",
+
+    "About": "バージョン情報",
+    "System": "システム設定"
+}

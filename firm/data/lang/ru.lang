@@ -1,0 +1,51 @@
+{
+    "Hello!": "Привет!",
+    "Goodbye!": "До скорого!",
+
+    "Please Wait": "Подождите...",
+    "Reading": "Чтение...",
+    "No Disc": "Нет диска",
+    "Open": "Лоток открыт",
+    "Changing Disc": "Смена диска",
+    "Stop": "Остановлен",
+    "Track": "Трек",
+
+    "(BT Device)": "(Устройство BT)",
+    "Confirm PIN and press PLAY": "Сверьте пароль и нажмите PLAY",
+
+    "Free Memory": "Своб. память",
+
+    "Source": "Источники",
+    "Web Radio": "Интернет-радио",
+
+    "Settings": "Настройки",
+    "Show Lyrics": "Слова песен",
+    "Metadata": "Названия песен",
+    "Cache Metadata": "Кэш названий",
+    "Clear Cache": "Очистить",
+
+    "Cache cleared": "Кэш очищен",
+    "Failed to clear cache": "Не удалось очистить кэш",
+
+    "Metadata sources": "Источники названий",
+    "CDDB server": "Сервер CDDB",
+    "CDDB e-mail": "E-mail CDDB",
+    "Lyrics sources": "Источники слов",
+    "Enable": "Включить",
+
+    "Radio Stations": "Радиостанции",
+
+    "Device Name": "Имя устройства",
+    "Require PIN code": "Требовать PIN",
+    "Auto-connect": "Автоподключение",
+    "Language": "Язык",
+    "Mode toggle button": "Кнопка режима",
+    "Check for Updates": "Обновить прошивку",
+    "NTP server": "Сервер NTP",
+    "Full Reset": "Полный сброс",
+    "Yes, Erase All!": "Да, стереть всё!",
+    "Yes, I Am Sure!": "Да, я уверен!",
+
+    "About": "Об устройстве",
+    "System": "Система"
+}

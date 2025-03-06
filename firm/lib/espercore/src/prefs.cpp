@@ -21,6 +21,10 @@ namespace Prefs {
             return store;
         }
 
+        void reset_all() {
+            get_store()->clear();
+        }
+
         template <> int get(Key<int> key) {
             auto store = get_store();
             if(store->getType(key.first) == PreferenceType::PT_I32) {

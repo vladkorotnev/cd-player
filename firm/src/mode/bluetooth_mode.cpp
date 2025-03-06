@@ -2,6 +2,7 @@
 #include <esper-core/service.h>
 #include <esper-gui/views/framework.h>
 #include <shared_prefs.h>
+#include <localize.h>
 
 using std::make_shared;
 using std::shared_ptr;
@@ -31,7 +32,7 @@ public:
     BluetoothView(EGRect f): View(f) {
         lblTitle = make_shared<UI::Label>(EGRect {{0, 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
         lblSubtitle = make_shared<UI::Label>(EGRect {EGPointZero, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
-        lblSource = make_shared<UI::Label>(EGRect {{0, 24}, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth");
+        lblSource = make_shared<UI::Label>(EGRect {{0, 24}, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, localized_string("Bluetooth"));
 
         lblTitle->auto_scroll = true;
         lblTitle->synchronize_scrolling_to(&lblSubtitle);
@@ -79,7 +80,7 @@ public:
             if(state.connection != CONNECTED && state.connection != PLAYING) {
                 state.connection = CONNECTED;
             }
-            state.device_name = (disp_name.empty() ? "(BT Device)" : disp_name);
+            state.device_name = (disp_name.empty() ? localized_string("(BT Device)") : disp_name);
             update();
         }
     }
@@ -161,13 +162,13 @@ protected:
         if(state.connection == DISCONNECTED) {
             lblSource->hidden = true;
             lblSubtitle->hidden = true;
-            lblTitle->set_value("Bluetooth");
+            lblTitle->set_value(localized_string("Bluetooth"));
         }
         else if(state.connection == PAIRING_PIN) {
             lblSource->hidden = false;
             lblSubtitle->hidden = false;
             lblSource->set_value(state.device_name);
-            lblSubtitle->set_value("Confirm PIN and press PLAY");
+            lblSubtitle->set_value(localized_string("Confirm PIN and press PLAY"));
             lblTitle->set_value(std::to_string(state.pincode));
         }
         else if(state.connection == CONNECTED) {
@@ -187,7 +188,7 @@ protected:
         else if(state.connection == WAIT) {
             lblSource->hidden = true;
             lblSubtitle->hidden = true;
-            lblTitle->set_value("Please Wait");
+            lblTitle->set_value(localized_string("Please Wait"));
         }
     }
 };

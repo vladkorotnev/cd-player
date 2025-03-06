@@ -8,6 +8,7 @@ namespace Prefs {
     template <typename DataType> DataType get(Key<DataType> key);
     template <typename DataType> void set(Key<DataType> key, const DataType& val);
     template <typename DataType> void erase(Key<DataType> key);
+    void reset_all();
 };
 
 namespace Core::PrefsKey {
