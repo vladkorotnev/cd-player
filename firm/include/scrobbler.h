@@ -55,15 +55,15 @@ public:
     template <typename T>
     ThreadedScrobbler(T&& scrobbler):
         Scrobbler(),
-        scrobbleQueue(xQueueCreate(1, sizeof(ScrobbleTask))),
+        queue(),
+        queueSemaphore(xSemaphoreCreateCounting(4, 0)),
         innerScrobbler(std::make_unique<T>(std::move(scrobbler))),
         scrobbleTask(NULL)
         {
-            
             xTaskCreate(
                 taskFunc,
                 "SCROBBLE",
-                16384,
+                8000,
                 this,
                 1,
                 &scrobbleTask   
@@ -74,7 +74,7 @@ public:
         if(scrobbleTask != NULL) {
             vTaskDelete(scrobbleTask);
         }
-        vQueueDelete(scrobbleQueue);
+        vSemaphoreDelete(queueSemaphore);
     }
 
 protected:
@@ -82,14 +82,16 @@ protected:
         ScrobbleTask tmp;
         tmp.kind = ScrobbleTaskKind::Scrobble;
         tmp.meta = meta;
-        xQueueSend(scrobbleQueue, &tmp, portMAX_DELAY);
+        queue.push(tmp);
+        xSemaphoreGive(queueSemaphore);
     }
 
     void do_now_playing(const CD::Track& meta) override {
         ScrobbleTask tmp;
         tmp.kind = ScrobbleTaskKind::NowPlaying;
         tmp.meta = meta;
-        xQueueSend(scrobbleQueue, &tmp, portMAX_DELAY);
+        queue.push(tmp);
+        xSemaphoreGive(queueSemaphore);
     }
 
 private:
@@ -101,15 +103,19 @@ private:
         CD::Track meta;
         ScrobbleTaskKind kind;
     };
-    QueueHandle_t scrobbleQueue;
+    SemaphoreHandle_t queueSemaphore;
     TaskHandle_t scrobbleTask;
+    std::queue<ScrobbleTask> queue;
     std::unique_ptr<Scrobbler> innerScrobbler;
 
     static void taskFunc(void* pvParameter) {
         ThreadedScrobbler * that = static_cast<ThreadedScrobbler*>(pvParameter);
-        ScrobbleTask tmp;
         while(1) {
-            if(xQueueReceive(that->scrobbleQueue, &tmp, portMAX_DELAY)) {
+            if(xSemaphoreTake(that->queueSemaphore, portMAX_DELAY)) {
+                if(that->queue.empty()) continue;
+                ScrobbleTask tmp = that->queue.front();
+                that->queue.pop();
+                ESP_LOGI("ThreadedScrobbler", "Task: %s, Artist: [%s], Title: [%s]", (tmp.kind == ScrobbleTaskKind::Scrobble) ? "Scrobble" : "NowPlaying", tmp.meta.artist.c_str(), tmp.meta.title.c_str());
                 switch(tmp.kind) {
                     case ScrobbleTaskKind::NowPlaying:
                         that->innerScrobbler->do_now_playing(tmp.meta);
@@ -118,7 +124,6 @@ private:
                         that->innerScrobbler->do_scrobble(tmp.meta);
                         break;
                 }
-                vTaskDelay(pdMS_TO_TICKS(1000));
             }
         }
         vTaskDelete(NULL);
