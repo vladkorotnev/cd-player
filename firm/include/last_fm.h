@@ -75,6 +75,7 @@ private:
 
     void perform_lastfm_request(std::string& post_data, const std::string& api_sig, const std::string& action_description) {
         HTTPClient http;
+        http.setTimeout(3000);
         http.begin(url);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
@@ -116,6 +117,7 @@ private:
 
     JsonDocument perform_lastfm_get_response(std::string& post_data, const std::string& api_sig, const std::string& action_description) {
         HTTPClient http;
+        http.setTimeout(3000);
         http.begin(url);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 

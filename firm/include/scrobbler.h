@@ -52,10 +52,11 @@ private:
 
 class ThreadedScrobbler: public Scrobbler {
 public:
-    ThreadedScrobbler(Scrobbler&& scrobbler):
+    template <typename T>
+    ThreadedScrobbler(T&& scrobbler):
         Scrobbler(),
         scrobbleQueue(xQueueCreate(1, sizeof(ScrobbleTask))),
-        innerScrobbler(std::make_unique<Scrobbler>(std::move(scrobbler))),
+        innerScrobbler(std::make_unique<T>(std::move(scrobbler))),
         scrobbleTask(NULL)
         {
             
@@ -75,6 +76,22 @@ public:
         }
         vQueueDelete(scrobbleQueue);
     }
+
+protected:
+    void do_scrobble(const CD::Track& meta) override {
+        ScrobbleTask tmp;
+        tmp.kind = ScrobbleTaskKind::Scrobble;
+        tmp.meta = meta;
+        xQueueSend(scrobbleQueue, &tmp, portMAX_DELAY);
+    }
+
+    void do_now_playing(const CD::Track& meta) override {
+        ScrobbleTask tmp;
+        tmp.kind = ScrobbleTaskKind::NowPlaying;
+        tmp.meta = meta;
+        xQueueSend(scrobbleQueue, &tmp, portMAX_DELAY);
+    }
+
 private:
     enum class ScrobbleTaskKind {
         Scrobble,
