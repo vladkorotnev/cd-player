@@ -13,12 +13,22 @@
     "(BT Device)": "(BT端末)",
     "Confirm PIN and press PLAY": "暗証番号が一致する場合はPLAYを押してください",
 
-    "Free Memory": "メモリー残量",
+    "Free": "残量",
+    "Used": "使用中",
+    "Memory": "メモリー容量",
+    "Network": "ネットワーク",
 
     "Source": "再生する",
     "Web Radio": "ネットラジオ",
 
     "Settings": "設定を変更する",
+    "Searching...": "検索中...",
+    "No networks": "(ネットワークなし)",
+    "Password": "パスワード",
+    "(None)": "(不要)",
+    "Connected": "接続しました",
+    "Connection failed": "接続に失敗しました",
+
     "Show Lyrics": "歌詞の表示",
     "Metadata": "曲名の取得設定",
     "Cache Metadata": "メモリに保存",

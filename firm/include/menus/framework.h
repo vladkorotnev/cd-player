@@ -64,6 +64,16 @@ public:
         back_stack.pop();
     }
 
+    void pop_to_root() {
+        while(!back_stack.empty()) {
+            auto tmp = back_stack.top();
+            back_stack.pop();
+            if(back_stack.empty()) {
+                set_current(tmp);
+            }
+        }
+    }
+
     bool can_go_up() const {
         return !back_stack.empty();
     }
@@ -87,7 +97,8 @@ private:
 
 class InfoMessageBox: public MenuPresentable {
 public:
-    InfoMessageBox(const std::string& msg): 
+    InfoMessageBox(const std::string& msg, const std::function<void(MenuNavigator *)> okAction = [](MenuNavigator* h){ h->pop(); }): 
+        action(okAction),
         lbl(std::make_shared<UI::Label>(EGRectZero, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center, msg)),
         quasiButton(std::make_shared<UI::Label>(EGRectZero, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center, "OK")),
         UI::View() {
@@ -109,13 +120,14 @@ public:
     }
 
     void on_key_pressed(VirtualKey k, MenuNavigator * host) override {
-        if(k == RVK_CURS_ENTER || k == RVK_CURS_LEFT) {
-            host->pop();
+        if(k == RVK_CURS_ENTER) {
+            action(host);
         }
     }
 private:
     const std::shared_ptr<UI::Label> lbl;
     const std::shared_ptr<UI::Label> quasiButton;
+    const std::function<void(MenuNavigator *)> action;
 };
 
 class MenuNode {
@@ -166,6 +178,20 @@ protected:
     Prefs::Key<bool> _pref;
 };
 
+class DetailTextMenuNode : public ActionMenuNode {
+public:
+    DetailTextMenuNode(const std::string& title, const std::string& detailText, const std::function<void(MenuNavigator *)> action = [](MenuNavigator*){}, const EGImage* icon = nullptr)
+        : ActionMenuNode(title, action, icon), detailText(detailText) {}
+
+    void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override {
+        EGSize str_size = Fonts::EGFont_measure_string(Fonts::FallbackWildcard16px, detailText.c_str());
+        Fonts::EGFont_put_string(Fonts::FallbackWildcard16px, detailText.c_str(), {bounds.width - str_size.width, bounds.height / 2 - str_size.height / 2}, buf);
+        MenuNode::draw_accessory(buf, bounds);
+    }
+protected:
+    mutable std::string detailText;
+};
+
 class ListMenuNode: public MenuPresentable, public MenuNode,  public UI::ListView {
 public:
     // Explanation: https://stackoverflow.com/a/79487087/565185 -- TODO figure out how this works
@@ -180,11 +206,17 @@ public:
         UI::ListView(EGRectZero, {}),
         MenuNode(title, icon)
     {
+        set_subnodes(subnodes);
+    }
+
+    void set_subnodes(std::vector<std::shared_ptr<MenuNode>> new_subnodes) {
+        subnodes = new_subnodes;
         std::vector<std::shared_ptr<UI::ListItem>> viewItems = {};
         for(auto& subnode: subnodes) {
             viewItems.push_back(std::make_shared<UI::ListItem>(subnode->title, [subnode](EGGraphBuf *b, EGSize s) { subnode->draw_accessory(b, s); }, subnode->icon));
         }
         set_items(viewItems);   
+        layout_items();
     }
 
     void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override { UI::ListItem::DisclosureIndicatorDrawingFunc(buf, bounds); }
@@ -217,7 +249,7 @@ public:
         }
     }
 protected:
-    const std::vector<std::shared_ptr<MenuNode>> subnodes;
+    std::vector<std::shared_ptr<MenuNode>> subnodes;
 };
 
 class TextEditor: public MenuPresentable, public MenuNode {

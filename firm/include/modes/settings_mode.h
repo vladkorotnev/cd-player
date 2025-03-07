@@ -2,6 +2,7 @@
 #include <mode.h>
 #include <esper-gui/views/framework.h>
 #include <menus/framework.h>
+#include <platform.h>
 
 class SettingsMode: public Mode {
     public:
@@ -12,6 +13,12 @@ class SettingsMode: public Mode {
 
         void loop() override {
             delay(100);
+            if(stopEject.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_DEL);
+            else if(playPause.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_CURS_ENTER);
+            else if(rewind.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_CURS_LEFT);
+            else if(forward.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_CURS_RIGHT);
+            else if(prevTrackDisc.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_CURS_UP);
+            else if(nextTrackDisc.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_CURS_DOWN);
         }
 
         void on_remote_key_pressed(VirtualKey key) override {
@@ -27,5 +34,12 @@ class SettingsMode: public Mode {
     
     private:
         MenuNavigator rootView;
+        Platform::Button stopEject;
+        Platform::Button playPause;
+        Platform::Button forward;
+        Platform::Button rewind;
+        Platform::Button nextTrackDisc;
+        Platform::Button prevTrackDisc;
+        Platform::Button playMode;
         const char * LOG_TAG = "SETTING";
 };

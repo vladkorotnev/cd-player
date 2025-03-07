@@ -179,7 +179,7 @@ namespace UI {
                          content_offset().x, content_offset().y, 
                          _items[idx]->frame.origin.x, _items[idx]->frame.origin.y, _items[idx]->frame.size.width, _items[idx]->frame.size.height);
 
-                    if(content_offset().y + frame.size.height <= _items[idx]->frame.origin.y) {
+                    if(content_offset().y + frame.size.height <= _items[idx]->frame.origin.y && idx > 0) {
                         set_content_offset({0, _items[idx]->frame.origin.y - _items[idx-1]->frame.size.height});
                     }
                     else if(_items[idx]->frame.origin.y < content_offset().y) {

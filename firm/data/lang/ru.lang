@@ -13,12 +13,22 @@
     "(BT Device)": "(Устройство BT)",
     "Confirm PIN and press PLAY": "Сверьте пароль и нажмите PLAY",
 
-    "Free Memory": "Своб. память",
+    "Free": "Свободно",
+    "Used": "Занято",
+    "Memory": "Память",
+    "Network": "Сеть",
 
     "Source": "Источники",
     "Web Radio": "Интернет-радио",
 
     "Settings": "Настройки",
+    "Searching...": "Поиск сети...",
+    "No networks": "(Нет сетей)",
+    "Password": "Пароль",
+    "(None)": "(нет)",
+    "Connected": "Подключено",
+    "Connection failed": "Не удалось",
+
     "Show Lyrics": "Слова песен",
     "Metadata": "Названия песен",
     "Cache Metadata": "Кэш названий",

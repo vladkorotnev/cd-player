@@ -27,7 +27,6 @@ private:
     Button nextTrackDisc;
     Button prevTrackDisc;
     Button playMode;
-    Button chgSource;
 
     bool must_show_title_stopped = false;
     bool seek_from_button = false;

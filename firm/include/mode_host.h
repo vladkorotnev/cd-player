@@ -95,14 +95,14 @@ public:
                 }
                 else if(code == RVK_DIMMER && cur_mode != ESPER_MODE_STANDBY) {
                     Graphics::Hardware::Brightness brightness = resources.display->get_brightness();
-                    if(brightness == Graphics::Hardware::Brightness::DISP_BRIGHTNESS_50) {
+                    if(brightness == Graphics::Hardware::Brightness::DISP_BRIGHTNESS_75) {
                         brightness = Graphics::Hardware::DISP_BRIGHTNESS_25;
                     }
                     else if(brightness == Graphics::Hardware::Brightness::DISP_BRIGHTNESS_25) {
                         brightness = Graphics::Hardware::DISP_BRIGHTNESS_0;
                     }
                     else {
-                        brightness = Graphics::Hardware::DISP_BRIGHTNESS_50;
+                        brightness = Graphics::Hardware::DISP_BRIGHTNESS_75;
                     }
                     
                     ESP_LOGD(LOG_TAG, "Brightness = %i -> %i", (int) resources.display->get_brightness(), (int) brightness);
@@ -138,7 +138,7 @@ public:
 private:
     const char * LOG_TAG = "APPHOST";
     const Prefs::Key<int> PREFS_KEY_CUR_MODE {"last_mode", (int)ESPER_MODE_SETTINGS};
-    const Prefs::Key<int> PREFS_KEY_CUR_BRIGHTNESS {"last_dimmer", (int)Graphics::Hardware::Brightness::DISP_BRIGHTNESS_100};
+    const Prefs::Key<int> PREFS_KEY_CUR_BRIGHTNESS {"last_dimmer", (int)Graphics::Hardware::Brightness::DISP_BRIGHTNESS_75};
     PlatformSharedResources resources;
     Graphics::Compositor compositor;
     TaskHandle_t hostTaskHandle = NULL;

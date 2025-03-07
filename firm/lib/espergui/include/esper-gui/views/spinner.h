@@ -51,6 +51,12 @@ public:
     int interval_ms = 125;
 
     BigSpinner(EGRect f): View(f) {
+        set_layout();
+    }
+
+    void set_layout() {
+        EGRect f = frame;
+        subviews.clear();
         int bit_size = 2;
         auto rect = std::make_shared<FilledRect>();
         rect->frame = {{0, 0}, {bit_size, bit_size}}; // top left

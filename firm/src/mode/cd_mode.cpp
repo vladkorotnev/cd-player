@@ -125,7 +125,6 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
         prevTrackDisc { Button(resources.keypad, (1 << 4)) },
         nextTrackDisc { Button(resources.keypad, (1 << 5)) },
         playMode { Button(resources.keypad, (1 << 6)) },
-        chgSource { Button(resources.keypad, (1 << 7)) },
     Mode(res, host) {
 
     meta.cache_enabled = Prefs::get(PREFS_KEY_CD_CACHE_META);

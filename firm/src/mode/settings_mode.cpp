@@ -5,74 +5,27 @@
 #include <dirent.h>
 #include <LittleFS.h>
 #include <localize.h>
+#include "settings/settings_icons.h"
+#include "settings/wifi_menus.h"
+#include <esper-core/wlan.h>
+#include "esp_app_format.h"
+#include "esp_ota_ops.h"
+#include <esp_system.h>
 
-// By PiiXL
-// https://piiixl.itch.io/mega-1-bit-icons-bundle
-const uint8_t icn_wifi_data[] = {
-    0x3e, 0x0c, 0x61, 0x1e, 0x5f, 0xde, 0x40, 0x0c, 0x40, 0x00, 0x41, 0x48, 0x22, 0xa8, 0x51, 0x74, 
-    0x6a, 0xf6, 0x37, 0xf6, 0x1b, 0xf6, 0x4d, 0xf6, 0x66, 0xfc, 0x70, 0x00, 0x58, 0x00, 0xff, 0xc0
-};
-const uint8_t icn_cd_data[] = {
-    0xff, 0xff, 0xff, 0xff, 0xd7, 0xff, 0xff, 0xff, 0xd7, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 
-    0x00, 0x00, 0xff, 0xff, 0x80, 0x01, 0xa2, 0x45, 0xa1, 0x85, 0x10, 0x08, 0x08, 0x10, 0x07, 0xe0,         
-};
-const uint8_t icn_radio_data[] = {
-    0x00, 0x1c, 0x00, 0xe0, 0x07, 0x00, 0x00, 0x00, 0xdf, 0xff, 0xd0, 0x01, 0xd5, 0x55, 0xd1, 0x01, 
-    0xdf, 0xff, 0xda, 0xff, 0xd5, 0x49, 0xda, 0xc9, 0xd5, 0x7f, 0xda, 0xff, 0xdf, 0xff, 0xdf, 0xff, 
-};
-const uint8_t icn_bt_data[] = {
-    0x00, 0x00, 0x0b, 0xf8, 0x14, 0x04, 0x15, 0x54, 0x14, 0x04, 0x15, 0x54, 0x14, 0x04, 0x15, 0x14, 
-    0x14, 0x34, 0x14, 0x74, 0x14, 0xf4, 0x15, 0xf4, 0x14, 0x04, 0x17, 0xfc, 0x17, 0xbc, 0x0b, 0xf8, 
-};
-const uint8_t icn_sys_data[] = {
-    0x00, 0x00, 0x03, 0xe0, 0x07, 0xc0, 0x0f, 0x80, 0x0f, 0x00, 0x0f, 0x00, 0x0f, 0x01, 0x0f, 0x83, 
-    0x0f, 0xc7, 0x1f, 0xff, 0x3f, 0xff, 0x6f, 0xfe, 0x5f, 0xfc, 0x3b, 0x00, 0x76, 0x00, 0x6c, 0x00
-};
-const uint8_t icn_about_data[] = {
-    0x00, 0x00, 0x0f, 0xf0, 0x11, 0xf8, 0x3e, 0xfc, 0x7b, 0xc2, 0x7b, 0xfe, 0x7b, 0xce, 0x7f, 0xce, 
-    0x7f, 0xfe, 0x6e, 0x3e, 0x57, 0xfe, 0x50, 0x3e, 0x3f, 0xdc, 0x7c, 0x38, 0x7d, 0xf0, 0x3c, 0x00
-};
+static std::string format_disk_space(size_t disk_space) {
+    std::string space_str;
 
-const uint8_t icn_spkr_data[] = {
-    0x00, 0x00, 0xab, 0xff, 0x53, 0xcf, 0xab, 0xcf, 0x53, 0xff, 0xaa, 0x85, 0x53, 0x03, 0xaa, 0x01, 
-	0x52, 0x01, 0xaa, 0x11, 0x52, 0x85, 0xaa, 0xcd, 0x52, 0xfd, 0xab, 0x7b, 0x52, 0x85, 0xab, 0xff
-};
-
-const EGImage icn_wifi = {
-    .format = EG_FMT_HORIZONTAL,
-    .size = {16, 16},
-    .data = icn_wifi_data
-};
-const EGImage icn_cd = {
-    .format = EG_FMT_HORIZONTAL,
-    .size = {16, 16},
-    .data = icn_cd_data
-};
-const EGImage icn_radio = {
-    .format = EG_FMT_HORIZONTAL,
-    .size = {16, 16},
-    .data = icn_radio_data
-};
-const EGImage icn_bt = {
-    .format = EG_FMT_HORIZONTAL,
-    .size = {16, 16},
-    .data = icn_bt_data
-};
-const EGImage icn_sys = {
-    .format = EG_FMT_HORIZONTAL,
-    .size = {16, 16},
-    .data = icn_sys_data
-};
-const EGImage icn_about = {
-    .format = EG_FMT_HORIZONTAL,
-    .size = {16, 16},
-    .data = icn_about_data
-};
-const EGImage icn_spkr = {
-    .format = EG_FMT_HORIZONTAL,
-    .size = {16, 16},
-    .data = icn_spkr_data
-};
+    if (disk_space > 1024 * 1024) {
+        space_str = std::to_string(disk_space / 1024 / 1024) + "M";
+    }
+    else if (disk_space >= 1024) {
+        space_str = std::to_string(disk_space / 1024) + "K";
+    }
+    else {
+        space_str = std::to_string(disk_space) + "B";
+    }
+    return space_str;
+}
 
 static bool clear_cddb_cache() {
     const char LOG_TAG[] = "ClrCache";
@@ -108,43 +61,28 @@ static bool clear_cddb_cache() {
     return rslt;
 }
 
-class DiskSpaceMenuNode: public MenuNode {
-public:
-    DiskSpaceMenuNode(): MenuNode(localized_string("Free Memory"), nullptr) {}
-    virtual void draw_accessory(EGGraphBuf* buf, EGSize bounds) const {
-        size_t disk_space = (LittleFS.totalBytes() - LittleFS.usedBytes());
-        std::string space_str;
 
-        if(disk_space > 1024 * 1024) {
-            space_str = std::to_string(disk_space/1024/1024) + "M";
-        }
-        else if(disk_space >= 1024) {
-            space_str = std::to_string(disk_space/1024) + "K";
-        }
-        else {
-            space_str = std::to_string(disk_space) + "B";
-        }
-
-        EGSize str_size = Fonts::EGFont_measure_string(Fonts::FallbackWildcard16px, space_str.c_str());
-        Fonts::EGFont_put_string(Fonts::FallbackWildcard16px, space_str.c_str(), {bounds.width - str_size.width, bounds.height/2 - str_size.height/2}, buf);
-        MenuNode::draw_accessory(buf, bounds);
-    }
-};
-
-SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host): 
+SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
+    stopEject (resources.keypad, (1 << 0)),
+    playPause (resources.keypad, (1 << 1)),
+    rewind (resources.keypad, (1 << 2)),
+    forward (resources.keypad, (1 << 3)),
+    prevTrackDisc (resources.keypad, (1 << 4)),
+    nextTrackDisc (resources.keypad, (1 << 5)),
+    playMode (resources.keypad, (1 << 6)),
     rootView(std::make_shared<ListMenuNode>(
         ListMenuNode(
             "Menu",
             nullptr,
             std::tuple {
                 ListMenuNode(localized_string("Source"), &icn_spkr, std::tuple {
-                    ActionMenuNode(localized_string("CD"), [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_CD); }, &icn_cd),
+                    ActionMenuNode("CD", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_CD); }, &icn_cd),
                     ActionMenuNode(localized_string("Web Radio"), [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_NET_RADIO); }, &icn_radio),
-                    ActionMenuNode(localized_string("Bluetooth"), [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_BLUETOOTH); }, &icn_bt),
+                    ActionMenuNode("Bluetooth", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_BLUETOOTH); }, &icn_bt),
                 }),
                 ListMenuNode(localized_string("Settings"), &icn_sys, std::tuple {
-                    MenuNode(localized_string("WiFi"), &icn_wifi),
-                    ListMenuNode(localized_string("CD"), &icn_cd, std::tuple {
+                    WiFiNetworksListMenuNode(),
+                    ListMenuNode("CD", &icn_cd, std::tuple {
                         TogglePreferenceMenuNode(localized_string("Show Lyrics"), PREFS_KEY_CD_LYRICS_ENABLED),
                         ListMenuNode(localized_string("Metadata"), nullptr, std::tuple {
                             TogglePreferenceMenuNode(localized_string("Cache Metadata"), PREFS_KEY_CD_CACHE_META),
@@ -169,7 +107,7 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                         })
                     }),
                     MenuNode(localized_string("Radio Stations"), &icn_radio),
-                    ListMenuNode(localized_string("Bluetooth"), &icn_bt, std::tuple {
+                    ListMenuNode("Bluetooth", &icn_bt, std::tuple {
                         TextPreferenceEditorNode(localized_string("Device Name"), PREFS_KEY_BT_NAME),
                         TogglePreferenceMenuNode(localized_string("Require PIN code"), PREFS_KEY_BT_NEED_PIN),
                         TogglePreferenceMenuNode(localized_string("Auto-connect"), PREFS_KEY_BT_RECONNECT),
@@ -191,27 +129,29 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                         }),
                         ListMenuNode(localized_string("Mode toggle button"), nullptr, std::tuple {
                             TogglePreferenceMenuNode("CD", PREFS_KEY_CD_MODE_INCLUDED),
-                            TogglePreferenceMenuNode("Web Radio", PREFS_KEY_RADIO_MODE_INCLUDED),
+                            TogglePreferenceMenuNode(localized_string("Web Radio"), PREFS_KEY_RADIO_MODE_INCLUDED),
                             TogglePreferenceMenuNode("Bluetooth", PREFS_KEY_BLUETOOTH_MODE_INCLUDED),
                         }),
                         MenuNode(localized_string("Check for Updates")),
                         TextPreferenceEditorNode(localized_string("NTP server"), Core::PrefsKey::NTP_SERVER),
-                        DiskSpaceMenuNode(),
                         ListMenuNode(localized_string("Full Reset"), nullptr, std::tuple {
                             ListMenuNode(localized_string("Yes, Erase All!"), nullptr, std::tuple {
                                 ActionMenuNode(localized_string("Yes, I Am Sure!"), [](MenuNavigator* h) {
                                     clear_cddb_cache();
                                     Prefs::reset_all();
-                                    h->push(std::make_shared<InfoMessageBox>("Reset complete"));
-                                    delay(500);
-                                    ESP.restart();
+                                    h->push(std::make_shared<InfoMessageBox>("Reset complete", [](MenuNavigator*) { ESP.restart(); }));
                                 }),
                             })
                         }),
                     }),
-    
                     ListMenuNode(localized_string("About"), &icn_about, std::tuple {
-                        MenuNode("TO-DO"),
+                        DetailTextMenuNode("", "ESPer-CDP"),
+                        DetailTextMenuNode("Ver.", esp_ota_get_app_description()->version),
+                        DetailTextMenuNode(localized_string("Memory"), format_disk_space(LittleFS.totalBytes())),
+                        DetailTextMenuNode(localized_string("Used"), format_disk_space(LittleFS.usedBytes())),
+                        DetailTextMenuNode(localized_string("Free"), format_disk_space(LittleFS.totalBytes() - LittleFS.usedBytes())),
+                        DetailTextMenuNode(localized_string("Network"), Core::Services::WLAN::network_name()),
+                        DetailTextMenuNode("IP", Core::Services::WLAN::current_ip()),
                     }),
                 }),
             }

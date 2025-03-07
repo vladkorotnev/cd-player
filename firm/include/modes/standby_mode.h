@@ -1,6 +1,8 @@
 #pragma once
 #include <mode.h>
 #include <esper-core/service.h>
+#include <localize.h>
+
 class StandbyMode: public Mode {
     public:
         StandbyMode(const PlatformSharedResources res, ModeHost * host): 
