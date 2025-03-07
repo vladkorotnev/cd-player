@@ -21,9 +21,11 @@ static const Prefs::Key<bool> PREFS_KEY_CD_CDDB_ENABLED {"cd_meta_cddb", true};
 static const Prefs::Key<bool> PREFS_KEY_CD_LRCLIB_ENABLED {"cd_meta_lrclib", true};
 /// Whether to use QQ Music lyrics
 static const Prefs::Key<bool> PREFS_KEY_CD_QQ_ENABLED {"cd_meta_qq", true};
+
 /// Whether to scrobble to Last FM or not
 static const Prefs::Key<bool> PREFS_KEY_CD_LASTFM_ENABLED {"cd_lastfm", false};
-
+static const Prefs::Key<std::string> PREFS_KEY_CD_LASTFM_USER {"cd_lfm_user", ""};
+static const Prefs::Key<std::string> PREFS_KEY_CD_LASTFM_PASS {"cd_lfm_pass", ""};
 
 /// CDDB server address
 static const Prefs::Key<std::string> PREFS_KEY_CDDB_ADDRESS {"cddb_srv", "gnudb.gnudb.org"};

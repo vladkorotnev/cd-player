@@ -71,6 +71,7 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
     nextTrackDisc (resources.keypad, (1 << 5)),
     playMode (resources.keypad, (1 << 6)),
     rootView(std::make_shared<ListMenuNode>(
+        // NB: all this shite is being made on the stack then copied. We need to figure out someday and then decrease CONFIG_ARDUINO_LOOP_STACK_SIZE.
         ListMenuNode(
             "Menu",
             nullptr,
@@ -102,8 +103,9 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                             })
                         }),
                         ListMenuNode("Last.FM", nullptr, std::tuple {
+                            TextPreferenceEditorNode(localized_string("User name"), PREFS_KEY_CD_LASTFM_USER),
+                            TextPreferenceEditorNode(localized_string("Password"), PREFS_KEY_CD_LASTFM_PASS),
                             TogglePreferenceMenuNode(localized_string("Enable"), PREFS_KEY_CD_LASTFM_ENABLED),
-                            MenuNode(localized_string("Login"))
                         })
                     }),
                     MenuNode(localized_string("Radio Stations"), &icn_radio),

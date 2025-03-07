@@ -89,6 +89,14 @@ namespace CD {
             if(album.is_metadata_good_for_caching()) save_to_cache(album, id);
         }
 
+        if(album.artist != "") {
+            for(auto& trk: album.tracks) {
+                if(trk.artist == "") {
+                    trk.artist = album.artist;
+                }
+            }
+        }
+
         // in the end query non cacheable providers such as CDTEXT or lyrics
         for(auto &provider: providers) {
             if(provider->cacheable()) continue;

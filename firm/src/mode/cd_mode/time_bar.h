@@ -24,7 +24,7 @@ public:
         subviews.push_back(trackbar);
     }
 
-    void update_msf(MSF start, MSF cur, MSF next_pos, bool is_pos_negative) {
+    void update_msf(MSF start, MSF cur, MSF duration, bool is_pos_negative) {
         if(cur.M != cur_msf.M || cur.S != cur_msf.S || is_pos_negative != negative) {
             char buf[8] = { 0 };
             snprintf(buf, 8, "%d:%02d", cur.M, cur.S);
@@ -34,10 +34,8 @@ public:
         cur_msf = cur;
         negative = is_pos_negative;
 
-        if(next_pos.M != next_pos_msf.M || next_pos.S != next_pos_msf.S || start.M != start_pos_msf.M || start.S != start_pos_msf.S) {
-            int cur_starts_at = MSF_TO_FRAMES(start);
-            int next_starts_at = MSF_TO_FRAMES(next_pos);
-            int duration_frames = next_starts_at - cur_starts_at;
+        if(dur_msf.M != duration.M || dur_msf.S != duration.S || start.M != start_pos_msf.M || start.S != start_pos_msf.S) {
+            int duration_frames = MSF_TO_FRAMES(duration);
             int duration_sec = (duration_frames / MSF::FRAMES_IN_SECOND) % 60;
             int duration_min = (duration_frames / MSF::FRAMES_IN_SECOND) / 60;
 
@@ -54,12 +52,12 @@ public:
         }
 
         start_pos_msf = start;
-        next_pos_msf = next_pos;
+        dur_msf = duration;
     }
 
 protected:
     MSF start_pos_msf;
     MSF cur_msf;
-    MSF next_pos_msf;
+    MSF dur_msf;
     bool negative;
 };

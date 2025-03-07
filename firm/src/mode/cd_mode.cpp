@@ -8,6 +8,7 @@
 #include "Arduino.h"
 #include <localize.h>
 #include <string>
+#include <last_fm.h>
 
 static const char LOG_TAG[] = "APL_CDP";
 
@@ -125,6 +126,7 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
         prevTrackDisc { Button(resources.keypad, (1 << 4)) },
         nextTrackDisc { Button(resources.keypad, (1 << 5)) },
         playMode { Button(resources.keypad, (1 << 6)) },
+        scrobbler(nullptr),
     Mode(res, host) {
 
     meta.cache_enabled = Prefs::get(PREFS_KEY_CD_CACHE_META);
@@ -138,6 +140,19 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
     if(Prefs::get(PREFS_KEY_CD_QQ_ENABLED))
         meta.providers.push_back(new CD::QQMusicLyricProvider());
 
+    if(Prefs::get(PREFS_KEY_CD_LASTFM_ENABLED)) {
+        auto user = Prefs::get(PREFS_KEY_CD_LASTFM_USER);
+        auto pass = Prefs::get(PREFS_KEY_CD_LASTFM_PASS);
+        if(!user.empty() && !pass.empty()) {
+            #if defined(LASTFM_API_KEY) && defined(LASTFM_API_SECRET)
+            scrobbler = new ThreadedScrobbler(LastFMScrobbler(LASTFM_API_KEY, LASTFM_API_SECRET, user, pass));
+            #else
+            #warning "No API keys for LAST.FM, scrobbling will not work!"
+            #endif
+        }
+    }
+
+
     lyrics_enabled = Prefs::get(PREFS_KEY_CD_LYRICS_ENABLED);
 
     rootView = new CDPView();
@@ -145,6 +160,9 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
 
 CDMode::~CDMode() {
     delete rootView;
+    if(scrobbler != nullptr) {
+        delete scrobbler;
+    }
 }
 
 void CDMode::setup() {
@@ -213,8 +231,7 @@ void CDMode::loop() {
             if(tracklist.size() >= trk.track && trk.track > 0) {
                 auto metadata = tracklist[trk.track - 1];
                 update_title(disc, metadata, trk);
-                MSF next_pos = (trk.track == tracklist.size()) ? disc->duration : tracklist[trk.track].disc_position.position;
-                rootView->timeBar->update_msf(metadata.disc_position.position, msf_now, next_pos, trk.index == 0);
+                rootView->timeBar->update_msf(metadata.disc_position.position, msf_now, metadata.duration, trk.index == 0);
             }
             must_show_title_stopped = false;
             break;
@@ -267,6 +284,11 @@ void CDMode::loop() {
         if(!line.empty() && lyrics_enabled) {
             rootView->lblLyric->set_value(line);
             rootView->set_lyric_show(true, line_len + 5000);
+        }
+
+        if(scrobbler != nullptr) {
+            scrobbler->feed_track(trk, metadata);
+            scrobbler->feed_position(msf_now);
         }
     }
 

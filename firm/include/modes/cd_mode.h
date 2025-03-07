@@ -1,6 +1,7 @@
 #pragma once
 #include <mode.h>
 #include <lyric_player.h>
+#include <scrobbler.h>
 
 using Platform::Button;
 
@@ -16,6 +17,7 @@ public:
 private:
     class CDPView;
     LyricPlayer lrc;
+    Scrobbler * scrobbler;
     CDPView * rootView;
     CD::Player player;
     CD::CachingMetadataAggregateProvider meta;

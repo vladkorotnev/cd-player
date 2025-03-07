@@ -17,6 +17,7 @@ namespace CD {
         std::string title;
         std::string artist;
         std::vector<Lyric> lyrics;
+        MSF duration; // Added duration field
     };
 
     class Album {
@@ -42,12 +43,21 @@ namespace CD {
             toc = _toc.tracks;
             toc_subchannel = _toc.toc_subchannel;
 
-            for(auto& track: _toc.tracks) {
+            for (size_t i = 0; i < _toc.tracks.size(); ++i) {
+              const auto& track = _toc.tracks[i];
                 if(!track.is_data) {
-                    tracks.push_back({
+                    MSF track_duration = {0};
+                    if (i + 1 < _toc.tracks.size()) {
+                        track_duration = _toc.tracks[i + 1].position - track.position;
+                    } else {
+                        track_duration = duration - track.position;
+                    }
+                    tracks.push_back(Track {
                         .disc_position = track,
                         .title = "",
-                        .artist = ""
+                        .artist = "",
+                        .lyrics = {},
+                        .duration = track_duration // Calculate and set track duration
                     });
                 }
             }
