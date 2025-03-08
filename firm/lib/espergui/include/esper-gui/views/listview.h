@@ -111,7 +111,9 @@ namespace UI {
             virtual ~ListItem() = default;
 
             void render(EGGraphBuf * buf) override {
-                EGBlitImage(buf, {2, 0}, _icon);
+                if(_icon != nullptr) {
+                    EGBlitImage(buf, {2, frame.size.height/2 - _icon->size.height/2}, _icon);
+                }
                 Fonts::EGFont_put_string(_font, _title.c_str(), {2 + ((_icon == nullptr) ? 0 : (_icon->size.width + 2)), 0}, buf);
                 _accessoryDrawingFunc(buf, frame.size);
                 if(is_selected) {

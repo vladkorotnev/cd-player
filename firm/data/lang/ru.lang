@@ -27,6 +27,7 @@
     "User name": "Логин",
     "Password": "Пароль",
     "(None)": "(нет)",
+    "Connect": "Подключить",
     "Connected": "Подключено",
     "Connection failed": "Не удалось",
 
@@ -58,5 +59,7 @@
     "Yes, I Am Sure!": "Да, я уверен!",
 
     "About": "Об устройстве",
-    "System": "Система"
+    "System": "Система",
+    "Reset complete": "Настройки сброшены",
+    "Language changed": "Язык установлен"
 }

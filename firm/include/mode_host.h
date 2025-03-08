@@ -60,6 +60,11 @@ public:
         activate_mode(last_mode);
     }
 
+    void reinit_current_mode() {
+        req_mode = cur_mode;
+        cur_mode = ESPER_MODE_MAX_INVALID;
+    }
+
     void loop() {
         xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
         if(activeMode != nullptr) {

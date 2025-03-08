@@ -2,6 +2,7 @@
 #include <esper-gui/views/framework.h>
 #include <esper-core/platform.h>
 #include <esper-core/prefs.h>
+#include <localize.h>
 #include <stack>
 #include <tuple>
 
@@ -49,12 +50,13 @@ class MenuNavigator: public UI::View {
 public:
     MenuNavigator(std::shared_ptr<MenuPresentable> root, EGRect f): back_stack{}, current{root}, UI::View(f) {
         set_current(root);
+        root->on_presented();
     }
 
     void push(std::shared_ptr<MenuPresentable> next_view) {
         back_stack.push(current);
-        current->on_dismissed();
         set_current(next_view);
+        next_view->on_presented();
     }
 
     void pop() {
@@ -70,6 +72,8 @@ public:
             back_stack.pop();
             if(back_stack.empty()) {
                 set_current(tmp);
+            } else {
+                tmp->on_dismissed();
             }
         }
     }
@@ -89,7 +93,7 @@ private:
         ESP_LOGI("MenuNav", "Cur new w=%i h=%i", cur->frame.size.width, cur->frame.size.height);
         subviews.push_back(cur);
         current = cur;
-        current->on_presented();
+        set_needs_display();
     }
     std::stack<std::shared_ptr<MenuPresentable>> back_stack;
 };
@@ -134,6 +138,10 @@ class MenuNode {
 public:
     MenuNode(const std::string t, const EGImage* img = nullptr): title{t}, icon{img} {}
     virtual ~MenuNode() = default;
+
+    const std::string localized_title() const {
+        return localized_string(title);
+    }
 
     const std::string title;
     const EGImage * icon;
@@ -180,16 +188,20 @@ protected:
 
 class DetailTextMenuNode : public ActionMenuNode {
 public:
-    DetailTextMenuNode(const std::string& title, const std::string& detailText, const std::function<void(MenuNavigator *)> action = [](MenuNavigator*){}, const EGImage* icon = nullptr)
-        : ActionMenuNode(title, action, icon), detailText(detailText) {}
+    DetailTextMenuNode(const std::string& title, const std::function<const std::string()> detailTextProvider, const std::function<void(MenuNavigator *)> action = [](MenuNavigator*){}, const EGImage* icon = nullptr)
+        : ActionMenuNode(title, action, icon), detailTextGenerator(detailTextProvider) {}
+
+    DetailTextMenuNode(const std::string& title, const std::string detailTextStr, const std::function<void(MenuNavigator *)> action = [](MenuNavigator*){}, const EGImage* icon = nullptr):
+        DetailTextMenuNode(title, [detailTextStr]() { return detailTextStr; }, action, icon) {}
 
     void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override {
+        const std::string detailText = detailTextGenerator();
         EGSize str_size = Fonts::EGFont_measure_string(Fonts::FallbackWildcard16px, detailText.c_str());
         Fonts::EGFont_put_string(Fonts::FallbackWildcard16px, detailText.c_str(), {bounds.width - str_size.width, bounds.height / 2 - str_size.height / 2}, buf);
         MenuNode::draw_accessory(buf, bounds);
     }
 protected:
-    mutable std::string detailText;
+    const std::function<const std::string()> detailTextGenerator;
 };
 
 class ListMenuNode: public MenuPresentable, public MenuNode,  public UI::ListView {
@@ -198,7 +210,7 @@ public:
     template <typename... Ts>
     ListMenuNode(const std::string title,
                 const EGImage * icon,
-                std::tuple<Ts...>&& items) :
+                const std::tuple<Ts...>&& items) :
         subnodes(std::apply([](auto&&... args) -> std::vector<std::shared_ptr<MenuNode>>
                             {
                                 return { std::make_shared<Ts>(std::move(args))... };
@@ -211,12 +223,6 @@ public:
 
     void set_subnodes(std::vector<std::shared_ptr<MenuNode>> new_subnodes) {
         subnodes = new_subnodes;
-        std::vector<std::shared_ptr<UI::ListItem>> viewItems = {};
-        for(auto& subnode: subnodes) {
-            viewItems.push_back(std::make_shared<UI::ListItem>(subnode->title, [subnode](EGGraphBuf *b, EGSize s) { subnode->draw_accessory(b, s); }, subnode->icon));
-        }
-        set_items(viewItems);   
-        layout_items();
     }
 
     void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override { UI::ListItem::DisclosureIndicatorDrawingFunc(buf, bounds); }
@@ -227,10 +233,14 @@ public:
 
     void on_presented() override {
         // update frames of things after push has set our frame correctly
-        int last_sel = selection;
-        layout_items();
+        int last_sel = std::max(selection, 0);
+        create_view_items();
         select(last_sel);
         set_needs_display();
+    }
+
+    void on_dismissed() override {
+        set_items({});
     }
 
     void on_key_pressed(VirtualKey k, MenuNavigator* host) override {
@@ -250,6 +260,14 @@ public:
     }
 protected:
     std::vector<std::shared_ptr<MenuNode>> subnodes;
+    void create_view_items() {
+        std::vector<std::shared_ptr<UI::ListItem>> viewItems = {};
+        for(auto& subnode: subnodes) {
+            viewItems.push_back(std::make_shared<UI::ListItem>(subnode->localized_title(), [subnode](EGGraphBuf *b, EGSize s) { subnode->draw_accessory(b, s); }, subnode->icon));
+        }
+        set_items(viewItems);
+        layout_items();
+    }
 };
 
 class TextEditor: public MenuPresentable, public MenuNode {

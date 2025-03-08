@@ -25,7 +25,7 @@ static const Prefs::Key<std::string> PREFS_KEY_WIFI_PASS{"wifi_pass", WIFI_PASS}
 namespace Core::Services {
     namespace WLAN {
         static void save_current_network() {
-            ESP_LOGW(LOG_TAG, "Save ssid=[%s] pass=[%s]", ssid.c_str(), pass.c_str());
+            ESP_LOGD(LOG_TAG, "Save ssid=[%s] pass=[%s]", ssid.c_str(), pass.c_str());
             Prefs::set(PREFS_KEY_WIFI_NAME, ssid);
             Prefs::set(PREFS_KEY_WIFI_PASS, pass);
         }
@@ -81,7 +81,7 @@ namespace Core::Services {
             
             if(WiFi.status() != WL_CONNECTED) {
                 if(!ssid.empty()) {
-                    ESP_LOGI(LOG_TAG, "Attempt initial connection to saved network [%s]", ssid);
+                    ESP_LOGI(LOG_TAG, "Attempt initial connection to saved network [%s]", ssid.c_str());
 
                     initial_connection_ongoing = true;
                     WiFi.mode(WIFI_MODE_STA);

@@ -8,6 +8,7 @@
 
 #include <mode_host.h>
 #include <consts.h>
+#include <mount.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -30,6 +31,7 @@ static void print_memory() {
 #ifdef BOARD_HAS_PSRAM
         ESP_LOGW(LOG_TAG, "PSRAM: %d free of %d (%d minimum, %d contiguous available)", ESP.getFreePsram(), ESP.getPsramSize(), ESP.getMinFreePsram(), ESP.getMaxAllocPsram());
 #endif
+        ESP_LOGW(LOG_TAG, "Loop task stack water mark = %d", uxTaskGetStackHighWaterMark(NULL));
         memory_last_print = now;
     }
 }
@@ -119,9 +121,7 @@ void setup(void) {
   host = new ModeHost(rsrc);
 
   i2c->log_all_devices();
-
-  LittleFS.begin(true, FS_MOUNT_POINT);
-  ESP_LOGI("FS", "Free FS size = %i", LittleFS.totalBytes() - LittleFS.usedBytes());
+  mount_fs_if_needed();
   load_all_fonts();
   
   Core::Services::WLAN::start();

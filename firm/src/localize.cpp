@@ -24,9 +24,9 @@ void set_active_language(DisplayLanguage lang) {
 static DisplayLanguage lang_map_language = DSPL_LANG_INVALID;
 static EXT_RAM_ATTR std::map<const std::string, std::string> lang_map = {};
 
-static void _load_lang_map_if_needed() {
+static bool _load_lang_map_if_needed() {
     DisplayLanguage lang =  active_language();
-    if(lang_map_language == lang) return;
+    if(lang_map_language == lang) return true;
 
     const char * filename = nullptr;
     switch(lang) {
@@ -46,7 +46,7 @@ static void _load_lang_map_if_needed() {
     if(!f) {
         ESP_LOGE(LOG_TAG, "Loading %s failed! No such file? Pretending nothing happened.", filename);
         lang_map_language = lang;
-        return;
+        return false;
     }
 
     JsonDocument content;
@@ -54,7 +54,7 @@ static void _load_lang_map_if_needed() {
     if(error) {
         ESP_LOGE(LOG_TAG, "Parsing %s failed: %s", filename, error.c_str());
         lang_map_language = lang;
-        return;
+        return false;
     }
 
     JsonObject root = content.as<JsonObject>();
@@ -69,10 +69,11 @@ static void _load_lang_map_if_needed() {
 
     lang_map_language = lang;
     ESP_LOGI(LOG_TAG, "Loaded language ID=%i, Entries: %i", lang_map_language, i);
+    return true;
 }
 
 const std::string localized_string(const std::string& key) {
-    _load_lang_map_if_needed();
+    if(!_load_lang_map_if_needed()) ESP_LOGW(LOG_TAG, "Failed to load map when translating [%s]", key.c_str());
 
     if(lang_map.count(key)) {
         return lang_map.at(key);

@@ -36,6 +36,7 @@ namespace {
         0x00, 0x18, 0x00, 0x38, 0x00, 0x70, 0x00, 0xe0, 0x01, 0xc0, 0xc3, 0x80, 0xe7, 0x00, 0x7e, 0x00, 
         0x3c, 0x00, 0x18, 0x00
     };
+    const uint8_t icn_no_checkmark_data[20] = { 0 };
 }
 
 const EGImage icn_wifi = {
@@ -77,4 +78,9 @@ const EGImage icn_checkmark = {
     .format = EG_FMT_HORIZONTAL,
     .size = {16, 10},
     .data = icn_checkmark_data
+};
+const EGImage icn_no_checkmark = {
+    .format = EG_FMT_HORIZONTAL,
+    .size = {16, 10},
+    .data = icn_no_checkmark_data
 };

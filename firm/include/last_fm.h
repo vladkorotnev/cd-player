@@ -15,22 +15,13 @@ public:
         api_key(api_key),
         api_secret(api_secret),
         username(username),
-        password(password)
-    {
-        session_key = get_session_key();
-        if (session_key.empty()) {
-            ESP_LOGE(LOG_TAG, "Failed to get session key!");
-        } else {
-            ESP_LOGI(LOG_TAG, "Got session key: %s", session_key.c_str());
-        }
-    }
+        password(password),
+        tried_to_auth(false)
+    {}
 
 protected:
     void do_scrobble(const CD::Track& meta) override {
-        if (session_key.empty()) {
-            ESP_LOGE(LOG_TAG, "No session key for scrobbling!");
-            return;
-        }
+        if (!auth_if_needed()) return;
 
         time_t now;
         time(&now);
@@ -48,10 +39,7 @@ protected:
     }
 
     void do_now_playing(const CD::Track& meta) override {
-        if (session_key.empty()) {
-            ESP_LOGE(LOG_TAG, "No session key for now playing!");
-            return;
-        }
+        if (!auth_if_needed()) return;
 
         std::string post_data = "method=track.updateNowPlaying&artist=" + urlEncode(meta.artist) +
                                 "&track=" + urlEncode(meta.title) +
@@ -71,7 +59,21 @@ private:
     std::string username;
     std::string password;
     std::string session_key;
+    bool tried_to_auth;
     const char * url = "http://ws.audioscrobbler.com/2.0/";
+
+    bool auth_if_needed() {
+        if(!tried_to_auth) {
+            session_key = get_session_key();
+            if (session_key.empty()) {
+                ESP_LOGE(LOG_TAG, "Failed to get session key!");
+            } else {
+                ESP_LOGI(LOG_TAG, "Got session key");
+            }
+            tried_to_auth = true;
+        }
+        return !(session_key.empty());
+    }
 
     void perform_lastfm_request(std::string& post_data, const std::string& api_sig, const std::string& action_description) {
         HTTPClient http;
