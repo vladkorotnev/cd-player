@@ -17,21 +17,31 @@ namespace UI {
 
         Alignment alignment = Alignment::Left;
 
-        Label(EGRect frame, const Fonts::Font * font, Alignment align, std::string str = ""): View(frame), fnt{font}, alignment{align} {
+        Label(EGRect frame, const Fonts::Font * font, Alignment align, std::string str = ""): View(frame), fnt{font}, alignment{align}, valueSemaphore(xSemaphoreCreateBinary()) {
+            assert(valueSemaphore != NULL);
+            xSemaphoreGive(valueSemaphore);
             set_value(str);
         }
 
         void set_value(std::string str) {
             if(str != value) {
+                xSemaphoreTake(valueSemaphore, portMAX_DELAY);
+                scroll_offset = 0;
                 value = str;
                 str_size = Fonts::EGFont_measure_string(fnt, value.c_str());
                 set_needs_display();
                 last_scroll_tick = xTaskGetTickCount();
-                scroll_offset = 0;
+                xSemaphoreGive(valueSemaphore);
             }
         }
 
         void render(EGGraphBuf * buf) override {
+            if(!xSemaphoreTake(valueSemaphore, pdMS_TO_TICKS(33))) {
+                ESP_LOGW("Render", "Label(%p) locked for too long during render pass!", this);
+                set_needs_display();
+                return; // render at next earliest convenience, but don't stall the blitter
+            }
+
             EGPoint origin = EGPointZero;
             if(will_scroll()) {
                 origin.x = -scroll_offset;
@@ -49,6 +59,7 @@ namespace UI {
             }
             Fonts::EGFont_put_string(fnt, value.c_str(), origin, buf);
             View::render(buf);
+            xSemaphoreGive(valueSemaphore);
         }
 
         bool needs_display() override {
@@ -81,6 +92,7 @@ namespace UI {
     protected:
         bool will_scroll() { return auto_scroll && str_size.width > frame.size.width; }
     private:
+        SemaphoreHandle_t valueSemaphore;
         std::string value = "";
         const Fonts::Font* fnt = nullptr;
         int scroll_offset = 0;
