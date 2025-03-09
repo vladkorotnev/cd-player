@@ -109,6 +109,7 @@ class WiFiNetworkMenuNode : public ListMenuNode {
                 } else if (_network.rssi > -70) {
                     signal_icon = &signal_mid;
                 }
+                EGDrawRect(buf, EGRect {{bounds.width - signal_icon->size.width - 8, 0}, {signal_icon->size.width + 8, bounds.height}}, true, false);
                 EGBlitImage(buf, {bounds.width - signal_icon->size.width - 6, bounds.height/2 - signal_icon->size.height/2}, signal_icon);
             }
     

@@ -46,6 +46,11 @@
     "Enable": "Включить",
 
     "Radio Stations": "Радиостанции",
+    "Preset %i": "Станция %i",
+    "Name": "Название",
+    "URL": "Веб-адрес",
+    "Preset": "Номер",
+    "No Preset": "Станция не настроена",
 
     "Device Name": "Имя устройства",
     "Require PIN code": "Требовать PIN",

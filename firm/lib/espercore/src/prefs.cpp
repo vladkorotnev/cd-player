@@ -27,49 +27,49 @@ namespace Prefs {
 
         template <> int get(Key<int> key) {
             auto store = get_store();
-            if(store->getType(key.first) == PreferenceType::PT_I32) {
-                return store->getInt(key.first);
+            if(store->getType(key.first.c_str()) == PreferenceType::PT_I32) {
+                return store->getInt(key.first.c_str());
             } else {
                 return key.second;
             }
         }
 
         template <> void set(Key<int> key, const int& val) {
-            get_store()->putInt(key.first, val);
+            get_store()->putInt(key.first.c_str(), val);
         }
 
         template <> bool get(Key<bool> key) {
             auto store = get_store();
-            if(store->isKey(key.first)) {
-                return store->getBool(key.first);
+            if(store->isKey(key.first.c_str())) {
+                return store->getBool(key.first.c_str());
             } else {
                 return key.second;
             }
         }
 
         template <> void set(Key<bool> key, const bool& val) {
-            get_store()->putBool(key.first, val);
+            get_store()->putBool(key.first.c_str(), val);
         }
 
         template <> std::string get(Key<std::string> key) {
             auto store = get_store();
-            if(store->getType(key.first) == PreferenceType::PT_STR) {
-                return store->getString(key.first).c_str(); //<- arduino string to c string to cpp string, duh
+            if(store->getType(key.first.c_str()) == PreferenceType::PT_STR) {
+                return store->getString(key.first.c_str()).c_str(); //<- arduino string to c string to cpp string, duh
             } else {
                 return key.second;
             }
         }
 
         template <> void set(Key<std::string> key, const std::string& val) {
-            get_store()->putString(key.first, val.c_str());
+            get_store()->putString(key.first.c_str(), val.c_str());
         }
 
         template <> std::vector<uint8_t> get(Key<std::vector<uint8_t>> key) {
             auto store = get_store();
-            if(store->getType(key.first) == PreferenceType::PT_BLOB) {
+            if(store->getType(key.first.c_str()) == PreferenceType::PT_BLOB) {
                 std::vector<uint8_t> vec = {};
-                vec.resize(store->getBytesLength(key.first));
-                store->getBytes(key.first, vec.data(), vec.capacity());
+                vec.resize(store->getBytesLength(key.first.c_str()));
+                store->getBytes(key.first.c_str(), vec.data(), vec.capacity());
                 return vec;
             } else {
                 return key.second;

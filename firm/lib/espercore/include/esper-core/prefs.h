@@ -3,7 +3,7 @@
 #include <string>
 
 namespace Prefs {
-    template <typename DataType> using Key = std::pair<const char *, DataType>;
+    template <typename DataType> using Key = std::pair<const std::string, DataType>;
 
     template <typename DataType> DataType get(Key<DataType> key);
     template <typename DataType> void set(Key<DataType> key, const DataType& val);

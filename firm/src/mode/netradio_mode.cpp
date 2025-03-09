@@ -1,6 +1,8 @@
 #include <modes/netradio_mode.h>
 #include <esper-gui/views/framework.h>
 #include <views/wifi_icon.h>
+#include <radio_store.h>
+#include <localize.h>
 #include "netradio/pipeline.h"
 
 using std::make_shared;
@@ -199,17 +201,24 @@ void InternetRadioMode::select_station(int index) {
         return;
     }
 
-    // TODO: database
-    switch(index) {
-        case 0: rootView->reset_meta("Happy Hardcore"); play("http://u1.happyhardcore.com/"); break;
-        case 1: rootView->reset_meta("NDR 1"); play("http://icecast.ndr.de/ndr/ndr1wellenord/kiel/mp3/128/stream.mp3"); break;
-        case 2: rootView->reset_meta("Радио Проводач"); play("http://station.waveradio.org/provodach"); break;
-        case 3: rootView->reset_meta("Проводач (MP3)");play("http://station.waveradio.org/provodach.mp3"); break;
-        case 4: rootView->reset_meta("Советская Волна");play("http://station.waveradio.org/soviet"); break;;
-        case 5: rootView->reset_meta("Relax FM");play("http://srv01.gpmradio.ru/stream/reg/mp3/128/region_relax_86"); break;
+    auto url = NetRadio::URLForIndex(index);
+    if(!url.empty()) {
+        if(url.rfind("http", 0) != 0) {
+            url = "http://" + url;
+        }
 
-        default: return;
+        auto name = NetRadio::NameForIndex(index);
+        if(name.empty()) {
+            name = url;
+        }
+
+        rootView->reset_meta(name);
+        play(url);
+    } else {
+        stop();
+        rootView->reset_meta(localized_string("No Preset"));
     }
+    
     rootView->channelBar->set_active_ch_idx(index);
 }
 

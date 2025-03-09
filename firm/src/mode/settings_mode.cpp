@@ -7,6 +7,7 @@
 #include <localize.h>
 #include "settings/settings_icons.h"
 #include "settings/wifi_menus.h"
+#include "settings/radio_menus.h"
 #include <esper-core/wlan.h>
 #include "esp_app_format.h"
 #include "esp_ota_ops.h"
@@ -88,7 +89,7 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
             TogglePreferenceMenuNode("Enable", PREFS_KEY_CD_LASTFM_ENABLED),
         })
     }),
-    MenuNode("Radio Stations", &icn_radio),
+    RadioStationEditorNode(),
     ListMenuNode("Bluetooth", &icn_bt, std::tuple {
         TextPreferenceEditorNode("Device Name", PREFS_KEY_BT_NAME),
         TogglePreferenceMenuNode("Require PIN code", PREFS_KEY_BT_NEED_PIN),

@@ -45,7 +45,12 @@
     "Lyrics sources": "歌詞データ取得元",
     "Enable": "利用する",
 
-    "Radio Stations": "ネットラジオURL設定",
+    "Radio Stations": "ネットラジオ",
+    "Preset %i": "プリセット %i",
+    "Preset": "プリセット番号",
+    "Name": "名前",
+    "URL": "URL",
+    "No Preset": "URL未登録",
 
     "Device Name": "デバイス名",
     "Require PIN code": "暗証番号の要求",

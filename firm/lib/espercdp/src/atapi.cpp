@@ -234,7 +234,7 @@ namespace ATAPI {
         packet_size = ((rslt.general_config & 0x1) != 0) ? 16 : 12;
         
         quirks = { 0 };
-        if(info.model == "NEC                 CD-ROM DRIVE:284" && info.firmware == "3.51    NEC                 CD-ROM DRIVE") {
+        if(info.model.rfind("NEC                 CD-ROM DRIVE:284", 0) == 0 && info.firmware.rfind("3.51    NEC", 0)) {
             ESP_LOGW(LOG_TAG, "Shitty drive detected! NEC CDR-1400C anyone?");
 
             quirks.busy_ass = true;

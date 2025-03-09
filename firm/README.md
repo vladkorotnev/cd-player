@@ -13,13 +13,22 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 
 ### Tested CD drives
 
+#### The Good
+
 * **Recommended: NEC ND-3500A**: just works in every aspect, and even has CD TEXT! Wish every one of the others was like this.
 * *Philips/Lite-On DH-20A4P* aka *Buffalo DVSM-XE1219FB*: Load a bit on the slow side, noisy mech! Janky ffwd/rewind (using software timer because the drive doesn't do SCAN commands).
 * *MATSHITADVD-RAM SW-9583S*: Works mostly. No SPDIF output even though the jack is there?? Do we need to alter the Mode Select page?
-* *TEAC DV-W58G*: works and reads CD TEXT, janky ffwd/rewind (same as DH-20A4P). Most of the initial development was done with this drive. SPDIF output noisy during initial spin-up and pause release.
-* *NEC CDR-1400C*: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes properly.
-* *TEAC CD-C68E*: works including changer, sometimes TOC reads are broken, workaround is in place but still. *No SPDIF output, so you have to resort to analog.*
+* *TEAC DV-W58G*: works and reads CD TEXT, janky ffwd/rewind (same as DH-20A4P). Most of the initial development was done with this drive. SPDIF output noisy during initial spin-up and pause release, or my unit just too old/faulty?
 * *Matsushita SR-8171 (slimline)*: mostly works. TOC read after disc change is unstable (goes through on 3rd retry, timing/busyflag issue?) Needs a standard JAE 50pin to IDE 40pin adapter. Does not require 12V supply. Analog output only.
+
+#### The Bad
+
+* *Matsushita/Panasonic SW-9590C*: never initializes, never sets DRQ, faulty unit?
+
+#### The Ugly
+
+* *NEC CDR-1400C*: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes properly.
+* *TEAC CD-C68E*: works including changer, sometimes TOC reads are broken, workaround is in place but still. *No SPDIF output, so you have to resort to analog.* As of V1.0a it's become significantly more glitchy and I have no idea why. TBD in a future release...
 
 ## Capabilities
 

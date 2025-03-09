@@ -61,7 +61,7 @@ protected:
 
         while(wchar_t ch = EGStr_utf8_iterate(&val_utf)) {
             str_len--;
-            if(ch != ' ' && ch != 0x3000 /* '　' jp space */) {
+            if(ch != ' ' && ch != 0x3000 /* '　' jp space */ && ch != 0x3001 /* jp comma */ && ch != 0x3002 /* jp dot */) {
                 cur_word.push_back(ch);
                 auto glyph = Fonts::EGFont_glyph(font, ch);
                 word_len_px += glyph.size.width;

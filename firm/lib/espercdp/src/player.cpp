@@ -81,6 +81,7 @@ namespace CD {
     }
 
     void Player::poll_state() {
+        State oldSts = sts;
         int delay = 0;
         xSemaphoreTake(_cmdSemaphore, portMAX_DELAY);
 
@@ -122,6 +123,8 @@ namespace CD {
                 cur_slot = 0;
             }
 
+            // changing to this from if(media_type == ATAPI::MediaTypeCode::MTC_DOOR_OPEN && sts != State::CLOSE) {
+            // broke the changer support, why?
             if((media_type == ATAPI::MediaTypeCode::MTC_DOOR_OPEN || mech->is_door_open) && sts != State::CLOSE) {
                 slots[cur_slot].disc = std::make_shared<Album>();
                 sts = State::OPEN;
@@ -147,6 +150,7 @@ namespace CD {
                     cur_track.index = 1;
                     abs_ts = { .M = 0, .S = 0, .F = 0 };
                     rel_ts = { .M = 0, .S = 0, .F = 0 };
+                    cdrom->start();
                     cdrom->wait_ready();
                     if((media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN && media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN_ALT) || (cdrom->get_quirks().no_media_codes && media_type == ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN)) {
                         sts = (media_type != ATAPI::MediaTypeCode::MTC_DOOR_OPEN) ? State::LOAD : State::OPEN;
@@ -292,6 +296,9 @@ namespace CD {
         }
 
         xSemaphoreGive(_cmdSemaphore);
+        if(sts != oldSts) {
+            ESP_LOGI(LOG_TAG, "State change from %s to %s", PlayerStateString(oldSts), PlayerStateString(sts));
+        }
 
         if(delay > 0)
             vTaskDelay(pdMS_TO_TICKS(delay)); //<- some drives go nuts due to other commands during load so give them some time

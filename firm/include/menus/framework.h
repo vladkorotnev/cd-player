@@ -139,7 +139,7 @@ public:
     MenuNode(const std::string t, const EGImage* img = nullptr): title{t}, icon{img} {}
     virtual ~MenuNode() = default;
 
-    const std::string localized_title() const {
+    virtual const std::string localized_title() const {
         return localized_string(title);
     }
 
@@ -437,7 +437,7 @@ protected:
     const std::shared_ptr<UI::Label> _rightLbl;
     const std::shared_ptr<UI::Label> _titleLbl;
 
-    const char * input_wheel = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,@!?<>;:{}[]\"'#$%&()+-*/=|";
+    const char * input_wheel = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,@!?<>;:{}[]\"'#$%&()+-_*/=|";
     const int input_wheel_length = strlen(input_wheel);
     int cur_wheel_idx = 0;
     bool last_letter_was_lower = false;
