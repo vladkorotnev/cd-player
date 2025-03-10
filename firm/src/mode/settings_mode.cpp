@@ -80,6 +80,7 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
             }),
             ListMenuNode("Lyrics sources", nullptr, std::tuple {
                 TogglePreferenceMenuNode("LRCLib", PREFS_KEY_CD_LRCLIB_ENABLED),
+                TogglePreferenceMenuNode("NetEase (163)", PREFS_KEY_CD_NETEASE_ENABLED),
                 TogglePreferenceMenuNode("QQ Music", PREFS_KEY_CD_QQ_ENABLED),
             })
         }),
@@ -116,6 +117,9 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
             TogglePreferenceMenuNode("Web Radio", PREFS_KEY_RADIO_MODE_INCLUDED),
             TogglePreferenceMenuNode("Bluetooth", PREFS_KEY_BLUETOOTH_MODE_INCLUDED),
         }),
+#if OTA_FVU_ENABLED
+        TogglePreferenceMenuNode("OTA FVU", PREFS_KEY_OTAFVU_ALLOWED),
+#endif
         MenuNode("Check for Updates"),
         TextPreferenceEditorNode("NTP server", Core::PrefsKey::NTP_SERVER),
         ListMenuNode("Full Reset", nullptr, std::tuple {

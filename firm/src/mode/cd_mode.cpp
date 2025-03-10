@@ -135,8 +135,13 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
         meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
     if(Prefs::get(PREFS_KEY_CD_CDDB_ENABLED))
         meta.providers.push_back(new CD::CDDBMetadataProvider(Prefs::get(PREFS_KEY_CDDB_ADDRESS), Prefs::get(PREFS_KEY_CDDB_EMAIL)));
+
+    // For now those are manually sorted in the order of quality as perceived by me
+    // Someday reordering might be good but for now fuck it
     if(Prefs::get(PREFS_KEY_CD_LRCLIB_ENABLED))
         meta.providers.push_back(new CD::LrcLibLyricProvider());
+    if(Prefs::get(PREFS_KEY_CD_NETEASE_ENABLED))
+        meta.providers.push_back(new CD::NeteaseLyricProvider());
     if(Prefs::get(PREFS_KEY_CD_QQ_ENABLED))
         meta.providers.push_back(new CD::QQMusicLyricProvider());
 

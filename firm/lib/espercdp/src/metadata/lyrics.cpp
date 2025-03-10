@@ -20,7 +20,7 @@ namespace CD {
         bool token = false;
         unsigned int min = 0;
         unsigned int sec = 0;
-        unsigned int decas = 0;
+        unsigned int centis = 0;
         int offset_millis = 0;
 
         bool skip_token = false;
@@ -39,7 +39,7 @@ namespace CD {
                         skip_token = false;
                         min = 0;
                         sec = 0;
-                        decas = 0;
+                        centis = 0;
                     }
                     else if(!first_token) {
                         ESP_LOGV(LOG_TAG, "LRC line must start from token: %s", line.c_str());
@@ -59,9 +59,16 @@ namespace CD {
                 else {
                     if(c == ']') {
                         token = false;
-                        int total_millis = (decas + 100 * (sec + 60 * min)) * 10;
+                        int total_millis;
+                        if(centis < 100) {
+                            total_millis = (centis + 100 * (sec + 60 * min)) * 10;
+                        } else {
+                            // some writers seem to output in ms rather than centiseconds (first encountered in NetEase's lyrics for MELL - Red Fraction)
+                            total_millis = (centis + 1000 * (sec + 60 * min));
+                        }
+
                         times.push_back(total_millis);
-                        ESP_LOGD(LOG_TAG, "Time: %02im%02is.%02id = %i ms", min, sec, decas, total_millis);
+                        ESP_LOGD(LOG_TAG, "Time: %02im%02is.%02id = %i ms", min, sec, centis, total_millis);
                         first_token = true;
                     }
                     else if(c >= '0' && c <= '9') {
@@ -75,7 +82,7 @@ namespace CD {
                     }
                     else if(c == '.') {
                         // ms separator
-                        timepos = &decas;
+                        timepos = &centis;
                     }
                     else if(c == ' ') {
                         // ignore
@@ -238,6 +245,90 @@ namespace CD {
             ESP_LOGW(LOG_TAG, "HTTP error %i", response);
         }
 
+        http.end();
+    }
+
+    void NeteaseLyricProvider::fetch_track(Track& track, const Album& album) {
+        // Ref: https://github.com/jacquesh/foo_openlyrics/blob/45546bdb5d567b04ed10e99b723147e128efbd8a/src/sources/netease.cpp
+        if (!track.lyrics.empty()) return;
+
+        EXT_RAM_ATTR static WiFiClient client;
+        EXT_RAM_ATTR static HTTPClient http;
+
+        const std::string& artist = (track.artist.empty() ? album.artist : track.artist);
+        std::string query_url = "http://music.163.com/api/search/get?s=" + urlEncode(artist + " " + track.title) + "&type=1&offset=0&sub=false&limit=5";
+        
+        client.setTimeout(5000);
+
+        http.begin(client, query_url.c_str());
+        http.addHeader("Referer", "http://music.163.com/");
+        http.addHeader("Cookie", "appver=2.0.2");
+        http.addHeader("Charset", "utf-8");
+        http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+        http.addHeader("X-Real-IP", "202.96.0.0");
+
+        ESP_LOGI(LOG_TAG, "Query: %s", query_url.c_str());
+        int response = http.GET();
+        if (response == HTTP_CODE_OK) {
+            EXT_RAM_ATTR static JsonDocument json;
+            DeserializationError error = deserializeJson(json, http.getStream());
+
+            if (error) {
+                ESP_LOGE(LOG_TAG, "Parse error in search: %s", error.c_str());
+            } else {
+                if(json["result"].is<JsonObject>()) {
+                    if (json["result"]["songs"].is<JsonArray>()){
+                        const JsonArray song_arr = json["result"]["songs"].as<JsonArray>();
+
+                        if (song_arr.size() > 0 && song_arr[0].is<JsonObject>()) {
+                            const JsonObject first_song = song_arr[0].as<JsonObject>();
+
+                            if(first_song["id"].is<long>()) {
+                                const long song_id = first_song["id"].as<long>();
+                                http.end();
+                                char lyric_url[256];
+                                snprintf(lyric_url, sizeof(lyric_url), "http://music.163.com/api/song/lyric?tv=-1&kv=-1&lv=-1&os=pc&id=%li", song_id);
+                                http.begin(client, lyric_url);
+                                http.addHeader("Referer", "http://music.163.com/");
+                                http.addHeader("Cookie", "appver=2.0.2");
+                                http.addHeader("Charset", "utf-8");
+                                http.addHeader("Content-Type", "application/x-www-form-urlencoded");
+                                http.addHeader("X-Real-IP", "202.96.0.0");
+
+                                ESP_LOGV(LOG_TAG, "Lyric url: %s", lyric_url);
+                                response = http.GET();
+
+                                if (response == HTTP_CODE_OK){
+                                    DeserializationError error = deserializeJson(json, http.getStream());
+                                    if (error){
+                                        ESP_LOGE(LOG_TAG, "Parse error in lyric: %s", error.c_str());
+                                    } else {
+                                        if (json["lrc"].is<JsonObject>() && json["lrc"]["lyric"].is<JsonString>()){
+                                            const JsonString lyric_str = json["lrc"]["lyric"].as<JsonString>();
+                                            ESP_LOGD(LOG_TAG, "LYRIC: %s", lyric_str.c_str());
+                                            process_lrc_bulk(lyric_str.c_str(), track.lyrics);
+                                            ESP_LOGI(LOG_TAG, "Got %i lines of lyrics", track.lyrics.size());
+                                        } else {
+                                            ESP_LOGW(LOG_TAG, "No lrc or lyric entry in response");
+                                        }
+                                    }
+                                } else {
+                                    ESP_LOGE(LOG_TAG, "HTTP error %i in lyric", response);
+                                }
+                            }
+                        } else {
+                            ESP_LOGW(LOG_TAG, "No songs found in result");
+                        }
+                    } else {
+                      ESP_LOGW(LOG_TAG,"No song array");
+                    }
+                } else {
+                    ESP_LOGW(LOG_TAG,"No result object");
+                }
+            }
+        } else {
+            ESP_LOGE(LOG_TAG, "HTTP error %i in search", response);
+        }
         http.end();
     }
 }
