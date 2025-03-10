@@ -279,6 +279,17 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
+    void Device::set_tray_locked(bool locked) {
+        const Requests::PreventAllowMediaRemoval req = {
+            .opcode = OperationCodes::PREVENT_ALLOW_MEDIA_REMOVAL,
+            .prevent = locked,
+            .persistent = false
+        };
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&req, sizeof(req));
+        xSemaphoreGive(semaphore);
+    }
+
     void Device::load_unload(SlotNumber slot) {
         const Requests::LoadUnload lul = {
             .opcode = OperationCodes::LOAD_UNLOAD,

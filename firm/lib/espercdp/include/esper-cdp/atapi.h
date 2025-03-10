@@ -34,6 +34,7 @@ namespace ATAPI {
         void load_unload(SlotNumber slot);
         /// @brief Sends a device start command to ask the drive to read the disc.
         void start(bool state = true);
+        void set_tray_locked(bool lock);
 
         /// @brief Request the player to play audio data
         /// @param start Start of the played segment. Set to beginning of first track (usually M00S02F00, but can vary disc by disc)

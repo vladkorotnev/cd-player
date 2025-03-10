@@ -19,6 +19,7 @@ class StandbyMode: public Mode {
                 resources.cdrom->eject(false);
             }
             resources.cdrom->start(false);
+            resources.cdrom->set_tray_locked(true);
             vTaskDelay(pdMS_TO_TICKS(250));
             resources.display->set_power(false);
             esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
@@ -33,6 +34,7 @@ class StandbyMode: public Mode {
         void teardown() override {
             setCpuFrequencyMhz(240); // less than that breaks UART!!?
             lbl->set_value(localized_string("Hello!"));
+            resources.cdrom->set_tray_locked(false);
             resources.display->set_power(true);
             esp_wifi_set_ps(WIFI_PS_NONE);
             Core::Services::WLAN::start();
