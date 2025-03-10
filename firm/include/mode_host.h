@@ -15,7 +15,9 @@ enum ModeSelection: int {
     ESPER_MODE_NET_RADIO,
     ESPER_MODE_BLUETOOTH,
     ESPER_MODE_SETTINGS,
+
     ESPER_MODE_STANDBY,
+    ESPER_MODE_LOW_LEVEL_UI,
 
     ESPER_MODE_MAX_INVALID
 };
@@ -63,6 +65,16 @@ public:
     void reinit_current_mode() {
         req_mode = cur_mode;
         cur_mode = ESPER_MODE_MAX_INVALID;
+    }
+
+    void set_external_mode(Mode* mode) {
+        xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
+        cur_mode = ESPER_MODE_MAX_INVALID;
+        req_mode = cur_mode;
+        end_current_mode_locked();
+        activeMode = mode;
+        start_current_mode_locked();
+        xSemaphoreGive(modeSwitchSema);
     }
 
     void loop() {
@@ -197,14 +209,24 @@ private:
         activate_mode(m);
     }
 
-    void switch_to_req_mode_locked() {
-        if(req_mode == cur_mode) return;
-
+    void end_current_mode_locked() {
         if(activeMode != nullptr) {
             activeMode->teardown();
             delete activeMode;
             activeMode = nullptr;
         }
+    }
+
+    void start_current_mode_locked() {
+        if(activeMode != nullptr) {
+            activeMode->setup();
+        }
+    }
+
+    void switch_to_req_mode_locked() {
+        if(req_mode == cur_mode) return;
+
+        end_current_mode_locked();
 
         switch(req_mode) {
             case ESPER_MODE_CD:
@@ -231,9 +253,7 @@ private:
                 break;
         }
 
-        if(activeMode != nullptr) {
-            activeMode->setup();
-        }
+        start_current_mode_locked();
 
         cur_mode = req_mode;
         if(cur_mode != ESPER_MODE_STANDBY)

@@ -9,6 +9,7 @@
 #include <mode_host.h>
 #include <consts.h>
 #include <mount.h>
+#include <otafvu.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -119,13 +120,14 @@ void setup(void) {
   };
 
   host = new ModeHost(rsrc);
-
   i2c->log_all_devices();
   mount_fs_if_needed();
   load_all_fonts();
   
   Core::Services::WLAN::start();
   Core::Services::NTP::start();
+  OTAFVU::start_if_needed(rsrc, host);
+
   spdif->initialize();
   cdrom->reset();
   xTaskCreatePinnedToCore(

@@ -2,6 +2,10 @@
 #include <esper-gui/display.h>
 #include <esp32-hal-gpio.h>
 
+#ifndef EGUI_GP1232_DOUBLE_BUFFER
+#define EGUI_GP1232_DOUBLE_BUFFER false
+#endif
+
 namespace Graphics::Hardware {
 
 class FutabaGP1232ADriver: public DisplayDriver {
@@ -13,7 +17,7 @@ public:
     }
 
     /// @brief Enable anti tearing mode using multiple DSA pages to avoid visible tearing when updating large chunks of the display
-    bool anti_tearing = false;
+    bool anti_tearing = EGUI_GP1232_DOUBLE_BUFFER;
 
     void initialize() override;
     void set_power(bool on) override;
