@@ -1,38 +1,26 @@
-# TITLE: TBD
+# ESPer CDP
 
-## Project goals
+![logo](logo.png)
 
-### Main goals 
+## Index
 
-* ESP-32 based CD player platform
-* Nice graphical display interface (using e.g. VFD display)
-* CDDB connectivity for metadata display
-* ATAPI CD player support
-* ATAPI CD Changer support
-* IR Remote control and physical button control
-* Play on power on (for audio timer)
-* Straight, Shuffle, Program playback
-* Internet radio playback
+* [Firmware](firm)
+* [Schematics](sch)
+* [Test CD](test-suite)
+* [Hoard of Docs](reference)
 
-### Stretch goals
+Read the rest of the readme in the Firmware folder above...
 
-* Web remote control API
-* Bluetooth audio transmission
-* HTTP audio transmission
-* HTTP firmware updates
+## Rough BOM
 
-### Nice to have
-
-* Reuse PIS-OS core?
-
-### Out of scope
-
-* Data CD playback: not doable without a high speed bus
-* SATA compatibility
-
-## HW memo
-
-* I2C Level shifter: LSF0102
-* SPDIF to I2S: WM8805
-* DAC: PCM5102
-* IO Expander PCA9555PW
+* ESPer-CDP dev PCB for IDE bus
+* ESP32-WROVER, REV3 or newer with 8MB QIO Flash and 4MB QIO PSRAM
+* PCA9555D ×2
+* Wolfson WM8805 (sorry, out of production, but you can still buy them here and there)
+* PCM5102
+* Various resistors and capacitors -- see schematic
+* 12MHz XTAL
+* IR Receiver and PS2 DVD remote
+* ESPer-CDP Keypad PCB
+* 8 12x12mm buttons
+* Futaba GP1232A02 VFD display

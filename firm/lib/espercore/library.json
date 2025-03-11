@@ -1,0 +1,11 @@
+{
+    "name": "ESPer-Core",
+    "version": "1.0",
+    "description": "ESPer board core",
+    "platforms": "espressif32",
+    "build": {
+		"flags": [
+			"-Iinclude"
+		]
+    }
+}

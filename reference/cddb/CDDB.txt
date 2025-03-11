@@ -1,0 +1,67 @@
+﻿-------------------------------------------------------------------------------
+
+Excerpt from Wikipedia regarding the calculation of CDDB disc ids:
+
+-------------------------------------------------------------------------------
+
+CDDB1 identifies CDs with a 32-bit number, usually displayed as a hexadecimal
+number containing 8 digits: XXYYYYZZ. The first two digits (labeled XX)
+represent a checksum based on the starting times of each track on the CD. The
+next four digits (YYYY) represent the total time of the CD in seconds from the
+start of the first track to the end of the last track. The last two digits
+(ZZ) represent the number of tracks on the CD.
+
+For example, suppose a CD contains one track. Then the ZZ digits in the disc
+ID will be "01".
+
+Now suppose that the total duration of the CD is 3610 seconds (from the start
+of track 1 to the end of track 1 in this case). This number is decimal, and
+must be converted into the hexadecimal equivalent "0e1a" which form the YYYY
+portion of the disc ID.
+
+Finally, the two-digit checksum needs to be calculated from the start time in
+seconds of each track. There is one track in this example CD, and as with most
+CDs, the first track starts at 2 seconds (there is a 2 second silence leader).
+Therefore, summing up all of the decimal digits of each track start time
+yields the value 2. This value is less than 255, so it does not need to be
+evaluated modulo 255; and therefore, the XX digits of the disc ID are "02".
+According to freedb.org, the example code is done modulo 255 and not 256.
+
+So the full disc ID of the example CD is "020e1a01". Any CD which contains one
+track with a duration of 3610 seconds starting 2 seconds from the beginning of
+the CD will have this disc ID. To distinguish between different CDs which
+happen to have the same disc ID, the CDDB1 database is organized into multiple
+categories. If there is a conflict with different CD releases possessing the
+same CDDB1 id, they can be placed in a different category (such as classical,
+rock, blues, folk or misc).
+
+Sample code for calculating CDDB1 disc IDs in various programming languages is
+available on the web, such as in Java.
+
+
+-------------------------------------------------------------------------------
+
+Licensing issues
+
+-------------------------------------------------------------------------------
+
+The original software behind CDDB was released under the GNU General Public
+License, and many people submitted CD information thinking the service would
+also remain free. The license was later changed, however, and some programmers
+complained that the new license included certain terms that they couldn't
+accept: if one wanted to access CDDB, one was not allowed to access any other
+CDDB-like database (such as freedb), and any programs using a CDDB lookup had
+to display a CDDB logo while performing the lookup.
+
+In March 2001, CDDB, now owned by Gracenote, banned all unlicensed
+applications from accessing their database. New licenses for CDDB1 (the
+original version of CDDB) were no longer available, since Gracenote wanted to
+force programmers to switch to CDDB2 (a new version incompatible with CDDB1
+and hence with freedb).
+
+The license change motivated the freedb project, which is intended to remain
+free.
+
+freedb is used primarily by media players, cataloguers, audio taggers and CD
+ripper software. As of version 6 of the freedb protocol, freedb accepts and
+returns UTF-8 data.

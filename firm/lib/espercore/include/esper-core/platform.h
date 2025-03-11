@@ -1,0 +1,7 @@
+#include "thread_safe_i2c.h"
+#include "nixierator.h"
+#include "keypad.h"
+#include "spdif.h"
+#include "ide.h"
+#include "audio_router.h"
+#include "remote.h"

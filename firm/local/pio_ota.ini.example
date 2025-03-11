@@ -1,0 +1,8 @@
+; Example file for local development over the air
+
+[env:OTA]
+extends = env:esp32dev
+upload_protocol = espota
+upload_port = 192.168.123.456
+upload_flags = --auth=MY_PASSWORD
+board_build.esp-idf.sdkconfig_path=sdkconfig.esp32dev
