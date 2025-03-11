@@ -56,13 +56,12 @@ class InternetRadioMode::StreamingPipeline {
             bufferPcmData(PCM_DATA_BUFFER_SIZE, 1, portMAX_DELAY, portMAX_DELAY, fastAlloc),
             queueNetData(bufferNetData),
             queuePcmData(bufferPcmData),
-            urlStream(),
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
+            copierDownloading(queueNetData, urlStream),
             sndTask("IRASND", 8192, 5, 1),
             codecTask("IRADEC", 40000, 6, 1),
             netTask("IRANET", 20000, 14, 1),
-            copierDownloading(queueNetData, urlStream),
             copierDecoding(decoder, queueNetData),
             copierPlaying(*router->get_output_port(), queuePcmData) {
                 outPort = router->get_output_port();
@@ -95,6 +94,7 @@ class InternetRadioMode::StreamingPipeline {
             queuePcmData.begin();
             netTask.begin([this, url, loadingCallback]() { 
                     TickType_t last_shart_time = xTaskGetTickCount();
+                    
                     urlStream.setMetadataCallback(_update_meta_global);
                     urlStream.httpRequest().setTimeout(NET_CLIENT_TIMEOUT);
                     urlStream.httpRequest().header().setProtocol("HTTP/1.0"); // <- important, because chunked transfer of some servers seems to cause trouble with buffering!
@@ -181,7 +181,7 @@ class InternetRadioMode::StreamingPipeline {
                         }
                     });
 
-                    while(running) {
+                    while(true) {
                         xSemaphoreTake(semaNet, portMAX_DELAY);
                         TickType_t now = xTaskGetTickCount();
                         int copied = copierDownloading.copy();
@@ -216,6 +216,12 @@ class InternetRadioMode::StreamingPipeline {
                             last_stats = now;
                         }
 
+                        if(!running) {
+                            urlStream.end();
+                            xSemaphoreGive(semaNet);
+                            break;
+                        }
+
                         xSemaphoreGive(semaNet);
                     }
                     ESP_LOGI(LOG_TAG, "Finishing up net task");
@@ -232,11 +238,9 @@ class InternetRadioMode::StreamingPipeline {
             }
 
             running = false;
+            xSemaphoreTake(semaNet, portMAX_DELAY);
             ESP_LOGI(LOG_TAG, "Streamer finalizing net task");
             netTask.end();
-    
-            ESP_LOGI(LOG_TAG, "Streamer finalizing url");
-            urlStream.end();
     
             ESP_LOGI(LOG_TAG, "Streamer finalizing sound task");
             xSemaphoreTake(semaSnd, portMAX_DELAY);
@@ -259,12 +263,12 @@ class InternetRadioMode::StreamingPipeline {
     
     protected:
         bool running = false;
+        ICYStream urlStream;
+        StreamCopy copierDownloading;
         StreamCopy copierPlaying;
         StreamCopy copierDecoding;
-        StreamCopy copierDownloading;
         AudioDecoder * activeCodec;
         EncodedAudioStream decoder;
-        ICYStream urlStream;
         Task sndTask;
         Task codecTask;
         Task netTask;

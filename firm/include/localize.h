@@ -10,5 +10,6 @@ enum DisplayLanguage: int {
 };
 
 DisplayLanguage active_language();
+const std::string language_name(DisplayLanguage);
 void set_active_language(DisplayLanguage);
 const std::string localized_string(const std::string& key);
