@@ -123,6 +123,9 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
             LanguageMenuNode(DSPL_LANG_EN),
             LanguageMenuNode(DSPL_LANG_RU),
             LanguageMenuNode(DSPL_LANG_JA),
+            LanguageMenuNode(DSPL_LANG_HU),
+            LanguageMenuNode(DSPL_LANG_DE),
+            LanguageMenuNode(DSPL_LANG_NL),
         }),
         ListMenuNode("Mode toggle button", nullptr, std::tuple {
             TogglePreferenceMenuNode("CD", PREFS_KEY_CD_MODE_INCLUDED),

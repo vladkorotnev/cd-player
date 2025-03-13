@@ -1,0 +1,70 @@
+{
+    "Hello!": "Hallo!",
+    "Goodbye!": "Tot ziens!",
+
+    "Please Wait": "Even geduld...",
+    "Reading": "Lezen...",
+    "No Disc": "Geen disc",
+    "Open": "Open",
+    "Changing Disc": "Disc wisselen",
+    "Stop": "Stop",
+    "Track": "Nummer",
+
+    "(BT Device)": "(BT-apparaat)",
+    "Confirm PIN and press PLAY": "Bevestig pincode en druk op PLAY",
+
+    "Free": "Vrij",
+    "Used": "Bezet",
+    "Memory": "Geheugen",
+    "Network": "Netwerk",
+
+    "Source": "Bron",
+    "Web Radio": "Webradio",
+
+    "Settings": "Instellingen",
+    "Searching...": "Zoeken...",
+    "No networks": "Geen netwerken",
+    "User name": "Gebruikersnaam",
+    "Password": "Wachtwoord",
+    "(None)": "(Geen)",
+    "Connect": "Verbinden",
+    "Connected": "Verbonden",
+    "Connection failed": "Verbinding mislukt",
+
+    "Show Lyrics": "Toon songtekst",
+    "Metadata": "Metadata",
+    "Cache Metadata": "Metadata cachen",
+    "Clear Cache": "Cache legen",
+
+    "Cache cleared": "Cache geleegd",
+    "Failed to clear cache": "Cache legen mislukt",
+
+    "Metadata sources": "Metadata bronnen",
+    "CDDB server": "CDDB-server",
+    "CDDB e-mail": "CDDB e-mail",
+    "Lyrics sources": "Songtekst bronnen",
+    "Enable": "Inschakelen",
+
+    "Radio Stations": "Radiostations",
+    "Preset %i": "Preset %i",
+    "Preset": "Preset",
+    "Name": "Naam",
+    "URL": "URL",
+    "No Preset": "Geen preset",
+
+    "Device Name": "Apparaatnaam",
+    "Require PIN code": "Pincode vereist",
+    "Auto-connect": "Autoverbinden",
+    "Language": "Taal",
+    "Mode toggle button": "Modus schakelknop",
+    "Check for Updates": "Controleer op updates",
+    "NTP server": "NTP-server",
+    "Full Reset": "Volledige reset",
+    "Yes, Erase All!": "Ja, wis alles!",
+    "Yes, I Am Sure!": "Ja, ik weet het zeker!",
+
+    "About": "Over",
+    "System": "Systeem",
+    "Reset complete": "Reset voltooid",
+    "Language changed": "Taal gewijzigd"
+}

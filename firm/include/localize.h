@@ -2,11 +2,14 @@
 #include <string>
 
 enum DisplayLanguage: int {
-    DSPL_LANG_INVALID = -1,
-    
     DSPL_LANG_EN = 0,
-    DSPL_LANG_RU = 1,
-    DSPL_LANG_JA = 2
+    DSPL_LANG_RU,
+    DSPL_LANG_JA,
+    DSPL_LANG_HU,
+    DSPL_LANG_DE,
+    DSPL_LANG_NL,
+
+    DSPL_LANG_INVALID
 };
 
 DisplayLanguage active_language();

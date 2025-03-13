@@ -23,12 +23,12 @@ void set_active_language(DisplayLanguage lang) {
 
 const std::string language_name(DisplayLanguage lang) {
     switch(lang) {
-        case DSPL_LANG_RU:
-            return "Русский";
-        case DSPL_LANG_JA:
-            return "日本語";
-        case DSPL_LANG_EN:
-            return "English";
+        case DSPL_LANG_RU: return "Русский";
+        case DSPL_LANG_JA: return "日本語";
+        case DSPL_LANG_EN: return "English";
+        case DSPL_LANG_HU: return "Magyar";
+        case DSPL_LANG_DE: return "Deutsch";
+        case DSPL_LANG_NL: return "Nederlands";
         default:
             return "???";
     }
@@ -50,6 +50,15 @@ static bool _load_lang_map_if_needed() {
             break;
         case DSPL_LANG_JA:
             filename = LANG_DIR_PREFIX "/ja.lang";
+            break;
+        case DSPL_LANG_HU:
+            filename = LANG_DIR_PREFIX "/hu.lang";
+            break;
+        case DSPL_LANG_DE:
+            filename = LANG_DIR_PREFIX "/de.lang";
+            break;
+        case DSPL_LANG_NL:
+            filename = LANG_DIR_PREFIX "/nl.lang";
             break;
         case DSPL_LANG_EN:
         default:

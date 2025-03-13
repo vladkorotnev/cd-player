@@ -1,0 +1,70 @@
+{
+    "Hello!": "Szia!",
+    "Goodbye!": "Viszlát!",
+
+    "Please Wait": "Kérem, várjon",
+    "Reading": "Olvasás",
+    "No Disc": "Nincs lemez",
+    "Open": "Nyitás",
+    "Changing Disc": "Lemezváltás",
+    "Stop": "Leállítás",
+    "Track": "Sáv",
+
+    "(BT Device)": "(BT Eszköz)",
+    "Confirm PIN and press PLAY": "Erősítse meg a PIN kódot, és nyomja meg a PLAY gombot",
+
+    "Free": "Szabad",
+    "Used": "Használt",
+    "Memory": "Memória",
+    "Network": "WiFi",
+
+    "Source": "Forrás",
+    "Web Radio": "Internetrádió",
+
+    "Settings": "Beállítások",
+    "Searching...": "Keresés...",
+    "No networks": "Nincs hálózat",
+    "User name": "Felhasználónév",
+    "Password": "Jelszó",
+    "(None)": "(Nincs)",
+    "Connect": "Csatlakozás",
+    "Connected": "Csatlakoztatva",
+    "Connection failed": "Sikertelen csatlakozás",
+
+    "Show Lyrics": "Dalszöveg",
+    "Metadata": "Címadatok",
+    "Cache Metadata": "Metadata mentése",
+    "Clear Cache": "Metadata törlése",
+
+    "Cache cleared": "Metadata törölve",
+    "Failed to clear cache": "Adatok törlése sikertelen",
+
+    "Metadata sources": "Metadata forrása",
+    "CDDB server": "CDDB szerver",
+    "CDDB e-mail": "CDDB e-mail",
+    "Lyrics sources": "Dalszöveg forrása",
+    "Enable": "Engedélyezés",
+
+    "Radio Stations": "Rádióállomások",
+    "Preset %i": "%i. Előbeállítás",
+    "Preset": "Előbeállítás",
+    "Name": "Név",
+    "URL": "URL",
+    "No Preset": "Nincs előbeállítás",
+
+    "Device Name": "Eszköz neve",
+    "Require PIN code": "Pinkód szükséges",
+    "Auto-connect": "Autocsatlakozas",
+    "Language": "Nyelv",
+    "Mode toggle button": "Módváltó gomb",
+    "Check for Updates": "Frissítések keresése",
+    "NTP server": "NTP szerver",
+    "Full Reset": "Teljes visszaáll",
+    "Yes, Erase All!": "Mindent töröl!",
+    "Yes, I Am Sure!": "Biztos vagyok benne!",
+
+    "About": "Névjegy",
+    "System": "Rendszer",
+    "Reset complete": "Visszaállítás kész",
+    "Language changed": "Nyelv megváltoztatva"
+}

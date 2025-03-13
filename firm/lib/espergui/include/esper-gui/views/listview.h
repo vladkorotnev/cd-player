@@ -38,7 +38,7 @@ namespace UI {
 
             // draw slider
             if(maximum > page_size) {
-                int scale_factor = std::max(1, maximum / trackbar_height);
+                int scale_factor = std::max(1, (maximum / trackbar_height) + ((maximum % trackbar_height) != 0));
                 int top_of_slider_scaled = current_offset / scale_factor;
                 int bottom_of_slider_scaled = (current_offset + page_size) / scale_factor;
                 EGDrawRect(buf, {{midpoint_x - 1, 4 + top_of_slider_scaled}, {3, bottom_of_slider_scaled - top_of_slider_scaled}}, true);
