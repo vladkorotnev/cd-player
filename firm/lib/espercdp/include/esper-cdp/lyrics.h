@@ -37,4 +37,12 @@ namespace CD {
     private:
         const char * LOG_TAG = "QQLRC";
     };
+
+    class NeteaseLyricProvider: public LyricProvider {
+    public:
+        NeteaseLyricProvider() {}
+        void fetch_track(Track& track, const Album& album) override;
+    private:
+        const char * LOG_TAG = "NetEase";
+    };
 }

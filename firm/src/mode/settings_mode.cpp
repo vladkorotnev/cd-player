@@ -62,6 +62,28 @@ static bool clear_cddb_cache() {
     return rslt;
 }
 
+class LanguageMenuNode: public MenuNode {
+public:
+    LanguageMenuNode(DisplayLanguage lang): 
+        language(lang),
+        MenuNode(language_name(lang)) {}
+
+    void execute(MenuNavigator * host) const override {
+        set_active_language(language);
+        host->push(std::make_shared<InfoMessageBox>(localized_string("Language changed"), [](MenuNavigator* h) { ESP.restart(); }));
+    }
+
+    void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override {
+        if(active_language() == language) {
+            EGBlitImage(buf, {bounds.width - icn_checkmark.size.width, bounds.height/2 - icn_checkmark.size.height/2}, &icn_checkmark);
+        }
+        MenuNode::draw_accessory(buf, bounds);
+    }
+
+protected:
+    DisplayLanguage language;
+};
+
 static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
     WiFiNetworksListMenuNode(),
     ListMenuNode("CD", &icn_cd, std::tuple {
@@ -80,6 +102,7 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
             }),
             ListMenuNode("Lyrics sources", nullptr, std::tuple {
                 TogglePreferenceMenuNode("LRCLib", PREFS_KEY_CD_LRCLIB_ENABLED),
+                TogglePreferenceMenuNode("NetEase (163)", PREFS_KEY_CD_NETEASE_ENABLED),
                 TogglePreferenceMenuNode("QQ Music", PREFS_KEY_CD_QQ_ENABLED),
             })
         }),
@@ -97,25 +120,21 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
     }),
     ListMenuNode("System", &icn_sys, std::tuple {
         ListMenuNode("Language", nullptr, std::tuple {
-            ActionMenuNode("English", [](MenuNavigator* h) {
-                set_active_language(DSPL_LANG_EN);
-                // iPhones were rebooting to change language for a good decade too, so it's not a bug, it's a feature
-                h->push(std::make_shared<InfoMessageBox>(localized_string("Language changed"), [](MenuNavigator*) { ESP.restart(); }));
-            }, (active_language() == DSPL_LANG_EN) ? &icn_checkmark : &icn_no_checkmark),
-            ActionMenuNode("Русский", [](MenuNavigator* h) {
-                set_active_language(DSPL_LANG_RU);
-                h->push(std::make_shared<InfoMessageBox>(localized_string("Language changed"), [](MenuNavigator*) { ESP.restart(); }));
-            }, (active_language() == DSPL_LANG_RU) ? &icn_checkmark : &icn_no_checkmark),
-            ActionMenuNode("日本語", [](MenuNavigator* h) {
-                set_active_language(DSPL_LANG_JA);
-                h->push(std::make_shared<InfoMessageBox>(localized_string("Language changed"), [](MenuNavigator*) { ESP.restart(); }));
-            }, (active_language() == DSPL_LANG_JA) ? &icn_checkmark : &icn_no_checkmark),
+            LanguageMenuNode(DSPL_LANG_EN),
+            LanguageMenuNode(DSPL_LANG_RU),
+            LanguageMenuNode(DSPL_LANG_JA),
+            LanguageMenuNode(DSPL_LANG_HU),
+            LanguageMenuNode(DSPL_LANG_DE),
+            LanguageMenuNode(DSPL_LANG_NL),
         }),
         ListMenuNode("Mode toggle button", nullptr, std::tuple {
             TogglePreferenceMenuNode("CD", PREFS_KEY_CD_MODE_INCLUDED),
             TogglePreferenceMenuNode("Web Radio", PREFS_KEY_RADIO_MODE_INCLUDED),
             TogglePreferenceMenuNode("Bluetooth", PREFS_KEY_BLUETOOTH_MODE_INCLUDED),
         }),
+#if OTA_FVU_ENABLED
+        TogglePreferenceMenuNode("OTA FVU", PREFS_KEY_OTAFVU_ALLOWED),
+#endif
         MenuNode("Check for Updates"),
         TextPreferenceEditorNode("NTP server", Core::PrefsKey::NTP_SERVER),
         ListMenuNode("Full Reset", nullptr, std::tuple {

@@ -1,6 +1,6 @@
 # ESPer CDP
 
-![logo](logo.png)
+![logo](mek.jpg)
 
 ## Index
 

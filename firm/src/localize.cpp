@@ -21,12 +21,27 @@ void set_active_language(DisplayLanguage lang) {
     Prefs::set(ACTIVE_LANGUAGE_PREFS_KEY, (int)lang);
 }
 
+const std::string language_name(DisplayLanguage lang) {
+    switch(lang) {
+        case DSPL_LANG_RU: return "Русский";
+        case DSPL_LANG_JA: return "日本語";
+        case DSPL_LANG_EN: return "English";
+        case DSPL_LANG_HU: return "Magyar";
+        case DSPL_LANG_DE: return "Deutsch";
+        case DSPL_LANG_NL: return "Nederlands";
+        default:
+            return "???";
+    }
+}
+
 static DisplayLanguage lang_map_language = DSPL_LANG_INVALID;
 static EXT_RAM_ATTR std::map<const std::string, std::string> lang_map = {};
 
 static bool _load_lang_map_if_needed() {
     DisplayLanguage lang =  active_language();
     if(lang_map_language == lang) return true;
+
+    lang_map.clear(); // otherwise switching to "implicit"/native locale fails
 
     const char * filename = nullptr;
     switch(lang) {
@@ -35,6 +50,15 @@ static bool _load_lang_map_if_needed() {
             break;
         case DSPL_LANG_JA:
             filename = LANG_DIR_PREFIX "/ja.lang";
+            break;
+        case DSPL_LANG_HU:
+            filename = LANG_DIR_PREFIX "/hu.lang";
+            break;
+        case DSPL_LANG_DE:
+            filename = LANG_DIR_PREFIX "/de.lang";
+            break;
+        case DSPL_LANG_NL:
+            filename = LANG_DIR_PREFIX "/nl.lang";
             break;
         case DSPL_LANG_EN:
         default:
@@ -58,7 +82,6 @@ static bool _load_lang_map_if_needed() {
     }
 
     JsonObject root = content.as<JsonObject>();
-    lang_map.clear();
     int i = 0;
 
     for (JsonPair kv : root) {

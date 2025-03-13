@@ -1,10 +1,8 @@
 #include <otafvu.h>
 #include <esper-core/wlan.h>
 #include <ArduinoOTA.h>
-
-#ifdef OTA_FVU_PASSWORD_HASH
-#define OTA_FVU_ENABLED
-#endif
+#include <consts.h>
+#include <shared_prefs.h>
 
 static char LOG_TAG[] = "OTAFVU";
 
@@ -92,6 +90,11 @@ static void OtaFvuTaskFunction( void * pvParameter )
 namespace OTAFVU {
     void start_if_needed(const PlatformSharedResources res, ModeHost * host) {
 #ifdef OTA_FVU_ENABLED
+
+    if(!Prefs::get(PREFS_KEY_OTAFVU_ALLOWED)) {
+        ESP_LOGW(LOG_TAG, "OTAFVU code present but disabled by user");
+        return;
+    }
 
     ArduinoOTA.setHostname((std::string("esper-") + Core::Services::WLAN::chip_id()).c_str());
 #ifndef OTAFVU_PORT

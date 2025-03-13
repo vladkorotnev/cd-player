@@ -21,6 +21,8 @@ static const Prefs::Key<bool> PREFS_KEY_CD_CDDB_ENABLED {"cd_meta_cddb", true};
 static const Prefs::Key<bool> PREFS_KEY_CD_LRCLIB_ENABLED {"cd_meta_lrclib", true};
 /// Whether to use QQ Music lyrics
 static const Prefs::Key<bool> PREFS_KEY_CD_QQ_ENABLED {"cd_meta_qq", true};
+/// Whether to use NetEase lyrics
+static const Prefs::Key<bool> PREFS_KEY_CD_NETEASE_ENABLED {"cd_meta_162", true};
 
 /// Whether to scrobble to Last FM or not
 static const Prefs::Key<bool> PREFS_KEY_CD_LASTFM_ENABLED {"cd_lastfm", false};
@@ -38,3 +40,6 @@ static const Prefs::Key<std::string> PREFS_KEY_BT_NAME {"bt_name", "ESPer-CDP"};
 static const Prefs::Key<bool> PREFS_KEY_BT_RECONNECT {"bt_auto_conn", true};
 /// Is BT pin code enabled
 static const Prefs::Key<bool> PREFS_KEY_BT_NEED_PIN {"bt_use_pin", true};
+
+/// Is OTA FVU allowed
+static const Prefs::Key<bool> PREFS_KEY_OTAFVU_ALLOWED {"otafvu_allow", false};

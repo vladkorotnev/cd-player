@@ -11,3 +11,7 @@
 #ifndef FONT_DIR_PREFIX
 #define FONT_DIR_PREFIX FS_MOUNT_POINT "/font"
 #endif
+
+#ifdef OTA_FVU_PASSWORD_HASH
+#define OTA_FVU_ENABLED 1
+#endif

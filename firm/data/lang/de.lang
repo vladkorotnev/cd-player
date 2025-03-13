@@ -1,0 +1,70 @@
+{
+    "Hello!": "Hallo!",
+    "Goodbye!": "Auf Wiedersehen!",
+
+    "Please Wait": "Bitte warten",
+    "Reading": "Lese...",
+    "No Disc": "Keine Disc",
+    "Open": "Öffnen",
+    "Changing Disc": "Wechsle Disc",
+    "Stop": "Stopp",
+    "Track": "Titel",
+
+    "(BT Device)": "(BT Gerät)",
+    "Confirm PIN and press PLAY": "PIN bestätigen und PLAY drücken",
+
+    "Free": "Frei",
+    "Used": "Belegt",
+    "Memory": "Speicher",
+    "Network": "Netz.",
+
+    "Source": "Quelle",
+    "Web Radio": "Webradio",
+
+    "Settings": "Einstellungen",
+    "Searching...": "Suche...",
+    "No networks": "Keine Netzwerke",
+    "User name": "Benutzername",
+    "Password": "Passwort",
+    "(None)": "(Keine)",
+    "Connect": "Verbinden",
+    "Connected": "Verbunden",
+    "Connection failed": "Verbindung fehlgeschlagen",
+
+    "Show Lyrics": "Liedtext anzeig",
+    "Metadata": "Metadaten",
+    "Cache Metadata": "Metadatencache",
+    "Clear Cache": "Cache leeren",
+
+    "Cache cleared": "Cache geleert",
+    "Failed to clear cache": "Konnte nicht",
+
+    "Metadata sources": "Metadatenquellen",
+    "CDDB server": "CDDB-Server",
+    "CDDB e-mail": "CDDB-E-Mail",
+    "Lyrics sources": "Liedtextquellen",
+    "Enable": "Aktivieren",
+
+    "Radio Stations": "Radiosender",
+    "Preset %i": "Sender %i",
+    "Preset": "Sender",
+    "Name": "Name",
+    "URL": "URL",
+    "No Preset": "Kein Sender",
+
+    "Device Name": "Gerätename",
+    "Require PIN code": "PIN erforderlich",
+    "Auto-connect": "Autoverbinden",
+    "Language": "Sprache",
+    "Mode toggle button": "Modus-Umschalter",
+    "Check for Updates": "Auf Updates prüfen",
+    "NTP server": "NTP-Server",
+    "Full Reset": "Zurücksetzen",
+    "Yes, Erase All!": "Ja, alles löschen!",
+    "Yes, I Am Sure!": "Ja, ich bin sicher!",
+
+    "About": "Über",
+    "System": "System",
+    "Reset complete": "Zurücksetzen abgeschlossen",
+    "Language changed": "Sprache geändert"
+}
