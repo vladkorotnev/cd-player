@@ -108,7 +108,7 @@ class InternetRadioMode::StreamingPipeline {
                         if(srv_mime == "audio/mpeg" || srv_mime == "audio/mp3") {
                             activeCodec = new MP3DecoderHelix();
                         }
-                        else if(srv_mime == "audio/aac") {
+                        else if(srv_mime == "audio/aac" || srv_mime == "audio/aacp" /* found on Keygen FM */) {
                             activeCodec = new AACDecoderHelix();
                         }
                         else {
