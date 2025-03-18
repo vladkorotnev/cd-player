@@ -2,7 +2,7 @@ name: Build production version
 
 on:
   push:
-    branches: [main]
+    branches: [master]
 
 jobs:
   build-everything:
