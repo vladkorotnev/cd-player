@@ -1,0 +1,78 @@
+name: Build production version
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  build-everything:
+    runs-on: ubuntu-latest
+    name: Build All Binaries
+    permissions:
+      contents: write
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          submodules: recursive
+      - name: Set up Git identity
+        run: |
+          git config --local user.name "Leønid Yakubovič"
+          git config --local user.email "sueydisnilyu@example.com"
+      - name: Prepare environment
+        uses: ./.github/actions/prepare_pio
+      - name: Create env file
+        env:
+          LASTFM_API_KEY: ${{ secrets.LASTFM_API_KEY }}
+          LASTFM_API_SECRET: ${{ secrets.LASTFM_API_SECRET }}
+        run: |
+          echo LASTFM_API_KEY=\\\"$LASTFM_API_KEY\\\" >> ./firm/.env
+          echo LASTFM_API_SECRET=\\\"$LASTFM_API_SECRET\\\" >> ./firm/.env
+      - name: Build all targets
+        working-directory: ./firm
+        run: pio run
+      - name: Upload firmware images
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./firm/.pio/build/*/firmware.bin
+          name: firmwares.zip
+          if-no-files-found: error
+      - name: Upload elfs
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./firm/.pio/build/*/firmware.elf
+          name: elfs.zip
+          if-no-files-found: error
+      - name: Create LittleFS image
+        working-directory: ./firm
+        run: pio run --target buildfs --environment ESPER_OG_8M
+      - name: Upload filesystem image
+        uses: actions/upload-artifact@v4
+        with:
+          path: ./firm/.pio/build/ESPER_OG_8M/littlefs.bin
+          name: filesystem.zip
+          if-no-files-found: error
+      - name: Switch to public branch
+        run: |
+          git checkout pub
+          git merge origin/master --strategy-option theirs
+      - name: Move things to FVUDATA for publishing
+        run: |
+          git rm -r ./webroot/fvu/*
+          chmod +x ./.github/ci/create_fvudata.sh
+          ./.github/ci/create_fvudata.sh
+      - name: Add FVUDATA stuff into git and push
+        run: |
+          cp ./CNAME ./webroot/CNAME
+          git add -f ./webroot/fvu/*
+          git commit -m "ci: Publish firmwares at $(git rev-parse --short HEAD)"
+          git push --force -u origin pub
+      # Thanks to yet another weird limitation of Github Actions, we need to duplicate this action here
+      # https://github.com/orgs/community/discussions/25702
+      # Remove when a better solution is found
+      - name: Publish webroot via GitHub Pages
+        uses: rayluo/github-pages-overwriter@v1.3
+        with:
+          source-directory: webroot
+          target-branch: gh-pages

@@ -8,6 +8,7 @@
 #include "settings/settings_icons.h"
 #include "settings/wifi_menus.h"
 #include "settings/radio_menus.h"
+#include "settings/httpfvu_app.h"
 #include <esper-core/wlan.h>
 #include "esp_app_format.h"
 #include "esp_ota_ops.h"
@@ -135,7 +136,9 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
 #if OTA_FVU_ENABLED
         TogglePreferenceMenuNode("OTA FVU", PREFS_KEY_OTAFVU_ALLOWED),
 #endif
-        MenuNode("Check for Updates"),
+        ActionMenuNode("Check for Updates", [](MenuNavigator* h) { 
+            h->push(std::make_shared<HttpFvuApp>(h));
+        }),
         TextPreferenceEditorNode("NTP server", Core::PrefsKey::NTP_SERVER),
         ListMenuNode("Full Reset", nullptr, std::tuple {
             ListMenuNode("Yes, Erase All!", nullptr, std::tuple {

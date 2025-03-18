@@ -1,6 +1,22 @@
-# ESPer-CDP Firmware
+---
+layout: page
+title: ESPer-CDP
+tagline: ESPer-CDP Project CI page
+description: ESP32 based CD player + internet radio + bluetooth receiver
+---
 
-This is the ESP32 firmware for the ESPer-CDP CD player board.
+# ESPer-CDP
+
+![meku](mek.jpg)
+
+## Source code
+
+[Github](https://github.com/vladkorotnev/cd-player)
+
+## Overview
+
+* Videos (rev1): [English](https://youtu.be/To1woYCxPkw)・[русский](https://youtu.be/jMiKXZWBPP4)
+* Articles: [русский](https://habr.com/ru/companies/timeweb/articles/883772)・[日本語](https://elchika.com/article/990b4118-5500-4a74-9186-8e1c0df4c5e3/)
 
 ## System Requirements
 
@@ -44,35 +60,6 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * Settings UI on screen with multiple language support: English, Japanese, Russian, feel free to add your own?
 * IR Remote (PS2-DVD remote)
 * Scrobbling to Last.FM
-* ... more to come! I need time :P
-
-## Further goals
-
-### Software only
-
-* HTTP updates with CI/CD
-* Hopefully increase size of cache partition
-* Stretch: Bluetooth transmitter from radio/CD
-* Maybe some day: Web interface
-* Dependency, so also maybe some day: Connect to WiFi by QR (**upd:** DPP QR doesn't fit in 29x29 or 31x31, must use captive portal or OSD altogether)
-* More lyric sources (similar to those supported by one popular foobar plugin)
-* Figure out how to disable drive's sleep mode? For now I almost exploded the disc twice from hanging the CPU in the drive, but never got the power condition mode select call to work
-
-### Rev 2 of hardware if it ever comes
-
-* Direct read of CDA from the drive instead of using SPDIF
-* Reading of UDF/ISO9660 drives with AAC/MP3/MOD/XM/IT/other files on them
-* FM radio with RDS
-* AM radio (SW, MW, LW)
-* maybe: other display types
-
-## Architecture
-
-* GUI is rendered using a custom [ESPer GUI (えぐい)](lib/espergui/) library
-* All platform related driver and stuff is kept in the [ESPer Core](lib/espercore/) library
-* ATAPI related drivers and CD player command/state machine model is stored in the [ESPer CDP](lib/espercdp/) library
-* All fonts are loaded into PSRAM from LittleFS where they are stored using the [MoFo Format](https://github.com/vladkorotnev/plasma-clock/blob/develop/src/graphics/font.cpp#L10) from [PIS-OS](https://github.com/vladkorotnev/plasma-clock/)
-* ESP-IDF is used to customize the building of Arduino libraries because otherwise I run out of IRAM area when using A2DP + WiFi in the same program
 
 ## Credits
 
@@ -83,10 +70,9 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * [Misaki Mincho](https://littlelimit.net/misaki.htm) 8x8 kanji font, [k8x12](https://littlelimit.net/k12x8.htm) kanji font by [門真 なむ (LittleLimit)](https://littlelimit.net/index.html)
 * Inspired by [ATAPIDUINO](http://singlevalve.web.fc2.com/Atapiduino/atapiduino.htm) and [daniel1111's ArduinoCdPlayer](https://github.com/daniel1111/ArduinoCdPlayer)
 
-## Tech Notes
+## Why does this domain exist?
 
-* On design of CDDB metadata in-flash cache system: https://github.com/littlefs-project/littlefs/issues/1067
-* Various issues around Arduino-Audio-Tools: https://github.com/pschatzmann/arduino-audio-tools/discussions/1930
+This domain is used for automatic firmware update distribution by building them in CI and publishing them via Github Pages :P
 
 ----
 

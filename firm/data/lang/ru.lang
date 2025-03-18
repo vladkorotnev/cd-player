@@ -66,5 +66,12 @@
     "About": "Об устройстве",
     "System": "Система",
     "Reset complete": "Настройки сброшены",
-    "Language changed": "Язык установлен"
+    "Language changed": "Язык установлен",
+
+    "Checking...": "Поиск обновлений",
+    "No new version": "Новой версии нет",
+    "Update in progress": "Идёт обновление",
+    "DO NOT TURN OFF!!": "НЕ ВЫКЛЮЧАТЬ !!",
+    "Update completed": "Обновление успешно",
+    "Update error!": "НЕ УДАЛОСЬ"
 }

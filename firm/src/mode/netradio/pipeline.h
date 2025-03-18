@@ -59,7 +59,7 @@ class InternetRadioMode::StreamingPipeline {
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
             copierDownloading(queueNetData, urlStream),
-            sndTask("IRASND", 8192, 5, 1),
+            sndTask("IRASND", 8192, 8, 0),
             codecTask("IRADEC", 40000, 6, 1),
             netTask("IRANET", 20000, 14, 1),
             copierDecoding(decoder, queueNetData),
@@ -108,7 +108,7 @@ class InternetRadioMode::StreamingPipeline {
                         if(srv_mime == "audio/mpeg" || srv_mime == "audio/mp3") {
                             activeCodec = new MP3DecoderHelix();
                         }
-                        else if(srv_mime == "audio/aac") {
+                        else if(srv_mime == "audio/aac" || srv_mime == "audio/aacp" /* found on Keygen FM */) {
                             activeCodec = new AACDecoderHelix();
                         }
                         else {

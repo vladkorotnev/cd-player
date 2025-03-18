@@ -44,6 +44,7 @@ public:
     virtual void on_presented() {}
     virtual void on_dismissed() {}
     virtual void on_key_pressed(VirtualKey, MenuNavigator*) {}
+    virtual bool navigation_locked() { return false; }
 };
 
 class MenuNavigator: public UI::View {
@@ -60,13 +61,14 @@ public:
     }
 
     void pop() {
-        if(back_stack.empty()) return;
+        if(!can_go_up()) return;
         current->on_dismissed();
         set_current(back_stack.top());
         back_stack.pop();
     }
 
     void pop_to_root() {
+        if(!can_go_up()) return;
         while(!back_stack.empty()) {
             auto tmp = back_stack.top();
             back_stack.pop();
@@ -79,7 +81,7 @@ public:
     }
 
     bool can_go_up() const {
-        return !back_stack.empty();
+        return !back_stack.empty() && !current->navigation_locked();
     }
 
     void on_key_pressed(VirtualKey k) { current->on_key_pressed(k, this); }

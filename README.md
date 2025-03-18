@@ -1,6 +1,6 @@
 # ESPer CDP
 
-![logo](mek.jpg)
+![logo](webroot/mek.jpg)
 
 ## Index
 
