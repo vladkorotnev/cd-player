@@ -66,5 +66,12 @@
     "About": "バージョン情報",
     "System": "システム設定",
     "Reset complete": "初期化が完了しました",
-    "Language changed": "言語を設定しました"
+    "Language changed": "言語を設定しました",
+
+    "Checking...": "チェック中",
+    "No new version": "最新バージョンです",
+    "Update in progress": "バージョンアップ中",
+    "DO NOT TURN OFF!!": "電源を切らないでください",
+    "Update completed": "バージョンアップ完了",
+    "Update error!": "バージョンアップに失敗しました"
 }
