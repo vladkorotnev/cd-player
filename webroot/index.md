@@ -1,15 +1,22 @@
 ---
 layout: page
-title: simple site
-tagline: ESPer-CDP
+title: ESPer-CDP
+tagline: ESPer-CDP Project CI page
 description: ESP32 based CD player + internet radio + bluetooth receiver
 ---
 
 # ESPer-CDP
 
+![meku](mek.jpg)
+
 ## Source code
 
 [Github](https://github.com/vladkorotnev/cd-player)
+
+## Overview
+
+* Videos (rev1): [English](https://youtu.be/To1woYCxPkw)・[русский](https://youtu.be/jMiKXZWBPP4)
+* Articles: [русский](https://habr.com/ru/companies/timeweb/articles/883772)・[日本語](https://elchika.com/article/990b4118-5500-4a74-9186-8e1c0df4c5e3/)
 
 ## System Requirements
 
@@ -62,6 +69,10 @@ description: ESP32 based CD player + internet radio + bluetooth receiver
 * Font `xnu` yanked from the [XNU/Darwin kernel](https://github.com/apple/darwin-xnu/blob/main/osfmk/console/iso_font.c), &copy; 2000 Apple Computer, Inc., &copy; 2000 Ka-Ping Yee
 * [Misaki Mincho](https://littlelimit.net/misaki.htm) 8x8 kanji font, [k8x12](https://littlelimit.net/k12x8.htm) kanji font by [門真 なむ (LittleLimit)](https://littlelimit.net/index.html)
 * Inspired by [ATAPIDUINO](http://singlevalve.web.fc2.com/Atapiduino/atapiduino.htm) and [daniel1111's ArduinoCdPlayer](https://github.com/daniel1111/ArduinoCdPlayer)
+
+## Why does this domain exist?
+
+This domain is used for automatic firmware update distribution by building them in CI and publishing them via Github Pages :P
 
 ----
 
