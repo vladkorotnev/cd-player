@@ -59,7 +59,7 @@ class InternetRadioMode::StreamingPipeline {
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
             copierDownloading(queueNetData, urlStream),
-            sndTask("IRASND", 8192, 5, 1),
+            sndTask("IRASND", 8192, 8, 0),
             codecTask("IRADEC", 40000, 6, 1),
             netTask("IRANET", 20000, 14, 1),
             copierDecoding(decoder, queueNetData),
