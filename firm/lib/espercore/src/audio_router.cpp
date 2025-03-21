@@ -7,10 +7,8 @@
 // Enable null output to allow JTAG to work
 // #define ESPER_NULL_OUTPUT
 
-#ifdef ESPER_NULL_OUTPUT
 NullStream null;
 AudioStreamWrapper nullAs(null);
-#endif
 
 namespace Platform {
     AudioRouter::AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio) :
@@ -75,7 +73,7 @@ namespace Platform {
     #ifdef ESPER_NULL_OUTPUT
         return &nullAs;
     #else
-        return _i2s;
+        return (current_route == ROUTE_INTERNAL_CPU) ? ((AudioStream*) _i2s) : &nullAs;
     #endif
     }
 
