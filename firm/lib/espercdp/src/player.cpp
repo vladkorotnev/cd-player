@@ -530,6 +530,21 @@ namespace CD {
         xSemaphoreGive(_cmdSemaphore);
     }
 
+    void Player::navigate_to_track(int track) {
+        auto album = slots[cur_slot].disc;
+        if(track >= 1 && track <= album->tracks.size()) {
+            if(sts != State::STOP) {
+                cdrom->play(album->tracks[track - 1].disc_position.position, album->duration);
+                if(sts == State::PAUSE) {
+                    cdrom->pause(true);
+                }
+            }
+            else {
+                cur_track.track = track;
+            }
+        }
+    }
+
     void Player::change_tracks(bool fwd) {
         auto album = slots[cur_slot].disc;
         if(!album->tracks.empty()) {
@@ -556,17 +571,8 @@ namespace CD {
                     next_trk_no = cur_track.track; // go to start of current track
                 }
             }
-            if(next_trk_no < 1) return;
 
-            if(sts != State::STOP) {
-                cdrom->play(album->tracks[next_trk_no - 1].disc_position.position, album->duration);
-                if(sts == State::PAUSE) {
-                    cdrom->pause(true);
-                }
-            }
-            else {
-                cur_track.track = next_trk_no;
-            }
+            navigate_to_track(next_trk_no);
         }
     }
 

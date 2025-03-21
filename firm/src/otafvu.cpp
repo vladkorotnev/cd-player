@@ -113,9 +113,7 @@ namespace OTAFVU {
     bool start_if_needed(const PlatformSharedResources res, ModeHost * host) {
 #ifdef OTA_FVU_ENABLED
 
-    pinMode(GPIO_NUM_0, INPUT);
-
-    bool need_recovery = (esp_reset_reason() == ESP_RST_PANIC || !digitalRead(GPIO_NUM_0)); // panic or boot button on power up
+    bool need_recovery = (esp_reset_reason() == ESP_RST_PANIC);
 
     if(!Prefs::get(PREFS_KEY_OTAFVU_ALLOWED) && !need_recovery) {
         ESP_LOGW(LOG_TAG, "OTAFVU code present but disabled by user");

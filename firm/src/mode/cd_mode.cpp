@@ -157,7 +157,6 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
         }
     }
 
-
     lyrics_enabled = Prefs::get(PREFS_KEY_CD_LYRICS_ENABLED);
 
     rootView = new CDPView();
@@ -281,7 +280,7 @@ void CDMode::loop() {
     if(sts != Player::State::PLAY) {
         rootView->set_lyric_show(false, 0);
         lrc.reset();
-    } else if(tracklist.size() >= trk.track && trk.track > 0) {
+    } else if(tracklist.size() >= trk.track && trk.track > 0 && trk.index > 0) {
         auto metadata = tracklist[trk.track - 1];
         lrc.feed_track(trk, metadata);
         int line_len = 0;
@@ -396,14 +395,19 @@ void CDMode::on_remote_key_pressed(VirtualKey key) {
     }
     else if(key == RVK_LYRICS) {
         lyrics_enabled = true;
-        Prefs::set(PREFS_KEY_CD_LYRICS_ENABLED, lyrics_enabled);
     }
     else if(key == RVK_DISP) {
         lyrics_enabled = false;
-        Prefs::set(PREFS_KEY_CD_LYRICS_ENABLED, lyrics_enabled);
         rootView->set_lyric_show(false, 0);
     }
-    // TODO else: numbers and stuff
+    else if(RVK_IS_DIGIT(key)) {
+        int input_trk = RVK_TO_DIGIT(key);
+        auto const& disc = player.get_active_slot().disc;
+        auto const sts = player.get_status();
+        if(sts == Player::State::STOP) must_show_title_stopped = true;
+        player.navigate_to_track(input_trk);
+        // someday add 10+ or such?
+    }
 }
 
 void CDMode::teardown() {
