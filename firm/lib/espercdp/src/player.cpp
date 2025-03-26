@@ -455,7 +455,7 @@ namespace CD {
                     case Command::PLAY:
                     case Command::PAUSE:
                         sts = State::PLAY;
-                        cdrom->pause(false);
+                        cdrom->play(abs_ts, get_active_slot().disc->duration); // <- unpausing after using FF/REW makes the drive continue with SCAN instead of PLAY, so this is more reliable in theory
                     break;
 
                     case Command::SEEK_FF:
