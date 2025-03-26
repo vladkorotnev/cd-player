@@ -106,6 +106,7 @@ namespace CD {
         void set_play_mode(PlayMode mode);
 
         void do_command(Command);
+        void navigate_to_track(int track);
 
         void power_down();
 

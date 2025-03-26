@@ -126,7 +126,8 @@ void setup(void) {
   
   Core::Services::WLAN::start();
   Core::Services::NTP::start();
-  OTAFVU::start_if_needed(rsrc, host);
+  bool is_recovery = OTAFVU::start_if_needed(rsrc, host);
+  if(is_recovery) return;
 
   spdif->initialize();
   cdrom->reset();

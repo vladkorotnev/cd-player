@@ -106,8 +106,15 @@ namespace CD {
 
     void LyricProvider::process_lrc_bulk(const std::string& bulk, std::vector<Lyric>& container) {
         std::string line;
+        std::string last_line;
         std::istringstream stream(bulk);
         while (std::getline(stream, line)) {
+            process_lrc_line(line, container);
+            last_line = line;
+        }
+        if(last_line != line) {
+            // Sometimes getline doesn't return one line, IDK why -- IIRC the spec says it must
+            // It does get it though it seems, so let's parse it
             process_lrc_line(line, container);
         }
         sort_lines(container);

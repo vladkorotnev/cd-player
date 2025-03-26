@@ -3,5 +3,6 @@
 #include <mode_host.h>
 
 namespace OTAFVU {
-    void start_if_needed(const PlatformSharedResources, ModeHost *);
+    // returns true if recovery mode was entered
+    bool start_if_needed(const PlatformSharedResources, ModeHost *);
 }

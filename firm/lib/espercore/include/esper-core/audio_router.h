@@ -8,6 +8,8 @@
 
 namespace Platform {
     enum AudioRoute {
+        /// @brief Audio output is disabled on hardware level, using a relay if present
+        ROUTE_BYPASS,
         /// @brief Audio output is inactive or not initialized
         ROUTE_NONE_INACTIVE,
         /// @brief Audio output is routed from the CD Drive's SPDIF port to the DAC
@@ -17,7 +19,7 @@ namespace Platform {
         ROUTE_SPDIF_TOSLINK_PORT,
 #endif
         /// @brief Audio output is routed from the ESP32's I2S bus
-        ROUTE_INTERNAL_CPU
+        ROUTE_INTERNAL_CPU,
     };
 
     struct DACBus {
@@ -34,7 +36,7 @@ namespace Platform {
 
     class AudioRouter {
     public:
-        AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s);
+        AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio = GPIO_NUM_19);
 
         void activate_route(AudioRoute);
         void set_deemphasis(bool);
@@ -50,10 +52,12 @@ namespace Platform {
 
         const DACBus dac_pins;
         const I2SBus i2s_pins;
+        const gpio_num_t relay_pin;
 
         void i2s_bus_release_local();
         void spdif_set_up_muting_hax();
         void spdif_teardown_muting_hax();
         void set_mute_internal(bool);
+        void set_bypass_relay(bool);
     };
 };

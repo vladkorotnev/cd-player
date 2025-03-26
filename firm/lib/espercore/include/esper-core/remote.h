@@ -55,7 +55,8 @@ enum VirtualKey: uint32_t {
     RVK_MAX_INVALID = 0
 };
 
-
+#define RVK_IS_DIGIT(rvk) ((rvk < RVK_END_OF_NUMBERS) && (rvk >= RVK_START_OF_NUMBERS))
+#define RVK_TO_DIGIT(rvk) ((int) (rvk - RVK_START_OF_NUMBERS))
 
 namespace Core {
     namespace Remote {

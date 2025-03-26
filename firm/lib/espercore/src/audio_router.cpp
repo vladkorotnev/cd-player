@@ -7,16 +7,15 @@
 // Enable null output to allow JTAG to work
 // #define ESPER_NULL_OUTPUT
 
-#ifdef ESPER_NULL_OUTPUT
 NullStream null;
 AudioStreamWrapper nullAs(null);
-#endif
 
 namespace Platform {
-    AudioRouter::AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s) :
+    AudioRouter::AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio) :
         _spdif{spdif},
         dac_pins{dac},
-        i2s_pins{i2s}
+        i2s_pins{i2s},
+        relay_pin(bypass_relay_gpio)
         {
             _i2s = new I2SStream();
 
@@ -24,6 +23,9 @@ namespace Platform {
             conf.mode = GPIO_MODE_OUTPUT;
             conf.pin_bit_mask = 
                 (1 << dac_pins.demph) | (1 << dac_pins.unmute);
+            if(relay_pin != GPIO_NUM_NC) {
+                conf.pin_bit_mask |= (1 << relay_pin);
+            }
             gpio_config(&conf);
 
             set_deemphasis(false);
@@ -32,7 +34,9 @@ namespace Platform {
     void AudioRouter::activate_route(AudioRoute next) {
         if(next == current_route) return;
 
-        if(next == ROUTE_NONE_INACTIVE) {
+        set_bypass_relay(next == ROUTE_BYPASS);
+
+        if(next == ROUTE_NONE_INACTIVE || next == ROUTE_BYPASS) {
             spdif_teardown_muting_hax();
             set_mute_internal(true); // shut it up
             _spdif->set_enabled(false);
@@ -69,7 +73,7 @@ namespace Platform {
     #ifdef ESPER_NULL_OUTPUT
         return &nullAs;
     #else
-        return _i2s;
+        return (current_route == ROUTE_INTERNAL_CPU) ? ((AudioStream*) _i2s) : &nullAs;
     #endif
     }
 
@@ -126,8 +130,6 @@ namespace Platform {
     }
 
     void AudioRouter::spdif_teardown_muting_hax() {
-        // TODO revert all the hax above
-
         ESP_ERROR_CHECK(mcpwm_stop(MCPWM_UNIT_0, MCPWM_TIMER_0));
         
         gpio_config_t conf = { 0 };
@@ -135,5 +137,10 @@ namespace Platform {
             conf.pin_bit_mask = 
                 (1 << dac_pins.demph) | (1 << dac_pins.unmute);
             gpio_config(&conf);
+    }
+
+    void AudioRouter::set_bypass_relay(bool bypass) {
+        if(relay_pin == GPIO_NUM_NC) return;
+        gpio_set_level(relay_pin, !bypass);
     }
 }

@@ -66,5 +66,12 @@
     "About": "Über",
     "System": "System",
     "Reset complete": "Zurücksetzen abgeschlossen",
-    "Language changed": "Sprache geändert"
+    "Language changed": "Sprache geändert",
+
+    "Checking...": "Suche nach Updates...",
+    "No new version": "Keine neue Version",
+    "Update in progress": "Update läuft",
+    "DO NOT TURN OFF!!": "NICHT AUSSCHALTEN!!",
+    "Update completed": "Update abgeschlossen",
+    "Update error!": "Updatefehler!"
 }

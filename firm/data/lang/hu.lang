@@ -66,5 +66,12 @@
     "About": "Névjegy",
     "System": "Rendszer",
     "Reset complete": "Visszaállítás kész",
-    "Language changed": "Nyelv megváltoztatva"
+    "Language changed": "Nyelv megváltoztatva",
+
+    "Checking...": "Frissítés keresése...",
+    "No new version": "Nincs új verzió",
+    "Update in progress": "Frissítés folyamatban",
+    "DO NOT TURN OFF!!": "KI NE KAPCSOLD!!",
+    "Update completed": "Frissítés kész",
+    "Update error!": "Frissítési hiba!"
 }

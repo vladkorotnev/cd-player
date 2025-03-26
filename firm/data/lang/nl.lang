@@ -66,5 +66,12 @@
     "About": "Over",
     "System": "Systeem",
     "Reset complete": "Reset voltooid",
-    "Language changed": "Taal gewijzigd"
+    "Language changed": "Taal gewijzigd",
+
+    "Checking...": "Zoeken op update",
+    "No new version": "Geen nieuwe versie",
+    "Update in progress": "Update bezig",
+    "DO NOT TURN OFF!!": "NIET UITSCHAKELEN!!",
+    "Update completed": "Update voltooid",
+    "Update error!": "Updatefout!"
 }

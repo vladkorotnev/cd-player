@@ -283,8 +283,8 @@ void InternetRadioMode::loop() {
 }
 
 void InternetRadioMode::on_remote_key_pressed(VirtualKey key) {
-    if(key >= RVK_START_OF_NUMBERS && key < RVK_END_OF_NUMBERS) {
-        int station_no = (key - RVK_START_OF_NUMBERS);
+    if(RVK_IS_DIGIT(key)) {
+        int station_no = RVK_TO_DIGIT(key);
         if(station_no > 0 && station_no <= 6)
             select_station(station_no - 1);
         return;
