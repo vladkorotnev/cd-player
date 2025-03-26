@@ -112,6 +112,10 @@ static void OtaFvuTaskFunction( void * pvParameter )
 namespace OTAFVU {
     bool start_if_needed(const PlatformSharedResources res, ModeHost * host) {
 #ifdef OTA_FVU_ENABLED
+    if(!Core::Services::WLAN::is_up()) {
+        ESP_LOGE(LOG_TAG, "WiFi not ready!");
+        return false;
+    }
 
     bool need_recovery = (esp_reset_reason() == ESP_RST_PANIC);
 
