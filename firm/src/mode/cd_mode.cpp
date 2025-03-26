@@ -53,6 +53,7 @@ public:
     std::shared_ptr<TimeBar> timeBar;
     std::shared_ptr<UI::TinySpinner> loading;
     std::shared_ptr<UI::Label> lblTrackIndicator;
+    std::shared_ptr<UI::Label> lblTrackInputField;
     std::shared_ptr<UI::Label> lblDiscIndicator;
     std::shared_ptr<UI::ImageView> imgShuffleIcon;
     std::shared_ptr<WiFiIcon> wifi;
@@ -64,6 +65,8 @@ public:
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
         lblTrackIndicator = std::make_shared<UI::Label>(EGRect {{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right);
+        lblTrackInputField = std::make_shared<UI::Label>(EGRect {{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right);
+        lblTrackInputField->hidden = true;
         lblDiscIndicator = std::make_shared<UI::Label>(EGRect {{5, 27}, {12, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left);
         imgShuffleIcon = std::make_shared<UI::ImageView>(&shuffle_icon, EGRect {{152, 27}, {8, 5}});
         imgShuffleIcon->hidden = true;
@@ -85,6 +88,7 @@ public:
         subviews.push_back(loading);
         subviews.push_back(timeBar);
         subviews.push_back(lblTrackIndicator);
+        subviews.push_back(lblTrackInputField);
         subviews.push_back(imgShuffleIcon);
         subviews.push_back(lblDiscIndicator);
         subviews.push_back(lblLyric);
@@ -227,6 +231,11 @@ void CDMode::loop() {
         rootView->lblDiscIndicator->hidden = true;
     }
 
+    rootView->lblTrackInputField->hidden = (entered_digits == 0 || ((xTaskGetTickCount() - last_digit_time) > digit_timeout));
+    if(!rootView->lblTrackInputField->hidden) {
+        rootView->lblTrackInputField->set_value(std::to_string(entered_digits) + "-");
+    }
+
     switch(sts) {
         case Player::State::PLAY:
         case Player::State::PAUSE:
@@ -274,7 +283,12 @@ void CDMode::loop() {
             rootView->imgShuffleIcon->hidden = true;
             rootView->lblSmallTop->hidden = true;
             rootView->lblBigMiddle->set_value(HumanReadablePlayerStateString(sts));
+            entered_digits = 0;
             break;
+    }
+
+    if(entered_digits != 0 && (xTaskGetTickCount() - last_digit_time) > digit_timeout) {
+        commit_entered_digits();
     }
 
     if(sts != Player::State::PLAY) {
@@ -377,7 +391,10 @@ void CDMode::on_remote_key_pressed(VirtualKey key) {
     };
     
     auto const cmd = key_to_cmd.find(key);
-    if(cmd != key_to_cmd.cend()) {
+    if((key == RVK_CURS_ENTER || key == RVK_PLAY) && entered_digits != 0) {
+        commit_entered_digits();
+    }
+    else if(cmd != key_to_cmd.cend()) {
         player.do_command(cmd->second);
     }
     else if(key == RVK_SHUFFLE) {
@@ -401,13 +418,34 @@ void CDMode::on_remote_key_pressed(VirtualKey key) {
         rootView->set_lyric_show(false, 0);
     }
     else if(RVK_IS_DIGIT(key)) {
-        int input_trk = RVK_TO_DIGIT(key);
+        int digit = RVK_TO_DIGIT(key);
         auto const& disc = player.get_active_slot().disc;
-        auto const sts = player.get_status();
-        if(sts == Player::State::STOP) must_show_title_stopped = true;
-        player.navigate_to_track(input_trk);
-        // someday add 10+ or such?
+        TickType_t now = xTaskGetTickCount();
+        if(now - last_digit_time >= digit_timeout || last_digit_time == 0) {
+            entered_digits = 0;
+        }
+        last_digit_time = now;
+        entered_digits *= 10;
+        entered_digits += digit;
+
+        if(entered_digits > disc->tracks.size()) {
+            // no such track on disc, is the user fixing a typo?
+            entered_digits = digit;
+        }
+
+        if(entered_digits * 10 > disc->tracks.size()) {
+            // e.g. entered 2 on a 15 track disc: 2*10 = 20, >15, so clearly user wants track 2, so navigate to it directly
+            // BUT entered 1 on a 15 track disc: 1*10 = 10, <15, maybe the user wants track 13? so wait for next input
+            commit_entered_digits();
+        }
     }
+}
+
+void CDMode::commit_entered_digits() {
+    if(player.get_status() == Player::State::STOP) must_show_title_stopped = true;
+    player.navigate_to_track(entered_digits);
+    last_digit_time = 0;
+    entered_digits = 0;
 }
 
 void CDMode::teardown() {

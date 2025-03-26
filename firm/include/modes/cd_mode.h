@@ -37,4 +37,9 @@ private:
 
     void prev_trk_button();
     void next_trk_button();
+
+    TickType_t digit_timeout = pdMS_TO_TICKS(1000);
+    TickType_t last_digit_time = 0;
+    int entered_digits = 0;
+    void commit_entered_digits();
 };
