@@ -206,7 +206,7 @@ void BluetoothMode::avrc_volume_callback(int vol) {
 }
 
 BluetoothMode::BluetoothMode(const PlatformSharedResources res, ModeHost * host):
-    a2dp(*res.router->get_output_port()),
+    a2dp(*res.router->get_io_port_nub()),
     stopEject(res.keypad, (1 << 0)),
     playPause(res.keypad, (1 << 1)),
     prev(res.keypad, (1 << 4)),
