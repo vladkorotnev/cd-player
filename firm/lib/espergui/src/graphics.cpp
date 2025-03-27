@@ -116,12 +116,12 @@ void EGDrawPixel(EGGraphBuf * dst, const EGPoint& location, bool state) {
     int byte;
     int bit;
     if(dst->fmt == EG_FMT_NATIVE) {
-        size_t stride = std::max(1, dst->size.height / 8);
+        size_t stride = (dst->size.height / 8) + ((dst->size.height % 8) != 0);
         byte = location.x * stride + location.y / 8;
         bit = location.y % 8;
     }
     else if(dst->fmt == EG_FMT_HORIZONTAL) {
-        size_t stride = std::max(1, dst->size.width / 8);
+        size_t stride = (dst->size.width / 8) + ((dst->size.width % 8) != 0);
         byte = location.y * stride + location.x / 8;
         bit = location.x % 8;
     }
