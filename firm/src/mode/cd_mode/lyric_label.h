@@ -33,6 +33,8 @@ public:
             origin.y += font_to_use->size.height;
         }
 
+        EGDrawRect(buf, EGRect {EGPointZero, frame.size});
+        
         View::render(buf);
     }
 

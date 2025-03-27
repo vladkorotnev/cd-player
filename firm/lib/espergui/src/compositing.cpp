@@ -41,26 +41,24 @@ namespace Graphics {
         bool blit_the_dam_thing = false;
 
         if(view.needs_display() || parent_needs_display) {
-            size_t view_stride = view.frame.size.height/8 + ((view.frame.size.height%8) != 0);
-            size_t surface_size = view.frame.size.width * view_stride;
-            
-            EGRawGraphBuf tmp_surface = nullptr;
-            if(!EGRectEqual({abs_origin, view.frame.size}, {EGPointZero, framebuffer.size})) {
-                tmp_surface = (EGRawGraphBuf) heap_caps_calloc(surface_size, 1, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
-            } else {
-                // save memory by rendering fullscreen views directly into the framebuffer
-                tmp_surface = framebuffer.data;
-                memset(tmp_surface, 0, surface_size);
-            }
+            static EGRawGraphBuf tmp_surface = nullptr;
+            static EGSize tmp_surface_geometry = framebuffer.size;
+            static size_t tmp_surface_stride = tmp_surface_geometry.height/8 + ((tmp_surface_geometry.height%8) != 0);
+            static size_t tmp_surface_size = tmp_surface_geometry.width * tmp_surface_stride;
 
             if(tmp_surface == nullptr) {
-                ESP_LOGE(LOG_TAG, "OOM while creating temp surface of size (%i, %i) = %i", view.frame.size.width, view.frame.size.height, surface_size);
-                return;
+                tmp_surface = (EGRawGraphBuf) heap_caps_calloc(tmp_surface_size, 1, MALLOC_CAP_8BIT | MALLOC_CAP_SPIRAM);
+                if(tmp_surface == nullptr) {
+                    ESP_LOGE(LOG_TAG, "OOM while creating temp surface of size %i", tmp_surface_size);
+                    return;
+                }
             }
 
+            memset(tmp_surface, 0, tmp_surface_size);
+            EGSize clampedSize = EGSize { std::min(view.frame.size.width, tmp_surface_geometry.width), std::min(view.frame.size.height, tmp_surface_geometry.height) };
             EGGraphBuf buf = {
                 .fmt = framebuffer.fmt,
-                .size = view.frame.size,
+                .size = clampedSize,
                 .data = tmp_surface
             };
 
@@ -68,10 +66,7 @@ namespace Graphics {
             if(!view.hidden) view.render(&buf);
             view.clear_needs_display();
 
-            if(tmp_surface != framebuffer.data) {
-                EGBlitBuffer(&framebuffer, abs_origin, &buf);
-                free(tmp_surface);
-            }
+            EGBlitBuffer(&framebuffer, abs_origin, &buf);
 
             // The actual view itself is dirty, so it needs blitting as a whole
             if(rects != nullptr) {

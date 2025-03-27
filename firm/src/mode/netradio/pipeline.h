@@ -63,8 +63,8 @@ class InternetRadioMode::StreamingPipeline {
             codecTask("IRADEC", 40000, 6, 1),
             netTask("IRANET", 20000, 14, 1),
             copierDecoding(decoder, queueNetData),
-            copierPlaying(*router->get_output_port(), queuePcmData) {
-                outPort = router->get_output_port();
+            copierPlaying(*router->get_io_port_nub(), queuePcmData) {
+                outPort = router->get_io_port_nub();
                 semaSnd = xSemaphoreCreateBinary();
                 semaNet = xSemaphoreCreateBinary();
                 semaCodec = xSemaphoreCreateBinary();

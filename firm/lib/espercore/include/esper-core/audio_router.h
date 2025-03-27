@@ -2,7 +2,6 @@
 #include "spdif.h"
 #include <esp32-hal-gpio.h>
 #include "AudioTools.h"
-
 #define ESPER_AUDIO_BUFFER_SIZE 1024
 #define ESPER_AUDIO_BUFFER_COUNT 4
 
@@ -14,10 +13,6 @@ namespace Platform {
         ROUTE_NONE_INACTIVE,
         /// @brief Audio output is routed from the CD Drive's SPDIF port to the DAC
         ROUTE_SPDIF_CD_PORT,
-#if 0 // maybe on a newer board Rev someday?
-        ROUTE_SPDIF_JACK_PORT,
-        ROUTE_SPDIF_TOSLINK_PORT,
-#endif
         /// @brief Audio output is routed from the ESP32's I2S bus
         ROUTE_INTERNAL_CPU,
     };
@@ -41,7 +36,7 @@ namespace Platform {
         void activate_route(AudioRoute);
         void set_deemphasis(bool);
 
-        AudioStream * get_output_port();
+        AudioStream * get_io_port_nub();
 
     private:
         AudioRoute current_route = ROUTE_NONE_INACTIVE;
@@ -55,8 +50,11 @@ namespace Platform {
         const gpio_num_t relay_pin;
 
         void i2s_bus_release_local();
+        void i2s_bus_setup_local_output();
+
         void spdif_set_up_muting_hax();
         void spdif_teardown_muting_hax();
+
         void set_mute_internal(bool);
         void set_bypass_relay(bool);
     };

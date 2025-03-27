@@ -633,7 +633,7 @@ namespace CD {
             }
             else if(new_mode == PlayMode::PLAYMODE_SHUFFLE) {
                 // from other to shuffle: reenqueue the current track only to receive EOP events properly
-                cdrom->play(abs_ts, (cur_track.track == get_active_slot().disc->tracks.size()) ? get_active_slot().disc->duration : get_active_slot().disc->tracks[cur_track.track - 1].disc_position.position);
+                cdrom->play(abs_ts, (cur_track.track == get_active_slot().disc->tracks.size()) ? get_active_slot().disc->duration : get_active_slot().disc->tracks[cur_track.track].disc_position.position);
                 if(sts == State::PAUSE) cdrom->pause(true);
             }
         }
