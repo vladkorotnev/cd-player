@@ -148,5 +148,10 @@ namespace ATAPI {
 
         void init_task_file();
         void identify();
+        void mode_sense_capabilities();
+
+        bool playback_mode_select_flag = false;
+        void mode_select_output_ports();
+        void mode_select_power_conditions();
     };
 }

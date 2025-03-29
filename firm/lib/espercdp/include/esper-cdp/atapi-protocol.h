@@ -21,6 +21,7 @@ namespace ATAPI {
         PLAY_AUDIO_MSF = 0x47,
         PAUSE_RESUME = 0x4B,
         STOP_PLAY_SCAN = 0x4E,
+        MODE_SELECT = 0x55,
         MODE_SENSE = 0x5A,
         LOAD_UNLOAD = 0xA6,
         MECHANISM_STATUS = 0xBD,
@@ -340,6 +341,17 @@ namespace ATAPI {
 
             ReqPktFooter footer;
         };
+
+        struct ATAPI_PKT ModeSelect {
+            uint8_t opcode;
+            bool persist: 1;
+            uint8_t reserved0: 3;
+            bool set_me_to_true: 1;
+            uint8_t reserved1: 3;
+            uint8_t reserved2[5];
+            uint16_t parameter_list_length;
+            uint8_t reserved[3];
+        };
     }
 
     namespace Responses {
@@ -492,6 +504,102 @@ namespace ATAPI {
             uint8_t field_replaceable_unit_code;
 
             // ... YAGNI the rest, as usual
+        };
+
+        struct ATAPI_PKT ModeSenseCDAControlModePage {
+            uint8_t page_code: 6;
+            bool reserved0: 1;
+            bool saveable: 1;
+            uint8_t page_length;
+            bool reserved1: 1;
+            bool sotc: 1;
+            bool immed: 1;
+            uint8_t reserved2: 5;
+            uint8_t reserved3[5];
+
+            struct {
+                uint8_t channel: 4;
+                uint8_t reserved: 4;
+                uint8_t volume;
+            } ports[4];
+        };
+
+        struct ATAPI_PKT ModeSensePowerConditionModePage {
+            uint8_t page_code: 6;
+            bool: 1;
+            bool saveable: 1;
+            uint8_t page_length;
+
+            uint8_t: 8;
+
+            bool standby: 1;
+            bool idle: 1;
+            uint8_t: 6;
+            uint32_t idle_timer;
+            uint32_t standby_timer;
+        };
+
+        struct ATAPI_PKT CapabilitiesMechStatusModePage {
+            uint8_t page_code: 6;
+            bool:1;
+            bool saveable: 1;
+            uint8_t page_length;
+
+            bool cdr_read: 1;
+            bool cdrw_read: 1;
+            bool method2: 1;
+            bool dvdrom_read: 1;
+            bool dvdram_read: 1;
+            uint8_t:2;
+
+            bool cdr_write: 1;
+            bool cdrw_write: 1;
+            bool: 1;
+            bool dvdrom_write: 1;
+            bool dvdram_write: 1;
+            uint8_t:2;
+
+            bool audio_play: 1;
+            bool composite: 1;
+            bool digital1: 1;
+            bool digital2: 1;
+            bool mode2f1: 1;
+            bool mode2f2: 1;
+            bool multi_session: 1;
+            bool: 1;
+            
+            bool cdda_cmds: 1;
+            bool cdda_accurate: 1;
+            bool rw_subcode_supp: 1;
+            bool rw_deint_corr: 1;
+            bool c2_ptrs: 1;
+            bool isrc: 1;
+            bool upc: 1;
+            bool barcode: 1;
+
+            bool lock: 1;
+            bool lock_sts: 1;
+            bool prevent_jpr: 1;
+            bool eject: 1;
+            bool: 1;
+
+            enum EjectMecha: uint8_t {
+                MECHTYPE_CADDY = 0,
+                MECHTYPE_TRAY,
+                MECHTYPE_POPUP,
+                MECHTYPE_CHANGER_INDIVIDUAL = 4,
+                MECHTYPE_CHANGER_CARTRIDGE,
+            };
+            EjectMecha loading_mech: 3;
+
+            bool per_ch_vol: 1;
+            bool per_ch_mute: 1;
+            bool chgr_disc_presence: 1;
+            bool chgr_sss: 1;
+            bool side_change: 1;
+            bool pw_subcode_leadin: 1;
+            uint8_t: 2;
+            // YAGNI the rest
         };
     }
 }

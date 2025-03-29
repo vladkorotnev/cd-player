@@ -257,13 +257,13 @@ namespace ATAPI {
             quirks.busy_ass = true;
             quirks.no_media_codes = true;
         }
-        else if(info.model == "HL-DT-ST DVDRAM GSA-4163B") {
+        else if(info.model.rfind("HL-DT-ST DVDRAM GSA-4163B") == 0) {
             // responses still make zero sense. UNSUPPORTED!
             quirks.no_media_codes = true;
             quirks.busy_ass = true;
             quirks.no_drq_in_toc = true;
         }
-        else if(info.model == "TEAC CD-C68E") {
+        else if(info.model.rfind("TEAC CD-C68E") == 0) {
             quirks.fucky_toc_reads = true;
         }
 
@@ -336,7 +336,173 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
+    void Device::mode_sense_capabilities() {
+        const Requests::ModeSense msrq0 = {
+            .opcode = OperationCodes::MODE_SENSE,
+            .page = ModeSensePageCode::MSPC_CAPABILITIES_MECH_STS,
+            .allocation_length = htobe16(0xFF)
+        };
+        Responses::CapabilitiesMechStatusModePage rslt;
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&msrq0, sizeof(msrq0), true);
+        Responses::ModeSense mph0;
+        read_response(&mph0, sizeof(mph0), false);
+        read_response(&rslt, sizeof(rslt), true);
+        xSemaphoreGive(semaphore);
+        
+        // A value of zero indicates that the capability is NOT supported; a value of one indicates the capability IS supported.
+        if(!rslt.audio_play) ESP_LOGW(LOG_TAG, "Audio play not supported!");
+        if(!rslt.digital1 && !rslt.digital2) ESP_LOGW(LOG_TAG, "Digital port capability not present!");
+        else if(!rslt.digital1 && rslt.digital2) ESP_LOGW(LOG_TAG, "Digital port [1] capability not present!");
+        else if(rslt.digital1 && !rslt.digital2) ESP_LOGI(LOG_TAG, "Digital port [2] capability not present!");
+        if(!rslt.cdda_cmds) ESP_LOGW(LOG_TAG, "CDDA command capability not present!");
+        if(!rslt.pw_subcode_leadin) ESP_LOGI(LOG_TAG, "P-W subcode in lead-in capability not present, maybe CD TEXT won't work");
+        if(!rslt.rw_subcode_supp) ESP_LOGI(LOG_TAG, "R-W subcode capability not present, maybe CD TEXT won't work");
+        if(!rslt.rw_deint_corr) ESP_LOGI(LOG_TAG, "R-W deinterleave/correction capability not present, maybe CD TEXT won't work");
+    }
+
+    void Device::mode_select_output_ports() {
+        const Requests::ModeSense msrq = {
+            .opcode = OperationCodes::MODE_SENSE,
+            .page = ModeSensePageCode::MSPC_CDA_CONTROL,
+            .allocation_length = htobe16(0xFF)
+        };
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&msrq, sizeof(msrq), true);
+        Responses::ModeSense mph;
+        Responses::ModeSenseCDAControlModePage cdactl;
+        read_response(&mph, sizeof(mph), false);
+        read_response(&cdactl, sizeof(cdactl), true);
+        xSemaphoreGive(semaphore);
+
+        if(cdactl.page_code != ModeSensePageCode::MSPC_CDA_CONTROL) {
+            ESP_LOGE(LOG_TAG, "Expected mode sense page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_CDA_CONTROL, cdactl.page_code);
+            return;
+        }
+
+        ESP_LOGW(LOG_TAG, "Before CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
+            cdactl.ports[0].channel, cdactl.ports[0].volume, cdactl.ports[1].channel, cdactl.ports[1].volume, cdactl.ports[2].channel, cdactl.ports[2].volume, cdactl.ports[3].channel, cdactl.ports[3].volume);
+
+        cdactl.ports[0].channel = 1;
+        cdactl.ports[0].volume = 255;
+        cdactl.ports[1].channel = 2;
+        cdactl.ports[1].volume = 255;
+        cdactl.ports[2].channel = 1;
+        cdactl.ports[2].volume = 255;
+        cdactl.ports[3].channel = 2;
+        cdactl.ports[3].volume = 255;
+        mph.media_type = MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN;
+        mph.block_descriptor_length_0 = 0;
+        mph.data_length = 0; // When using the MODE SENSE command, the mode data length field specifies the length in bytes of the following data that is available to be transferred. The mode data length is the total byte count of all data following the mode data length field. When using the MODE SELECT command, this field is reserved.
+
+        ESP_LOGV(LOG_TAG, "SEND CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
+            cdactl.ports[0].channel, cdactl.ports[0].volume, cdactl.ports[1].channel, cdactl.ports[1].volume, cdactl.ports[2].channel, cdactl.ports[2].volume, cdactl.ports[3].channel, cdactl.ports[3].volume);
+
+        Requests::ModeSelect msel = {
+            .opcode = OperationCodes::MODE_SELECT,
+            .set_me_to_true = true,
+            .parameter_list_length = htobe16(sizeof(mph) + sizeof(cdactl))
+        };
+
+        struct ATAPI_PKT {
+            Requests::ModeSelect a = {
+                .opcode = OperationCodes::MODE_SELECT,
+                .set_me_to_true = true,
+                .parameter_list_length = htobe16(sizeof(mph) + sizeof(cdactl))
+            };
+            Responses::ModeSense b;
+            Responses::ModeSenseCDAControlModePage c;
+        } tmp;
+        tmp.b = mph;
+        tmp.c = cdactl;
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&tmp, sizeof(tmp), true);
+        Responses::ModeSense mph2;
+        Responses::ModeSenseCDAControlModePage cdactl2;
+        send_packet(&msrq, sizeof(msrq), true);
+        read_response(&mph2, sizeof(mph2), false);
+        read_response(&cdactl2, sizeof(cdactl2), true);
+        xSemaphoreGive(semaphore);
+
+        if(cdactl2.page_code != ModeSensePageCode::MSPC_CDA_CONTROL) {
+            ESP_LOGE(LOG_TAG, "Expected mode sense 2 page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_CDA_CONTROL, cdactl2.page_code);
+            return;
+        }
+
+        ESP_LOGW(LOG_TAG, "After CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
+            cdactl2.ports[0].channel, cdactl2.ports[0].volume, cdactl2.ports[1].channel, cdactl2.ports[1].volume, cdactl2.ports[2].channel, cdactl2.ports[2].volume, cdactl2.ports[3].channel, cdactl2.ports[3].volume);
+    }
+
+    void Device::mode_select_power_conditions() {
+        // disable standby timers (e.g. some TEAC drives go to sleep during long pause)
+        const Requests::ModeSense msrq = {
+            .opcode = OperationCodes::MODE_SENSE,
+            .page = ModeSensePageCode::MSPC_POWER_CONDITION,
+            .allocation_length = htobe16(0xFF)
+        };
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&msrq, sizeof(msrq), true);
+        Responses::ModeSense mph;
+        Responses::ModeSensePowerConditionModePage pwrctl;
+        read_response(&mph, sizeof(mph), false);
+        read_response(&pwrctl, sizeof(pwrctl), true);
+        xSemaphoreGive(semaphore);
+
+        if(pwrctl.page_code != ModeSensePageCode::MSPC_POWER_CONDITION) {
+            ESP_LOGE(LOG_TAG, "Expected mode sense page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_POWER_CONDITION, pwrctl.page_code);
+            return;
+        }
+
+        pwrctl.idle_timer = be16toh(pwrctl.idle_timer);
+        pwrctl.standby_timer = be16toh(pwrctl.standby_timer);
+
+        ESP_LOGI(LOG_TAG, "Initial power status: IDLE[%i: %i] STBY[%i: %i]", pwrctl.idle, pwrctl.idle_timer, pwrctl.standby, pwrctl.standby_timer);
+
+        pwrctl.idle = 0;
+        pwrctl.standby = 0;
+        pwrctl.idle_timer = 0xFFFF;
+        pwrctl.standby_timer = 0xFFFF;
+
+        struct ATAPI_PKT {
+            Requests::ModeSelect a = {
+                .opcode = OperationCodes::MODE_SELECT,
+                .set_me_to_true = true,
+                .parameter_list_length = htobe16(sizeof(mph) + sizeof(pwrctl))
+            };
+            Responses::ModeSense b;
+            Responses::ModeSensePowerConditionModePage c;
+        } tmp;
+        tmp.b = mph;
+        tmp.c = pwrctl;
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&tmp, sizeof(tmp), true);
+        Responses::ModeSense mph2;
+        Responses::ModeSensePowerConditionModePage pwrctl2;
+        send_packet(&msrq, sizeof(msrq), true);
+        read_response(&mph2, sizeof(mph2), false);
+        read_response(&pwrctl2, sizeof(pwrctl2), true);
+        xSemaphoreGive(semaphore);
+
+        if(pwrctl2.page_code != ModeSensePageCode::MSPC_POWER_CONDITION) {
+            ESP_LOGE(LOG_TAG, "Expected mode sense 2 page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_POWER_CONDITION, pwrctl2.page_code);
+            return;
+        }
+
+        ESP_LOGI(LOG_TAG, "NEW power status: IDLE[%i: %i] STBY[%i: %i]", pwrctl2.idle, pwrctl2.idle_timer, pwrctl2.standby, pwrctl2.standby_timer);
+    }
+
     void Device::play(const MSF start, const MSF end) {
+        if(!playback_mode_select_flag) {
+            mode_sense_capabilities();
+            mode_select_output_ports();
+            mode_select_power_conditions();
+            playback_mode_select_flag = true;
+        }
         Requests::PlayAudioMSF req = {
             .opcode = OperationCodes::PLAY_AUDIO_MSF,
             .start_position = start,
