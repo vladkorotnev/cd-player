@@ -235,14 +235,15 @@ namespace ATAPI {
         
         quirks = { 0 };
 
-        static const std::vector<std::string> softseek_models = {
+        static const std::vector<std::string> softscan_models = {
             // List of model IDs of drives that cannot perform SCAN command as espected
             "TEAC DV-W58G-A",
             "PLDS    DVD A  DH20A4P",
-            "LITE-ON LTR-48246S"
+            "LITE-ON LTR-48246S",
+            "JLMS XJ-HD166S"
         };
 
-        for(auto const& id: softseek_models) {
+        for(auto const& id: softscan_models) {
             if(info.model.rfind(id) == 0) {
                 ESP_LOGW(LOG_TAG, "Drive requires use of softscan");
                 quirks.must_use_softscan = true;
