@@ -234,15 +234,27 @@ namespace ATAPI {
         packet_size = ((rslt.general_config & 0x1) != 0) ? 16 : 12;
         
         quirks = { 0 };
+
+        static const std::vector<std::string> softseek_models = {
+            // List of model IDs of drives that cannot perform SCAN command as espected
+            "TEAC DV-W58G-A",
+            "PLDS    DVD A  DH20A4P",
+            "LITE-ON LTR-48246S"
+        };
+
+        for(auto const& id: softseek_models) {
+            if(info.model.rfind(id) == 0) {
+                ESP_LOGW(LOG_TAG, "Drive requires use of softscan");
+                quirks.must_use_softscan = true;
+                break;
+            }
+        }
+
         if(info.model.rfind("NEC                 CD-ROM DRIVE:284", 0) == 0 && info.firmware.rfind("3.51    NEC", 0)) {
             ESP_LOGW(LOG_TAG, "Shitty drive detected! NEC CDR-1400C anyone?");
 
             quirks.busy_ass = true;
             quirks.no_media_codes = true;
-        }
-        else if(info.model == "TEAC DV-W58G-A" || info.model == "PLDS    DVD A  DH20A4P") {
-            ESP_LOGW(LOG_TAG, "Detected a drive that doesn't support hardware ffwd/rewind");
-            quirks.must_use_softscan = true;
         }
         else if(info.model == "HL-DT-ST DVDRAM GSA-4163B") {
             // responses still make zero sense. UNSUPPORTED!
