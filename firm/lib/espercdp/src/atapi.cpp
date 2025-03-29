@@ -244,26 +244,26 @@ namespace ATAPI {
         };
 
         for(auto const& id: softscan_models) {
-            if(info.model.rfind(id) == 0) {
+            if(info.model.rfind(id, 0) == 0) {
                 ESP_LOGW(LOG_TAG, "Drive requires use of softscan");
                 quirks.must_use_softscan = true;
                 break;
             }
         }
 
-        if(info.model.rfind("NEC                 CD-ROM DRIVE:284", 0) == 0 && info.firmware.rfind("3.51    NEC", 0)) {
+        if(info.model.rfind("NEC                 CD-ROM DRIVE:284", 0) == 0 && info.firmware.rfind("3.51    NEC", 0) == 0) {
             ESP_LOGW(LOG_TAG, "Shitty drive detected! NEC CDR-1400C anyone?");
 
             quirks.busy_ass = true;
             quirks.no_media_codes = true;
         }
-        else if(info.model.rfind("HL-DT-ST DVDRAM GSA-4163B") == 0) {
+        else if(info.model.rfind("HL-DT-ST DVDRAM GSA-4163B", 0) == 0) {
             // responses still make zero sense. UNSUPPORTED!
             quirks.no_media_codes = true;
             quirks.busy_ass = true;
             quirks.no_drq_in_toc = true;
         }
-        else if(info.model.rfind("TEAC CD-C68E") == 0) {
+        else if(info.model.rfind("TEAC CD-C68E", 0) == 0) {
             quirks.fucky_toc_reads = true;
         }
 
@@ -492,7 +492,8 @@ namespace ATAPI {
             ESP_LOGE(LOG_TAG, "Expected mode sense 2 page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_POWER_CONDITION, pwrctl2.page_code);
             return;
         }
-
+        pwrctl2.idle_timer = be16toh(pwrctl.idle_timer);
+        pwrctl2.standby_timer = be16toh(pwrctl.standby_timer);
         ESP_LOGI(LOG_TAG, "NEW power status: IDLE[%i: %i] STBY[%i: %i]", pwrctl2.idle, pwrctl2.idle_timer, pwrctl2.standby, pwrctl2.standby_timer);
     }
 
