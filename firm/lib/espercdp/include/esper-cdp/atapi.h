@@ -19,6 +19,13 @@ namespace ATAPI {
             bool no_drq_in_toc;
         };
 
+        struct Diags {
+            bool is_atapi;
+            uint16_t self_test_result;
+            CapabilitiesMechStatusModePage capas;
+            ModeSenseCDAControlModePage cda;
+        };
+
         Device(Platform::IDEBus * bus);
 
         void reset();
@@ -56,6 +63,7 @@ namespace ATAPI {
         const MechInfo * query_state();
         const AudioStatus * query_position();
         const Quirks& get_quirks() { return quirks; }
+        const Diags * get_diags() { return &_diags; }
 
     private:
         SemaphoreHandle_t semaphore;
@@ -67,6 +75,7 @@ namespace ATAPI {
         AudioStatus audio_sts = { 0 };
         int packet_size = 12;
         Quirks quirks;
+        Diags _diags;
 
         union StatusRegister {
             struct __attribute__((packed)) {
@@ -148,7 +157,8 @@ namespace ATAPI {
 
         void init_task_file();
         void identify();
-        void mode_sense_capabilities();
+
+        CapabilitiesMechStatusModePage mode_sense_capabilities();
 
         bool playback_mode_select_flag = false;
         void mode_select_output_ports();

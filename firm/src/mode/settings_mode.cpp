@@ -9,6 +9,7 @@
 #include "settings/wifi_menus.h"
 #include "settings/radio_menus.h"
 #include "settings/httpfvu_app.h"
+#include "settings/cd_diag_app.h"
 #include <esper-core/wlan.h>
 #include "esp_app_format.h"
 #include "esp_ota_ops.h"
@@ -158,6 +159,9 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
         DetailTextMenuNode("Free", []() { return format_disk_space(LittleFS.totalBytes() - LittleFS.usedBytes()); }),
         DetailTextMenuNode("Network", []() { return Core::Services::WLAN::network_name(); }),
         DetailTextMenuNode("IP", []() { return Core::Services::WLAN::current_ip(); }),
+        ActionMenuNode("CD Diagnostics", [](MenuNavigator* h) { 
+            h->push(std::make_shared<CDDiagsMenuNode>((SettingsMenuNavigator *) h));
+        }),
     }),
 });
 
@@ -169,7 +173,7 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
     prevTrackDisc (resources.keypad, (1 << 4)),
     nextTrackDisc (resources.keypad, (1 << 5)),
     playMode (resources.keypad, (1 << 6)),
-    rootView(std::make_shared<ListMenuNode>(
+    rootView(resources, std::make_shared<ListMenuNode>(
         ListMenuNode(
             "Menu",
             nullptr,

@@ -40,11 +40,12 @@ namespace ATAPI {
         ide->write(IDE::Register::Command, {{.low = 0x91, .high = 0xFF}});
         xSemaphoreGive(semaphore);
 
-        check_atapi_compatible();
+        _diags.is_atapi = check_atapi_compatible();
         self_test();
         init_task_file();
         identify();
         query_state();
+        _diags.capas = mode_sense_capabilities();
         ESP_LOGI(LOG_TAG, "end of Reset");
     }
 
@@ -203,6 +204,7 @@ namespace ATAPI {
         wait_not_busy();
         data16 rslt = ide->read(IDE::Register::Error);
         ESP_LOGI(LOG_TAG, "Error register = 0x%04x", rslt.value);
+        _diags.self_test_result = rslt.value;
         xSemaphoreGive(semaphore);
         return rslt.low == 0x01;
     }
@@ -336,13 +338,13 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::mode_sense_capabilities() {
+    CapabilitiesMechStatusModePage Device::mode_sense_capabilities() {
         const Requests::ModeSense msrq0 = {
             .opcode = OperationCodes::MODE_SENSE,
             .page = ModeSensePageCode::MSPC_CAPABILITIES_MECH_STS,
             .allocation_length = htobe16(0xFF)
         };
-        Responses::CapabilitiesMechStatusModePage rslt;
+        CapabilitiesMechStatusModePage rslt;
 
         xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&msrq0, sizeof(msrq0), true);
@@ -360,6 +362,8 @@ namespace ATAPI {
         if(!rslt.pw_subcode_leadin) ESP_LOGI(LOG_TAG, "P-W subcode in lead-in capability not present, maybe CD TEXT won't work");
         if(!rslt.rw_subcode_supp) ESP_LOGI(LOG_TAG, "R-W subcode capability not present, maybe CD TEXT won't work");
         if(!rslt.rw_deint_corr) ESP_LOGI(LOG_TAG, "R-W deinterleave/correction capability not present, maybe CD TEXT won't work");
+
+        return rslt;
     }
 
     void Device::mode_select_output_ports() {
@@ -372,7 +376,7 @@ namespace ATAPI {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&msrq, sizeof(msrq), true);
         Responses::ModeSense mph;
-        Responses::ModeSenseCDAControlModePage cdactl;
+        ModeSenseCDAControlModePage cdactl;
         read_response(&mph, sizeof(mph), false);
         read_response(&cdactl, sizeof(cdactl), true);
         xSemaphoreGive(semaphore);
@@ -381,6 +385,8 @@ namespace ATAPI {
             ESP_LOGE(LOG_TAG, "Expected mode sense page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_CDA_CONTROL, cdactl.page_code);
             return;
         }
+
+        _diags.cda = cdactl;
 
         ESP_LOGW(LOG_TAG, "Before CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
             cdactl.ports[0].channel, cdactl.ports[0].volume, cdactl.ports[1].channel, cdactl.ports[1].volume, cdactl.ports[2].channel, cdactl.ports[2].volume, cdactl.ports[3].channel, cdactl.ports[3].volume);
@@ -413,7 +419,7 @@ namespace ATAPI {
                 .parameter_list_length = htobe16(sizeof(mph) + sizeof(cdactl))
             };
             Responses::ModeSense b;
-            Responses::ModeSenseCDAControlModePage c;
+            ModeSenseCDAControlModePage c;
         } tmp;
         tmp.b = mph;
         tmp.c = cdactl;
@@ -421,7 +427,7 @@ namespace ATAPI {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         send_packet(&tmp, sizeof(tmp), true);
         Responses::ModeSense mph2;
-        Responses::ModeSenseCDAControlModePage cdactl2;
+        ModeSenseCDAControlModePage cdactl2;
         send_packet(&msrq, sizeof(msrq), true);
         read_response(&mph2, sizeof(mph2), false);
         read_response(&cdactl2, sizeof(cdactl2), true);
@@ -434,6 +440,8 @@ namespace ATAPI {
 
         ESP_LOGW(LOG_TAG, "After CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
             cdactl2.ports[0].channel, cdactl2.ports[0].volume, cdactl2.ports[1].channel, cdactl2.ports[1].volume, cdactl2.ports[2].channel, cdactl2.ports[2].volume, cdactl2.ports[3].channel, cdactl2.ports[3].volume);
+        
+        _diags.cda = cdactl2;
     }
 
     void Device::mode_select_power_conditions() {
@@ -499,7 +507,7 @@ namespace ATAPI {
 
     void Device::play(const MSF start, const MSF end) {
         if(!playback_mode_select_flag) {
-            mode_sense_capabilities();
+            _diags.capas = mode_sense_capabilities();
             mode_select_output_ports();
             mode_select_power_conditions();
             playback_mode_select_flag = true;
