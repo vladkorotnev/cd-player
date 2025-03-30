@@ -21,6 +21,7 @@ namespace ATAPI {
         PLAY_AUDIO_MSF = 0x47,
         PAUSE_RESUME = 0x4B,
         STOP_PLAY_SCAN = 0x4E,
+        MODE_SELECT = 0x55,
         MODE_SENSE = 0x5A,
         LOAD_UNLOAD = 0xA6,
         MECHANISM_STATUS = 0xBD,
@@ -340,6 +341,17 @@ namespace ATAPI {
 
             ReqPktFooter footer;
         };
+
+        struct ATAPI_PKT ModeSelect {
+            uint8_t opcode;
+            bool persist: 1;
+            uint8_t reserved0: 3;
+            bool set_me_to_true: 1;
+            uint8_t reserved1: 3;
+            uint8_t reserved2[5];
+            uint16_t parameter_list_length;
+            uint8_t reserved[3];
+        };
     }
 
     namespace Responses {
@@ -492,6 +504,21 @@ namespace ATAPI {
             uint8_t field_replaceable_unit_code;
 
             // ... YAGNI the rest, as usual
+        };
+
+        struct ATAPI_PKT ModeSensePowerConditionModePage {
+            uint8_t page_code: 6;
+            bool: 1;
+            bool saveable: 1;
+            uint8_t page_length;
+    
+            uint8_t: 8;
+    
+            bool standby: 1;
+            bool idle: 1;
+            uint8_t: 6;
+            uint32_t idle_timer;
+            uint32_t standby_timer;
         };
     }
 }
