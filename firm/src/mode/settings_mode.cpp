@@ -154,6 +154,7 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
     ListMenuNode("About", &icn_about, std::tuple {
         DetailTextMenuNode("", "ESPer-CDP"),
         DetailTextMenuNode("Ver.", esp_ota_get_app_description()->version),
+        DetailTextMenuNode("Type", FVU_FLAVOR),
         DetailTextMenuNode("Memory", []() { return format_disk_space(LittleFS.totalBytes()); }),
         DetailTextMenuNode("Used", []() { return format_disk_space(LittleFS.usedBytes()); }),
         DetailTextMenuNode("Free", []() { return format_disk_space(LittleFS.totalBytes() - LittleFS.usedBytes()); }),

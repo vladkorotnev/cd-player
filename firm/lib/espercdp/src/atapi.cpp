@@ -507,7 +507,6 @@ namespace ATAPI {
 
     void Device::play(const MSF start, const MSF end) {
         if(!playback_mode_select_flag) {
-            _diags.capas = mode_sense_capabilities();
             mode_select_output_ports();
             mode_select_power_conditions();
             playback_mode_select_flag = true;

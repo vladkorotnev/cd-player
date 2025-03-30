@@ -143,20 +143,31 @@ namespace ATAPI {
     };
 
     struct __attribute__((packed)) CapabilitiesMechStatusModePage {
+        enum EjectMecha: uint8_t {
+            MECHTYPE_CADDY = 0,
+            MECHTYPE_TRAY,
+            MECHTYPE_POPUP,
+            MECHTYPE_CHANGER_INDIVIDUAL = 4,
+            MECHTYPE_CHANGER_CARTRIDGE,
+        };
+        
         uint8_t page_code: 6;
         bool:1;
         bool saveable: 1;
+
         uint8_t page_length;
 
         bool cdr_read: 1;
         bool cdrw_read: 1;
         bool method2: 1;
         bool dvdrom_read: 1;
+        bool dvdr_read: 1;
         bool dvdram_read: 1;
         uint8_t:2;
 
         bool cdr_write: 1;
         bool cdrw_write: 1;
+        bool test_write: 1;
         bool: 1;
         bool dvdrom_write: 1;
         bool dvdram_write: 1;
@@ -185,14 +196,6 @@ namespace ATAPI {
         bool prevent_jpr: 1;
         bool eject: 1;
         bool: 1;
-
-        enum EjectMecha: uint8_t {
-            MECHTYPE_CADDY = 0,
-            MECHTYPE_TRAY,
-            MECHTYPE_POPUP,
-            MECHTYPE_CHANGER_INDIVIDUAL = 4,
-            MECHTYPE_CHANGER_CARTRIDGE,
-        };
         EjectMecha loading_mech: 3;
 
         bool per_ch_vol: 1;
