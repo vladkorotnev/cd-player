@@ -4,6 +4,15 @@
 #include <menus/framework.h>
 #include <platform.h>
 
+class SettingsMenuNavigator: public MenuNavigator {
+public:
+    SettingsMenuNavigator(const PlatformSharedResources res, std::shared_ptr<MenuPresentable> root, EGRect f):
+        resources(res),
+        MenuNavigator(root, f) {}
+
+    const PlatformSharedResources resources;
+};
+
 class SettingsMode: public Mode {
     public:
         SettingsMode(const PlatformSharedResources res, ModeHost * host);
@@ -33,7 +42,7 @@ class SettingsMode: public Mode {
         }
     
     private:
-        MenuNavigator rootView;
+        SettingsMenuNavigator rootView;
         Platform::Button stopEject;
         Platform::Button playPause;
         Platform::Button forward;
