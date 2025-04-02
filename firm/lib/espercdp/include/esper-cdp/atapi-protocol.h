@@ -26,6 +26,7 @@ namespace ATAPI {
         LOAD_UNLOAD = 0xA6,
         MECHANISM_STATUS = 0xBD,
         SCAN = 0xBA,
+        SET_CD_SPEED = 0xBB,
         PLAY_CD = 0xBC,
         READ_CD = 0xBE,
     };
@@ -351,6 +352,13 @@ namespace ATAPI {
             uint8_t reserved2[5];
             uint16_t parameter_list_length;
             uint8_t reserved[3];
+        };
+
+        struct ATAPI_PKT SetCDSpeed {
+            uint8_t opcode;
+            uint8_t reserved0;
+            uint16_t read_speed;
+            uint16_t write_speed;
         };
     }
 

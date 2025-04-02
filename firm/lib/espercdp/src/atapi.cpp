@@ -46,6 +46,7 @@ namespace ATAPI {
         identify();
         query_state();
         _diags.capas = mode_sense_capabilities();
+        set_speed();
         ESP_LOGI(LOG_TAG, "end of Reset");
     }
 
@@ -237,36 +238,23 @@ namespace ATAPI {
         
         quirks = { 0 };
 
-        static const std::vector<std::string> softscan_models = {
-            // List of model IDs of drives that cannot perform SCAN command as espected
-            "TEAC DV-W58G-A",
-            "PLDS    DVD A  DH20A4P",
-            "LITE-ON LTR-48246S",
-            "JLMS XJ-HD166S"
+
+        static const std::vector<std::pair<std::string, Quirks>> quirks_db = {
+            {"TEAC DV-W58G-A", Quirks {.must_use_softscan = true}},
+            {"PLDS    DVD A  DH20A4P", Quirks {.must_use_softscan = true}},
+            {"LITE-ON LTR-48246S", Quirks {.must_use_softscan = true}},
+            {"JLMS XJ-HD166S", Quirks {.must_use_softscan = true}},
+
+            {"TEAC CD-C68E", Quirks {.fucky_toc_reads = true}},
+            {"NEC                 CD-ROM DRIVE:284", Quirks { .no_media_codes = true, .busy_ass = true }}
         };
 
-        for(auto const& id: softscan_models) {
-            if(info.model.rfind(id, 0) == 0) {
-                ESP_LOGW(LOG_TAG, "Drive requires use of softscan");
-                quirks.must_use_softscan = true;
+        for(auto const& id: quirks_db) {
+            if(info.model.rfind(id.first, 0) == 0) {
+                ESP_LOGW(LOG_TAG, "Drive is quirky!");
+                quirks = id.second;
                 break;
             }
-        }
-
-        if(info.model.rfind("NEC                 CD-ROM DRIVE:284", 0) == 0 && info.firmware.rfind("3.51    NEC", 0) == 0) {
-            ESP_LOGW(LOG_TAG, "Shitty drive detected! NEC CDR-1400C anyone?");
-
-            quirks.busy_ass = true;
-            quirks.no_media_codes = true;
-        }
-        else if(info.model.rfind("HL-DT-ST DVDRAM GSA-4163B", 0) == 0) {
-            // responses still make zero sense. UNSUPPORTED!
-            quirks.no_media_codes = true;
-            quirks.busy_ass = true;
-            quirks.no_drq_in_toc = true;
-        }
-        else if(info.model.rfind("TEAC CD-C68E", 0) == 0) {
-            quirks.fucky_toc_reads = true;
         }
 
         ESP_LOGI(LOG_TAG, "Drive Model = '%s', SN = '%s', FW = '%s', packet size = %i", info.model.c_str(),  info.serial.c_str(), info.firmware.c_str(), packet_size);
@@ -364,6 +352,18 @@ namespace ATAPI {
         if(!rslt.rw_deint_corr) ESP_LOGI(LOG_TAG, "R-W deinterleave/correction capability not present, maybe CD TEXT won't work");
 
         return rslt;
+    }
+
+    void Device::set_speed() {
+        // Some drives are too noisy to let them run at full force
+        const Requests::SetCDSpeed req = {
+            .opcode = OperationCodes::SET_CD_SPEED,
+            .read_speed = htobe16((quirks.alternate_max_speed == 0) ? 600 : quirks.alternate_max_speed),
+            .write_speed = 0xFFFF
+        };
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        send_packet(&req, sizeof(req), true);
+        xSemaphoreGive(semaphore);
     }
 
     void Device::mode_select_output_ports() {
@@ -575,6 +575,8 @@ namespace ATAPI {
     }
 
     const DiscTOC Device::read_toc() {
+        set_speed();
+
         const Requests::ReadTOC req = {
             .opcode = OperationCodes::READ_TOC_PMA_ATIP,
             .msf = true,

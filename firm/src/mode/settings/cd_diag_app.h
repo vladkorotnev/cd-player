@@ -104,6 +104,7 @@ public:
             if(quirks.must_use_softscan) subnodes.push_back(std::make_shared<MenuNode>("Simulated SCAN"));
             if(quirks.fucky_toc_reads) subnodes.push_back(std::make_shared<MenuNode>("Unstable TOC"));
             if(quirks.no_drq_in_toc) subnodes.push_back(std::make_shared<MenuNode>("Unstable DRQ"));
+            if(quirks.alternate_max_speed) subnodes.push_back(std::make_shared<DetailTextMenuNode>("Speed Limit", std::to_string(quirks.alternate_max_speed)));
         }
 
         set_subnodes(subnodes);

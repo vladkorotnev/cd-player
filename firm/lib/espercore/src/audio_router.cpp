@@ -101,6 +101,24 @@ namespace Platform {
     #endif
     }
 
+    void AudioRouter::i2s_bus_setup_local_input() {
+    #ifndef ESPER_NULL_OUTPUT
+        ESP_LOGI(LOG_TAG, "Begin input");
+        auto cfg = _i2s->defaultConfig(RX_MODE);
+        cfg.copyFrom(cdaInputParams);
+        cfg.pin_bck = i2s_pins.bck;
+        cfg.pin_data = i2s_pins.data;
+        cfg.pin_mck = i2s_pins.mck;
+        cfg.pin_ws = i2s_pins.lrck;
+        cfg.pin_data_rx = cfg.pin_data;
+        cfg.is_master = false;
+        cfg.buffer_count = ESPER_AUDIO_BUFFER_COUNT;
+        cfg.buffer_size = ESPER_AUDIO_BUFFER_SIZE;
+        _i2s->begin(cfg);
+        ESP_LOGI(LOG_TAG, "Bus set to input");
+    #endif
+    }
+
     void AudioRouter::set_deemphasis(bool demph) {
         gpio_set_level(dac_pins.demph, demph);
     }

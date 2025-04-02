@@ -17,6 +17,8 @@ namespace ATAPI {
             bool fucky_toc_reads;
             /// @brief Indicates that the drive doesn't assert DRQ when sending TOC
             bool no_drq_in_toc;
+            /// @brief Some drives lock up when setting the speed to 600 KBps or become much noisier. Use this to set another speed instead. Leave 0 to use the default.
+            uint16_t alternate_max_speed;
         };
 
         struct Diags {
@@ -163,5 +165,6 @@ namespace ATAPI {
         bool playback_mode_select_flag = false;
         void mode_select_output_ports();
         void mode_select_power_conditions();
+        void set_speed();
     };
 }
