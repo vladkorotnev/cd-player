@@ -43,6 +43,7 @@ namespace Platform {
         WM8805 * _spdif;
 
         AudioInfo cpuOutputParams = AudioInfo(44100, 2, 16);
+        AudioInfo cdaInputParams = AudioInfo(44100, 2, 16);
         I2SStream * _i2s;
 
         const DACBus dac_pins;
@@ -51,6 +52,7 @@ namespace Platform {
 
         void i2s_bus_release_local();
         void i2s_bus_setup_local_output();
+        void i2s_bus_setup_local_input();
 
         void spdif_set_up_muting_hax();
         void spdif_teardown_muting_hax();
