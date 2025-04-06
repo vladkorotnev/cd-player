@@ -241,9 +241,11 @@ namespace ATAPI {
 
         static const std::vector<std::pair<std::string, Quirks>> quirks_db = {
             {"TEAC DV-W58G-A", Quirks {.must_use_softscan = true}},
+            {"TEAC DV-W516GDM", Quirks {.must_use_softscan = true}},
             {"PLDS    DVD A  DH20A4P", Quirks {.must_use_softscan = true}},
             {"LITE-ON LTR-48246S", Quirks {.must_use_softscan = true}},
             {"JLMS XJ-HD166S", Quirks {.must_use_softscan = true}},
+            {"Lite-On LTN486", Quirks {.must_use_softscan = true, .alternate_max_speed = 3000}},
 
             {"TEAC CD-C68E", Quirks {.fucky_toc_reads = true}},
             {"NEC                 CD-ROM DRIVE:284", Quirks { .no_media_codes = true, .busy_ass = true }}
