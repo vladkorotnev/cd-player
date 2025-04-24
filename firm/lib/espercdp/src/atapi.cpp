@@ -246,6 +246,7 @@ namespace ATAPI {
             {"LITE-ON LTR-48246S", Quirks {.must_use_softscan = true}},
             {"JLMS XJ-HD166S", Quirks {.must_use_softscan = true}},
             {"Lite-On LTN486", Quirks {.must_use_softscan = true, .alternate_max_speed = 3000}},
+            {"BENQ    DVD DD DW1620", Quirks { .busy_ass = true, .must_use_softscan = true, .alternate_max_speed = 3000 } /* TODO: still never inits unless a CD is in */ },
 
             {"TEAC CD-C68E", Quirks {.fucky_toc_reads = true}},
             {"NEC                 CD-ROM DRIVE:284", Quirks { .no_media_codes = true, .busy_ass = true }}
