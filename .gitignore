@@ -5,3 +5,5 @@
 /reference/CD-ATAPI/68edos11
 /local
 /firm/*.old
+.DS_Store
+._*

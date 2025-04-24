@@ -34,6 +34,7 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * *NEC CDR-1400C*: kinda works, very unstable state management, sometimes freezes the whole system, doesn't report media type codes properly.
 * *TEAC CD-C68E*: works including changer, sometimes TOC reads are broken, workaround is in place but still. *No SPDIF output, so you have to resort to analog.* As of V1.0a it's become significantly more glitchy and I have no idea why. TBD in a future release...
 * *ALi DVD Ver0.96A_0104*: found inside a MUSTEK DVD player. Plays it seems but no SPDIF. Cannot stop without being paused first. Overall weird behavior.
+* *BENQ DW1620*: won't clear BSY unless booting with a disc in, otherwise it plays (but requires softseek), eject and close with or without disc results in eternal BSY, sometimes enters BSY during playback, disobeys max speed after a few seconds of playing. Defective unit?
 
 ## Capabilities
 
