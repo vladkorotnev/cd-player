@@ -297,11 +297,15 @@ void CDMode::loop() {
     } else if(tracklist.size() >= trk.track && trk.track > 0 && trk.index > 0) {
         auto metadata = tracklist[trk.track - 1];
         lrc.feed_track(trk, metadata);
-        int line_len = 0;
-        auto line = lrc.feed_position(msf_now, &line_len);
-        if(!line.empty() && lyrics_enabled) {
-            rootView->lblLyric->set_value(line);
-            rootView->set_lyric_show(true, line_len + 5000);
+        const auto line = lrc.feed_position(msf_now);
+        if(lyrics_enabled) {
+            if (!line.line.empty() && line.length > 0) {
+                rootView->lblLyric->set_value(line.line);
+                rootView->set_lyric_show(true, line.length + 5000);
+            }
+            else if (line.must_clear) {
+                rootView->set_lyric_show(false, 0);
+            }
         }
 
         if(scrobbler != nullptr) {

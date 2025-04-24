@@ -4,6 +4,12 @@
 #include <esper-cdp/lyrics.h>
 #include <esp32-hal-log.h>
 
+struct LyricPlayerState {
+    bool must_clear;
+    std::string line;
+    int length;
+};
+
 class LyricPlayer {
 public:
     LyricPlayer() {}
@@ -16,9 +22,15 @@ public:
         }
     }
 
-    std::string feed_position(MSF pos, int* out_millis) {
+    LyricPlayerState feed_position(MSF pos) {
+        LyricPlayerState rslt = { 0 };
+
         if(MSF_TO_FRAMES(pos) < MSF_TO_FRAMES(cur_position)) {
             cursor = -1;
+        }
+
+        if (cursor == -1) {
+            rslt.must_clear = true;
         }
 
         cur_position = pos;
@@ -36,15 +48,15 @@ public:
                 cursor = idx;
                 ESP_LOGI("Lyric", " %i | %i | e=%i\t -= %s =- ", cur_ms, cur_metadata.lyrics[idx].millisecond, (cur_ms - cur_metadata.lyrics[idx].millisecond), cur_metadata.lyrics[idx].line.c_str());
                 if(idx < cur_metadata.lyrics.size()) {
-                    *out_millis = cur_metadata.lyrics[idx + 1].millisecond - cur_metadata.lyrics[idx].millisecond;
+                    rslt.length = cur_metadata.lyrics[idx + 1].millisecond - cur_metadata.lyrics[idx].millisecond;
                 } else {
-                    *out_millis = 20000; // default
+                    rslt.length = 20000; // default
                 }
-                return cur_metadata.lyrics[idx].line;
+                rslt.line = cur_metadata.lyrics[idx].line;
             }
         }
 
-        return "";
+        return rslt;
     }
 
     void reset() {
