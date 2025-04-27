@@ -92,6 +92,7 @@ namespace Core::Services {
                     ESP_LOGI(LOG_TAG, "Power mode = %i", WiFi.getTxPower());
                 } else {
                     ESP_LOGW(LOG_TAG, "No saved network");
+                    WiFi.begin("");
                 }
             }
         }
