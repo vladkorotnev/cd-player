@@ -247,13 +247,14 @@ namespace ATAPI {
             {"JLMS XJ-HD166S", Quirks {.must_use_softscan = true}},
             {"Lite-On LTN486", Quirks {.must_use_softscan = true, .alternate_max_speed = 3000}},
             {"BENQ    DVD DD DW1620", Quirks { .busy_ass = true, .must_use_softscan = true, .alternate_max_speed = 3000 } /* TODO: still never inits unless a CD is in */ },
+            {"CD-S520B", Quirks {.no_media_codes = true, .must_use_softscan = true}},
 
             {"TEAC CD-C68E", Quirks {.fucky_toc_reads = true}},
             {"NEC                 CD-ROM DRIVE:284", Quirks { .no_media_codes = true, .busy_ass = true }}
         };
 
         for(auto const& id: quirks_db) {
-            if(info.model.rfind(id.first, 0) == 0) {
+            if(info.model.find(id.first, 0) != std::string::npos) {
                 ESP_LOGW(LOG_TAG, "Drive is quirky!");
                 quirks = id.second;
                 break;

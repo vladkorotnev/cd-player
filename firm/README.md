@@ -18,6 +18,7 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * **Recommended: NEC ND-3500A**: just works in every aspect, and even has CD TEXT! Wish every one of the others was like this.
 * *Philips/Lite-On DH-20A4P* aka *Buffalo DVSM-XE1219FB*: Load a bit on the slow side, noisy mech! Janky ffwd/rewind (using software timer because the drive doesn't do SCAN commands).
 * *TEAC DV-W516GDM*: Smooth operation, has CD TEXT, janky ffwd/rewind
+* *ASUS CD-S520B*: CDText, Softseek required. Very silent operation. Doesn't seem to report a CD status until exit and enter CD mode (no media codes quirk flag).
 * *LITE-ON LTN-486*: Noisy, cannot set speed to 600, janky ffwd/rewind, otherwise works, has CD TEXT
 * *LITE-ON LTR-48246S*: Kinda noisy, works mostly, janky ffwd/rewind, has CD TEXT.
 * *JLMS XJ-HD166S* (JVC/Liteon): Kinda noisy, works mostly, janky ffwd/rewind. Properly reports audio status when using the (hidden) play button! Loses sync quite often on some CDs, test unit defective?
