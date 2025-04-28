@@ -554,11 +554,13 @@ namespace CD {
                     play_next_shuffled_track();
                 } else {
                     next_trk_no = std::min((int) album->tracks.size(), (int) cur_track.track + 1);
+
+                    if (next_trk_no == cur_track.track) return; // don't skip to start of current track when NEXT pressed on last track
                 }
             }
             else {
-                if(sts == State::STOP || (rel_ts.M == 0 && rel_ts.S <= 3)) {
-                    // if stopped or within the first 3 seconds of a song
+                if(sts == State::STOP || (rel_ts.M == 0 && rel_ts.S <= 2)) {
+                    // if stopped or within the first 2 seconds of a song
                     // go back one track
                     if(play_mode == PlayMode::PLAYMODE_SHUFFLE && sts != State::STOP) {
                         if(shuffle_history.empty()) return;
