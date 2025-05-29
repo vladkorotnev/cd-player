@@ -20,6 +20,7 @@
 
     "Source": "Bron",
     "Web Radio": "Webradio",
+    "FTP Server": "FTP Server",
 
     "Settings": "Instellingen",
     "Searching...": "Zoeken...",
@@ -65,6 +66,7 @@
 
     "About": "Over",
     "System": "Systeem",
+    "Developer": "Ontwikkelaar",
     "Reset complete": "Reset voltooid",
     "Language changed": "Taal gewijzigd",
 
@@ -73,5 +75,8 @@
     "Update in progress": "Update bezig",
     "DO NOT TURN OFF!!": "NIET UITSCHAKELEN!!",
     "Update completed": "Update voltooid",
-    "Update error!": "Updatefout!"
+    "Update error!": "Updatefout!",
+
+    "(Empty)": "(Geen bestanden)",
+    "(Connection Failed)": "(Verbinding mislukt)"
 }

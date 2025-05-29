@@ -45,3 +45,10 @@ static const Prefs::Key<bool> PREFS_KEY_BT_NEED_PIN {"bt_use_pin", true};
 static const Prefs::Key<bool> PREFS_KEY_OTAFVU_ALLOWED {"otafvu_allow", false};
 /// Is Telnet logger enabled
 static const Prefs::Key<bool> PREFS_KEY_TELNET_LOGGER {"telnet_log", false};
+
+/// FTP server address
+static const Prefs::Key<std::string> PREFS_KEY_FTP_ADDRESS {"ftp_srv", ""};
+/// FTP server username
+static const Prefs::Key<std::string> PREFS_KEY_FTP_USER {"ftp_user", "anonymous"};
+/// FTP server password
+static const Prefs::Key<std::string> PREFS_KEY_FTP_PASS {"ftp_pass", "anonymous"};

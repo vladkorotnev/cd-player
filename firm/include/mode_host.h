@@ -7,6 +7,7 @@
 #include <modes/cd_mode.h>
 #include <modes/netradio_mode.h>
 #include <modes/bluetooth_mode.h>
+#include <modes/ftp_mode.h>
 #include <modes/settings_mode.h>
 #include <modes/standby_mode.h>
 
@@ -14,6 +15,7 @@ enum ModeSelection: int {
     ESPER_MODE_CD,
     ESPER_MODE_NET_RADIO,
     ESPER_MODE_BLUETOOTH,
+    ESPER_MODE_FTP,
     ESPER_MODE_SETTINGS,
 
     ESPER_MODE_STANDBY,
@@ -239,6 +241,10 @@ private:
 
             case ESPER_MODE_NET_RADIO:
                 activeMode = new InternetRadioMode(resources, this);
+                break;
+
+            case ESPER_MODE_FTP:
+                activeMode = new FTPMode(resources, this);
                 break;
 
             case ESPER_MODE_SETTINGS:

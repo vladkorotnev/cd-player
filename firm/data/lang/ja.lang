@@ -21,6 +21,7 @@
 
     "Source": "再生する",
     "Web Radio": "ネットラジオ",
+    "FTP Server": "FTPサーバー",
 
     "Settings": "設定を変更する",
     "Searching...": "検索中...",
@@ -75,5 +76,8 @@
     "Update in progress": "バージョンアップ中",
     "DO NOT TURN OFF!!": "電源を切らないでください",
     "Update completed": "バージョンアップ完了",
-    "Update error!": "バージョンアップに失敗しました"
+    "Update error!": "バージョンアップに失敗しました",
+
+    "(Empty)": "(ファイルなし)",
+    "(Connection Failed)": "(接続失敗)"
 }

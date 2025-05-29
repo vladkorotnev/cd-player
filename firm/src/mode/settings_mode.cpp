@@ -108,6 +108,13 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
         TogglePreferenceMenuNode("Require PIN code", PREFS_KEY_BT_NEED_PIN),
         TogglePreferenceMenuNode("Auto-connect", PREFS_KEY_BT_RECONNECT),
     }),
+    DynamicListMenuNode("FTP Server", &icn_server, [](DynamicListMenuNode * m) {
+        m->set_content(std::tuple {
+            TextPreferenceEditorNode("Address", PREFS_KEY_FTP_ADDRESS),
+            TextPreferenceEditorNode("User name", PREFS_KEY_FTP_USER),
+            TextPreferenceEditorNode("Password", PREFS_KEY_FTP_PASS),
+        });
+    }),
     ListMenuNode("System", &icn_sys, std::tuple {
         DynamicListMenuNode("Language", nullptr, [](DynamicListMenuNode * m) {
             m->set_content(std::tuple {
@@ -181,6 +188,7 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                     ActionMenuNode("CD", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_CD); }, &icn_cd),
                     ActionMenuNode("Web Radio", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_NET_RADIO); }, &icn_radio),
                     ActionMenuNode("Bluetooth", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_BLUETOOTH); }, &icn_bt),
+                    ActionMenuNode("FTP Server", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_FTP); }, &icn_server),
                 }),
                 settings_menu
             }

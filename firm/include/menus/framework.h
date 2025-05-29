@@ -198,8 +198,12 @@ public:
 
     void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override {
         const std::string detailText = detailTextGenerator();
-        EGSize str_size = Fonts::EGFont_measure_string(Fonts::FallbackWildcard16px, detailText.c_str());
-        Fonts::EGFont_put_string(Fonts::FallbackWildcard16px, detailText.c_str(), {bounds.width - str_size.width, bounds.height / 2 - str_size.height / 2}, buf);
+        const Fonts::Font* font = Fonts::FallbackWildcard16px;
+        if (bounds.height < font->size.height) {
+            font = Fonts::FallbackWildcard8px;
+        }
+        EGSize str_size = Fonts::EGFont_measure_string(font, detailText.c_str());
+        Fonts::EGFont_put_string(font, detailText.c_str(), {bounds.width - str_size.width, bounds.height / 2 - str_size.height / 2}, buf);
         MenuNode::draw_accessory(buf, bounds);
     }
 protected:
@@ -208,12 +212,16 @@ protected:
 
 class ListMenuNode: public MenuPresentable, public MenuNode,  public UI::ListView {
 public:
+    const Fonts::Font* itemFont = Fonts::FallbackWildcard16px;
+
     // Explanation: https://stackoverflow.com/a/79487087/565185 -- TODO figure out how this works
     template <typename... Ts>
     ListMenuNode(const std::string title,
                 const EGImage * icon,
-                const std::tuple<Ts...>&& items) :
+                const std::tuple<Ts...>&& items,
+                const Fonts::Font* font = Fonts::FallbackWildcard16px) :
         subnodes({}),
+        itemFont(font),
         UI::ListView(EGRectZero, {}),
         MenuNode(title, icon)
     {
@@ -269,7 +277,7 @@ protected:
     void create_view_items() {
         std::vector<std::shared_ptr<UI::ListItem>> viewItems = {};
         for(auto& subnode: subnodes) {
-            viewItems.push_back(std::make_shared<UI::ListItem>(subnode->localized_title(), [subnode](EGGraphBuf *b, EGSize s) { subnode->draw_accessory(b, s); }, subnode->icon));
+            viewItems.push_back(std::make_shared<UI::ListItem>(subnode->localized_title(), [subnode](EGGraphBuf *b, EGSize s) { subnode->draw_accessory(b, s); }, subnode->icon, itemFont));
         }
         set_items(viewItems);
         layout_items();

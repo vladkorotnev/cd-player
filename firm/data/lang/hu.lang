@@ -20,6 +20,7 @@
 
     "Source": "Forrás",
     "Web Radio": "Internetrádió",
+    "FTP Server": "FTP szerver",
 
     "Settings": "Beállítások",
     "Searching...": "Keresés...",
@@ -65,6 +66,7 @@
 
     "About": "Névjegy",
     "System": "Rendszer",
+    "Developer": "Fejlesztő",
     "Reset complete": "Visszaállítás kész",
     "Language changed": "Nyelv megváltoztatva",
 
@@ -73,5 +75,8 @@
     "Update in progress": "Frissítés folyamatban",
     "DO NOT TURN OFF!!": "KI NE KAPCSOLD!!",
     "Update completed": "Frissítés kész",
-    "Update error!": "Frissítési hiba!"
+    "Update error!": "Frissítési hiba!",
+    
+   "(Empty)": "(Nincsenek fájlok)",
+   "(Connection Failed)": "(Sikertelen csatlakozás)"
 }

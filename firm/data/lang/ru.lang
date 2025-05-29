@@ -21,6 +21,7 @@
 
     "Source": "Источники",
     "Web Radio": "Интернет-радио",
+    "FTP Server": "FTP-сервер",
 
     "Settings": "Настройки",
     "Searching...": "Поиск сети...",
@@ -75,5 +76,8 @@
     "Update in progress": "Идёт обновление",
     "DO NOT TURN OFF!!": "НЕ ВЫКЛЮЧАТЬ !!",
     "Update completed": "Обновление успешно",
-    "Update error!": "НЕ УДАЛОСЬ"
+    "Update error!": "НЕ УДАЛОСЬ",
+
+    "(Empty)": "(Папка пуста)",
+    "(Connection Failed)": "(Ошибка соединения)"
 }
