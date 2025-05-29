@@ -43,3 +43,5 @@ static const Prefs::Key<bool> PREFS_KEY_BT_NEED_PIN {"bt_use_pin", true};
 
 /// Is OTA FVU allowed
 static const Prefs::Key<bool> PREFS_KEY_OTAFVU_ALLOWED {"otafvu_allow", false};
+/// Is Telnet logger enabled
+static const Prefs::Key<bool> PREFS_KEY_TELNET_LOGGER {"telnet_log", false};

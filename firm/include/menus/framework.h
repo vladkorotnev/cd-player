@@ -213,18 +213,22 @@ public:
     ListMenuNode(const std::string title,
                 const EGImage * icon,
                 const std::tuple<Ts...>&& items) :
-        subnodes(std::apply([](auto&&... args) -> std::vector<std::shared_ptr<MenuNode>>
-                            {
-                                return { std::make_shared<Ts>(std::move(args))... };
-                            }, std::move(items))),
+        subnodes({}),
         UI::ListView(EGRectZero, {}),
         MenuNode(title, icon)
     {
-        set_subnodes(subnodes);
+        set_content(std::move(items));
     }
 
     void set_subnodes(std::vector<std::shared_ptr<MenuNode>> new_subnodes) {
         subnodes = new_subnodes;
+    }
+
+    template <typename... Ts> void set_content(const std::tuple<Ts...>&& items) {
+        subnodes = std::apply([](auto&&... args) -> std::vector<std::shared_ptr<MenuNode>>
+                            {
+                                return { std::make_shared<Ts>(std::move(args))... };
+                            }, std::move(items));
     }
 
     void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override { UI::ListItem::DisclosureIndicatorDrawingFunc(buf, bounds); }
@@ -272,23 +276,55 @@ protected:
     }
 };
 
+/// @note This workaround is absolute ass and the whole system needs eventual refactoring now!!
+class DynamicListMenuNode: public ListMenuNode {
+public:
+    DynamicListMenuNode(const std::string title,
+                const EGImage * icon,
+                std::function<void(DynamicListMenuNode*)> prepare):
+        _prepare(prepare),
+        ListMenuNode(title, icon, {}) {}
+
+    void execute(MenuNavigator * host) const override {
+        host->push(std::make_shared<DynamicListMenuNode>(*this));
+    }
+
+    void on_presented() override {
+        if (!prepared) {
+            _prepare(this);
+            prepared = true;
+        }
+        ListMenuNode::on_presented();
+    }
+protected:
+    const std::function<void(DynamicListMenuNode*)> _prepare;
+    bool prepared = false;
+};
+
 class TextEditor: public MenuPresentable, public MenuNode {
 public:
     std::string edited_string;
     TextEditor(std::string title):
         edited_string(""),
         editingFont(Fonts::FallbackWildcard16px),
+        titleFont(Fonts::FallbackWildcard8px),
         _leftLbl(std::make_shared<UI::Label>(EGRectZero, editingFont, UI::Label::Alignment::Right)),
         _curLbl(std::make_shared<UI::Label>(EGRectZero, editingFont, UI::Label::Alignment::Center)),
         _rightLbl(std::make_shared<UI::Label>(EGRectZero, editingFont, UI::Label::Alignment::Left)),
+        _titleLbl(std::make_shared<UI::Label>(EGRectZero, titleFont, UI::Label::Alignment::Right)),
         MenuPresentable(),
         MenuNode(title) {
             subviews.push_back(_leftLbl);
             subviews.push_back(_curLbl);
             subviews.push_back(_rightLbl);
+            subviews.push_back(_titleLbl);
         }
 
     void on_presented() override {
+        ESP_LOGI("TextEdit", "Title = '%s', Localized = '%s'", title.c_str(), localized_title().c_str());
+        _titleLbl->set_value(localized_title());
+        _titleLbl->frame = EGRect {{frame.size.width - _titleLbl->str_size.width, frame.size.height - _titleLbl->str_size.height}, _titleLbl->str_size}; 
+
         ESP_LOGI("TextEdit", "string before edit = '%s'", edited_string.c_str());
         str_pos = edited_string.size();
         int vert_center = frame.size.height/2 - editingFont->size.height/2;
@@ -434,6 +470,7 @@ protected:
     int str_pos = 0;
     const Prefs::Key<std::string> _key;
     const Fonts::Font * editingFont;
+    const Fonts::Font * titleFont;
     const std::shared_ptr<UI::Label> _leftLbl;
     const std::shared_ptr<UI::Label> _curLbl;
     const std::shared_ptr<UI::Label> _rightLbl;

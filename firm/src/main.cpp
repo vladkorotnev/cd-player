@@ -128,7 +128,7 @@ void setup(void) {
   if(is_recovery) return;
   Core::Services::NTP::start();
 
-  if (Prefs::get(PREFS_KEY_OTAFVU_ALLOWED)) {
+  if (Prefs::get(PREFS_KEY_TELNET_LOGGER)) {
     Core::Services::Telnet::start();
   }
 
