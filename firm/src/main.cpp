@@ -120,15 +120,19 @@ void setup(void) {
   };
 
   host = new ModeHost(rsrc);
-  i2c->log_all_devices();
   mount_fs_if_needed();
   load_all_fonts();
   
   Core::Services::WLAN::start();
-  Core::Services::NTP::start();
   bool is_recovery = OTAFVU::start_if_needed(rsrc, host);
   if(is_recovery) return;
+  Core::Services::NTP::start();
 
+  if (Prefs::get(PREFS_KEY_OTAFVU_ALLOWED)) {
+    Core::Services::Telnet::start();
+  }
+
+  i2c->log_all_devices();
   spdif->initialize();
   cdrom->reset();
   xTaskCreatePinnedToCore(
