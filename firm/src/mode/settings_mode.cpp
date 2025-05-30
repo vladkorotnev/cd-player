@@ -90,23 +90,25 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
     WiFiNetworksListMenuNode(),
     ListMenuNode("CD", &icn_cd, std::tuple {
         TogglePreferenceMenuNode("Show Lyrics", PREFS_KEY_CD_LYRICS_ENABLED),
-        ListMenuNode("Metadata", nullptr, std::tuple {
-            TogglePreferenceMenuNode("Cache Metadata", PREFS_KEY_CD_CACHE_META),
-            ActionMenuNode("Clear Cache", [](MenuNavigator* h) {
-                bool res = clear_cddb_cache();
-                h->push(std::make_shared<InfoMessageBox>(res ? localized_string("Cache cleared") : localized_string("Failed to clear cache")));
-            }),
-            ListMenuNode("Metadata sources", nullptr, std::tuple {
-                TogglePreferenceMenuNode("MusicBrainz", PREFS_KEY_CD_MUSICBRAINZ_ENABLED),
-                TogglePreferenceMenuNode("CDDB", PREFS_KEY_CD_CDDB_ENABLED),
-                TextPreferenceEditorNode("CDDB server", PREFS_KEY_CDDB_ADDRESS),
-                TextPreferenceEditorNode("CDDB e-mail", PREFS_KEY_CDDB_EMAIL)
-            }),
-            ListMenuNode("Lyrics sources", nullptr, std::tuple {
-                TogglePreferenceMenuNode("LRCLib", PREFS_KEY_CD_LRCLIB_ENABLED),
-                TogglePreferenceMenuNode("NetEase (163)", PREFS_KEY_CD_NETEASE_ENABLED),
-                TogglePreferenceMenuNode("QQ Music", PREFS_KEY_CD_QQ_ENABLED),
-            })
+        DynamicListMenuNode("Metadata", nullptr, [](DynamicListMenuNode * m) {
+            m->set_content(std::tuple {
+                TogglePreferenceMenuNode("Cache Metadata", PREFS_KEY_CD_CACHE_META),
+                ActionMenuNode("Clear Cache", [](MenuNavigator* h) {
+                    bool res = clear_cddb_cache();
+                    h->push(std::make_shared<InfoMessageBox>(res ? localized_string("Cache cleared") : localized_string("Failed to clear cache")));
+                }),
+                ListMenuNode("Metadata sources", nullptr, std::tuple {
+                    TogglePreferenceMenuNode("MusicBrainz", PREFS_KEY_CD_MUSICBRAINZ_ENABLED),
+                    TogglePreferenceMenuNode("CDDB", PREFS_KEY_CD_CDDB_ENABLED),
+                    TextPreferenceEditorNode("CDDB server", PREFS_KEY_CDDB_ADDRESS),
+                    TextPreferenceEditorNode("CDDB e-mail", PREFS_KEY_CDDB_EMAIL)
+                }),
+                ListMenuNode("Lyrics sources", nullptr, std::tuple {
+                    TogglePreferenceMenuNode("LRCLib", PREFS_KEY_CD_LRCLIB_ENABLED),
+                    TogglePreferenceMenuNode("NetEase (163)", PREFS_KEY_CD_NETEASE_ENABLED),
+                    TogglePreferenceMenuNode("QQ Music", PREFS_KEY_CD_QQ_ENABLED),
+                })
+            });
         }),
         ListMenuNode("Last.FM", nullptr, std::tuple {
             TextPreferenceEditorNode("User name", PREFS_KEY_CD_LASTFM_USER),
@@ -121,21 +123,31 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
         TogglePreferenceMenuNode("Auto-connect", PREFS_KEY_BT_RECONNECT),
     }),
     ListMenuNode("System", &icn_sys, std::tuple {
-        ListMenuNode("Language", nullptr, std::tuple {
-            LanguageMenuNode(DSPL_LANG_EN),
-            LanguageMenuNode(DSPL_LANG_RU),
-            LanguageMenuNode(DSPL_LANG_JA),
-            LanguageMenuNode(DSPL_LANG_HU),
-            LanguageMenuNode(DSPL_LANG_DE),
-            LanguageMenuNode(DSPL_LANG_NL),
+        DynamicListMenuNode("Language", nullptr, [](DynamicListMenuNode * m) {
+            m->set_content(std::tuple {
+                LanguageMenuNode(DSPL_LANG_EN),
+                LanguageMenuNode(DSPL_LANG_RU),
+                LanguageMenuNode(DSPL_LANG_JA),
+                LanguageMenuNode(DSPL_LANG_HU),
+                LanguageMenuNode(DSPL_LANG_DE),
+                LanguageMenuNode(DSPL_LANG_NL),
+            });
         }),
-        ListMenuNode("Mode toggle button", nullptr, std::tuple {
-            TogglePreferenceMenuNode("CD", PREFS_KEY_CD_MODE_INCLUDED),
-            TogglePreferenceMenuNode("Web Radio", PREFS_KEY_RADIO_MODE_INCLUDED),
-            TogglePreferenceMenuNode("Bluetooth", PREFS_KEY_BLUETOOTH_MODE_INCLUDED),
+        DynamicListMenuNode("Mode toggle button", nullptr, [](DynamicListMenuNode * m) {
+            m->set_content(std::tuple {
+                TogglePreferenceMenuNode("CD", PREFS_KEY_CD_MODE_INCLUDED),
+                TogglePreferenceMenuNode("Web Radio", PREFS_KEY_RADIO_MODE_INCLUDED),
+                TogglePreferenceMenuNode("Bluetooth", PREFS_KEY_BLUETOOTH_MODE_INCLUDED),
+                TogglePreferenceMenuNode("FTP", PREFS_KEY_BLUETOOTH_MODE_INCLUDED),
+            });
         }),
 #if OTA_FVU_ENABLED
-        TogglePreferenceMenuNode("OTA FVU", PREFS_KEY_OTAFVU_ALLOWED),
+        DynamicListMenuNode("Developer", nullptr, [](DynamicListMenuNode * m) {
+            m->set_content(std::tuple {
+                TogglePreferenceMenuNode("OTA FVU", PREFS_KEY_OTAFVU_ALLOWED),
+                TogglePreferenceMenuNode("Telnet Logging", PREFS_KEY_TELNET_LOGGER),
+            });
+        }),
 #endif
         ActionMenuNode("Check for Updates", [](MenuNavigator* h) { 
             h->push(std::make_shared<HttpFvuApp>(h));
@@ -183,6 +195,7 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                     ActionMenuNode("CD", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_CD); }, &icn_cd),
                     ActionMenuNode("Web Radio", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_NET_RADIO); }, &icn_radio),
                     ActionMenuNode("Bluetooth", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_BLUETOOTH); }, &icn_bt),
+                    ActionMenuNode("FTP", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_CD); }, &icn_cd),
                 }),
                 settings_menu
             }

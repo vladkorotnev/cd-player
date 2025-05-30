@@ -1,11 +1,17 @@
 {
-    "name": "ESPer-Core",
-    "version": "1.0",
-    "description": "ESPer board core",
-    "platforms": "espressif32",
-    "build": {
-		"flags": [
-			"-Iinclude"
-		]
-    }
+  "name": "ESPer-Core",
+  "version": "1.0",
+  "description": "ESPer board core",
+  "platforms": "espressif32",
+  "build": {
+    "flags": [
+      "-Iinclude"
+    ]
+  },
+  "dependencies": {
+    "ESPTelnet": "https://github.com/vladkorotnev/ESPTelnet#expose-vprintf"
+  },
+  "frameworks": [
+    "arduino"
+  ]
 }

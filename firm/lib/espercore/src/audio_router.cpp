@@ -66,6 +66,7 @@ namespace Platform {
     #ifdef ESPER_NULL_OUTPUT
         return &nullAs;
     #else
+        if(_i2s == nullptr) ESP_LOGE(LOG_TAG, "i2s nub IS NULL !!");
         return _i2s;
     #endif
     }
