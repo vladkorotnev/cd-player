@@ -1,4 +1,5 @@
 ; Example file for local development over the air
+; Don't forget to turn on OTA FVU and Telnet Logger in Settings -> System -> Developer !!
 
 [env:OTA]
 extends = env:ESPER_OG_8M
@@ -6,3 +7,4 @@ upload_protocol = espota
 upload_port = 192.168.123.456
 upload_flags = --auth=MY_PASSWORD
 board_build.esp-idf.sdkconfig_path=sdkconfig.ESPER_OG_8M
+monitor_port = socket://192.168.123.456:23
