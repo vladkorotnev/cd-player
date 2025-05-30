@@ -12,6 +12,6 @@ FTPMode::FTPMode(const PlatformSharedResources res, ModeHost * host):
     prevTrackDisc (resources.keypad, (1 << 4)),
     nextTrackDisc (resources.keypad, (1 << 5)),
     playMode (resources.keypad, (1 << 6)),
-    rootView(resources, std::make_shared<FTPBrowser>(), {EGPointZero, {160, 32}}),
+    rootView(resources, std::make_shared<FTPBrowser>(resources.router), {EGPointZero, {160, 32}}),
     Mode(res, host) {
 }

@@ -1,27 +1,28 @@
 #pragma once
 #include "modes/ftp_mode.h"
 #include "icons.h"
+#include "../settings/settings_icons.h"
 #include <shared_prefs.h>
 #include <FTPClient.h>
 #include <menus/framework.h>
+#include "player.h"
 
 using ftp_client::FTPClient;
+
+const Prefs::Key<std::string> PREFS_KEY_LAST_PATH = {"ftp_last", "/"};
 
 class FTPBrowser: public MenuPresentable, public UI::ListView {
 public:
   FTPNavigator * navigator = nullptr;
   const Fonts::Font * itemFont = Fonts::FallbackWildcard8px;
-  FTPBrowser():
+  FTPBrowser(Platform::AudioRouter * router):
     _spinner(std::make_shared<UI::TinySpinner>(EGRect {{160 - 5, 32 - 5}, {5, 5}})),
     client(),
     bgTask("FTPConnect", 8000),
+    router_(router),
     UI::ListView(EGRectZero, {}) {
       subviews.push_back(_spinner);
     }
-
-  ~FTPBrowser() {
-    client.end();
-  }
 
   void on_presented() override {
     current_dir = "/";
@@ -53,6 +54,10 @@ public:
       }
     }
 
+    set_items({
+      std::make_shared<UI::ListItem>(ftpAddress, [](EGGraphBuf *b, EGSize s) { }, &icn_server, Fonts::FallbackWildcard16px),
+    });
+
     bgTask.begin([this, ftpAddress, port]() {
       ESP_LOGI(LOG_TAG, "FTP CONNECT: [%s] PORT [%i] PREFIX [%s]", ftpAddress.c_str(), port, prefix.c_str());
       client.setPort(port);
@@ -65,6 +70,9 @@ public:
       }
 
       if(client.begin(resolved_addr, Prefs::get(PREFS_KEY_FTP_USER).c_str(), Prefs::get(PREFS_KEY_FTP_PASS).c_str())) {
+        client.binary();
+        auto lastUsedDir = Prefs::get(PREFS_KEY_LAST_PATH);
+        current_dir = lastUsedDir;
         list_current_dir();
       } else {
         _spinner->hidden = true;
@@ -73,7 +81,7 @@ public:
           std::make_shared<UI::ListItem>(localized_string("(Connection Failed)"), [](EGGraphBuf *b, EGSize s) { }, nullptr, itemFont),
         });
       }
-      vTaskDelete(NULL);
+      vTaskSuspend(NULL);
     });
   }
 
@@ -96,8 +104,26 @@ public:
       if(sel >= current_list.size()) return;
       if(current_list[sel].isDir) {
         current_dir += current_list[sel].name + "/";
-        EGRect itemRect = _items[selection]->frame;
+        backSelectionStack.push(selection);
         list_current_dir();
+      } else {
+        std::vector<std::string> names = {};
+        auto port = router_->get_io_port_nub();
+        int indexHere = -1;
+        int indexThere = 0;
+        int indexSelThere = 0;
+        for(auto file: current_list) {
+          indexHere++;
+          if(file.isDir) continue;
+          names.push_back(file.name);
+          if (indexHere == sel) {
+            indexSelThere = indexThere;
+          }
+          indexThere++;
+        }
+        FTPSource src(client, prefix + current_dir, names);
+        ESP_LOGI(LOG_TAG, "Playlist size=[%i] pos=[%i], in=[%s], outPort=[%p]", names.size(), indexSelThere, current_dir.c_str(), port);
+        host->push(std::make_shared<FTPPlayer>(src, indexSelThere, port));
       }
     }
     else if(k == RVK_CURS_LEFT) {
@@ -109,6 +135,7 @@ protected:
   FTPClient<WiFiClient> client;
   std::string prefix = "";
   std::string current_dir = "/";
+  Platform::AudioRouter * router_ = nullptr;
   struct FTPEntry {
     bool isDir;
     std::string name;
@@ -130,6 +157,13 @@ protected:
         current_dir += "/";
       }
       list_current_dir();
+      if(!backSelectionStack.empty()) {
+        int backSel = backSelectionStack.top();
+        backSelectionStack.pop();
+        if(backSel < _items.size() && backSel > 0) {
+          select(backSel);
+        }
+      }
     }
   }
 
@@ -180,10 +214,12 @@ protected:
         item->frame.size.width -= 4;
       }
     }
+    Prefs::set(PREFS_KEY_LAST_PATH, current_dir);
     _spinner->hidden = true;
   }
 
 private:
   const char * LOG_TAG = "FTPBro";
+  std::stack<int> backSelectionStack = {};
   Task bgTask;
 };
