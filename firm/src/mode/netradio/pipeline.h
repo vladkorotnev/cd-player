@@ -38,8 +38,8 @@ class InternetRadioMode::StreamingPipeline {
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
             copierDownloading(queueNetData, urlStream),
-            codecTask("IRADEC", 40000, 6, 1),
-            netTask("IRANET", 20000, 14, 1),
+            codecTask("IRADEC", 40000, 6, 0),
+            netTask("IRANET", 20000, 14, 0),
             copierDecoding(decoder, queueNetData) {
                 outPort = router->get_io_port_nub();
                 semaNet = xSemaphoreCreateBinary();
@@ -49,8 +49,11 @@ class InternetRadioMode::StreamingPipeline {
         }
     
         ~StreamingPipeline() {
-            if(running) stop();
-    
+            if(running) { 
+                ESP_LOGI(LOG_TAG, "Stop before destroying pipeline");
+                stop();
+            }
+            ESP_LOGI(LOG_TAG, "Finalizing pipeline");
             vSemaphoreDelete(semaNet);
             vSemaphoreDelete(semaCodec);
         }
@@ -66,6 +69,7 @@ class InternetRadioMode::StreamingPipeline {
             ESP_LOGI(LOG_TAG, "Streamer is starting");
             queueNetData.begin();
             netTask.begin([this, url, loadingCallback]() { 
+                    xSemaphoreTake(semaNet, portMAX_DELAY);
                     TickType_t last_shart_time = xTaskGetTickCount();
                     
                     urlStream.setMetadataCallback(_update_meta_global);
@@ -79,10 +83,12 @@ class InternetRadioMode::StreamingPipeline {
                         const std::string srv_mime = _srv_mime;
                         ESP_LOGI(LOG_TAG, "Server reports content-type: %s", srv_mime.c_str());
                         if(srv_mime == "audio/mpeg" || srv_mime == "audio/mp3") {
-                            activeCodec = new MP3DecoderHelix();
+                            activeCodec = &mp3;
+                            ESP_LOGI(LOG_TAG, "Using MP3/Helix");
                         }
                         else if(srv_mime == "audio/aac" || srv_mime == "audio/aacp" /* found on Keygen FM */) {
-                            activeCodec = new AACDecoderHelix();
+                            activeCodec = &aac;
+                            ESP_LOGI(LOG_TAG, "Using AAC/Helix");
                         }
                         else {
                             ESP_LOGE(LOG_TAG, "Content-type is not supported, TODO show error");
@@ -105,38 +111,41 @@ class InternetRadioMode::StreamingPipeline {
                     TickType_t last_successful_copy = xTaskGetTickCount();
                     TickType_t last_stats = xTaskGetTickCount();
 
-                    codecTask.begin([this, loadingCallback]() { 
-                        while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) { 
-                            delay(125);
-                        }
-                        
-                        if(!running) {
-                            ESP_LOGI(LOG_TAG, "Finishing up codec task early");
-                            decoder.end();
-                            xSemaphoreGive(semaCodec);
-                            vTaskDelay(portMAX_DELAY);
-                        }
-                        loadingCallback(false);
-                        while(copierDecoding.copy() > 0 && !bufferNetData.isEmpty() && running) {
-                            delay(10);
-                        }
-                        loadingCallback(true);
-                        while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) delay(250);
+                    codecTask.begin([this, loadingCallback]() {
+                        xSemaphoreTake(semaCodec, portMAX_DELAY);
+                        while(running) {
+                            while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) { 
+                                delay(125);
+                            }
+                            
+                            loadingCallback(false);
+                            while(copierDecoding.copy() > 0 && !bufferNetData.isEmpty() && running) {
+                                delay(10);
+                            }
+                            loadingCallback(true);
+                            while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) delay(250);
 
-    
-                        if(!running) {
-                            ESP_LOGI(LOG_TAG, "Finishing up codec task");
-                            decoder.end();
-                            xSemaphoreGive(semaCodec);
-                            vTaskDelay(portMAX_DELAY);
+                            delay(5);
                         }
 
-                        delay(5);
+                        ESP_LOGW(LOG_TAG, "Codec task is wrapping up");
+                        ESP_LOGI(LOG_TAG, "Ending decoder");
+                        decoder.end();
+
+                        ESP_LOGI(LOG_TAG, "Active codec = [%p]", activeCodec);
+                        if(activeCodec != nullptr) {
+                            ESP_LOGI(LOG_TAG, "[%p]->end()", activeCodec);
+                            activeCodec->end();
+                            ESP_LOGI(LOG_TAG, "[%p]-end()'ed", activeCodec);
+                            activeCodec = nullptr;
+                            ESP_LOGI(LOG_TAG, "Ended codec = [%p]", activeCodec);
+                        }
                         xSemaphoreGive(semaCodec);
+                        ESP_LOGW(LOG_TAG, "Codec task is DONE!");
+                        vTaskDelay(portMAX_DELAY);
                     });
 
-                    while(true) {
-                        xSemaphoreTake(semaNet, portMAX_DELAY);
+                    while(running) {
                         TickType_t now = xTaskGetTickCount();
                         int copied = copierDownloading.copy();
                         if(copied > 0) {
@@ -154,7 +163,7 @@ class InternetRadioMode::StreamingPipeline {
                                 retryDelay += 1000;
                                 if(retryDelay > NET_CLIENT_TIMEOUT) retryDelay = NET_CLIENT_TIMEOUT;
                                 ESP_LOGE(LOG_TAG, "streamer is trying to begin URL again");
-                            } while(!urlStream.begin(url.c_str()));
+                            } while(!urlStream.begin(url.c_str()) && running);
                             last_successful_copy = now;
                         } else if(copied < 0) {
                             ESP_LOGE(LOG_TAG, "copied = %i ???", copied);
@@ -169,62 +178,50 @@ class InternetRadioMode::StreamingPipeline {
                             ESP_LOGI(LOG_TAG, "Stats: net buffer %.00f%%", bufferNetData.levelPercent()); 
                             last_stats = now;
                         }
-
-                        if(!running) {
-                            urlStream.end();
-                            xSemaphoreGive(semaNet);
-                            break;
-                        }
-
-                        xSemaphoreGive(semaNet);
                     }
                     ESP_LOGI(LOG_TAG, "Finishing up net task");
+                    xSemaphoreGive(semaNet);
                     vTaskDelay(portMAX_DELAY);
                 }
             );
         }
     
         void stop() {
-            NullStream tmp;
-            decoder.setOutput(tmp);
-            if(activeCodec != nullptr) {
-                activeCodec->setOutput(tmp);
-            }
-
             running = false;
             xSemaphoreTake(semaNet, portMAX_DELAY);
-            ESP_LOGI(LOG_TAG, "Streamer finalizing net task");
+            ESP_LOGI(LOG_TAG, "Finalizing net task");
             netTask.end();
     
-            // Small shitshow because the codec thread sometimes gets stuck and never exits and leaves the semaphore
-            ESP_LOGI(LOG_TAG, "Streamer finalizing codec task");
-            bool codecNotStuck = xSemaphoreTake(semaCodec, pdMS_TO_TICKS(1000));
-            codecTask.end();
+            ESP_LOGI(LOG_TAG, "Finalizing codec task");
+            xSemaphoreTake(semaCodec, portMAX_DELAY);
 
-            if(!codecNotStuck) { 
-                delay(1000); // give it time to unshit itself to prevent explosions 
-            }
-            if(activeCodec != nullptr) {
-                activeCodec->setOutput(tmp);
-                delete activeCodec;
-                activeCodec = nullptr;
-            }
+            ESP_LOGI(LOG_TAG, "Ending copiers");
+            copierDecoding.end();
+            copierDownloading.end();
+
+            ESP_LOGI(LOG_TAG, "Ending URLStream");
+            urlStream.end();
+
+            ESP_LOGI(LOG_TAG, "Ending queue");
+            queueNetData.end();
         }
     
     protected:
         bool running = false;
-        ICYStream urlStream;
-        StreamCopy copierDownloading;
-        StreamCopy copierDecoding;
-        AudioDecoder * activeCodec;
-        EncodedAudioStream decoder;
-        Task codecTask;
-        Task netTask;
-        BufferRTOS<uint8_t> bufferNetData;
-        QueueStream<uint8_t> queueNetData;
         AudioStream * outPort;
+        MP3DecoderHelix mp3;
+        AACDecoderHelix aac;
+        AudioDecoder * activeCodec;
         SemaphoreHandle_t semaNet;
         SemaphoreHandle_t semaCodec;
+        BufferRTOS<uint8_t> bufferNetData;
+        QueueStream<uint8_t> queueNetData;
+        ICYStream urlStream;
+        EncodedAudioStream decoder;
+        StreamCopy copierDownloading;
+        StreamCopy copierDecoding;
+        Task codecTask;
+        Task netTask;
 
         const char * LOG_TAG = "ISTREAM";
     };
