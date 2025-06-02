@@ -3,6 +3,7 @@
 #include <AudioTools/AudioCodecs/CodecHelix.h>
 #include <CommonHelix.h>
 #include <lwip/sockets.h>
+#include <utils.h>
 
 // Ah yes, the hellscape of embedded internet radio streaming!
 // I haven't seen such challenges since doing demoscene on ZX Spectrum I think, where you had all the stuff with contiguous memory et al.
@@ -22,7 +23,7 @@
 /// Size of compressed data buffer in PS-RAM
 const size_t NET_DATA_BUFFER_SIZE = 256 * 1024;
 /// Percent of compressed data buffer that must be full to start playing
-const float NET_DATA_ENOUGH_MARK_PCT = 50.0; // %
+const float NET_DATA_ENOUGH_MARK_PCT = 35.0; // %
 /// Timeout for net client
 const int NET_CLIENT_TIMEOUT = 10000; // ms
 /// Timeout to consider no copies from network a stall
@@ -35,9 +36,10 @@ class InternetRadioMode::StreamingPipeline {
         StreamingPipeline(Platform::AudioRouter * router):
             bufferNetData(NET_DATA_BUFFER_SIZE),
             queueNetData(bufferNetData),
+            kbpsGauge(queueNetData),
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
-            copierDownloading(queueNetData, urlStream),
+            copierDownloading(kbpsGauge, urlStream),
             codecTask("IRADEC", 20000, 4, 0),
             netTask("IRANET", 10000, 8, 0),
             copierDecoding(decoder, queueNetData) {
@@ -62,6 +64,35 @@ class InternetRadioMode::StreamingPipeline {
             if(!running) return 100;
             return trunc(bufferNetData.levelPercent());
         }
+
+        int getNetBufferVolume() {
+            if(!running) return 0;
+            return bufferNetData.available(); // "available to read". I was confused at first as well.
+        }
+
+        int getEnoughMark() {
+            return trunc(enoughMark);
+        }
+
+        int getBps() {
+            return kbpsGauge.bytesPerSecond();
+        }
+
+        int getStreamBitrate() {
+            if (activeCodec == &mp3) {
+                MP3FrameInfo fi = mp3.audioInfoEx();
+                return fi.bitrate;
+            } else if (activeCodec == &aac) {
+                AACFrameInfo fi = aac.audioInfoEx();
+                return fi.bitRate;
+            } else {
+                return 0;
+            }
+        }
+
+        const std::string& getCodecName() {
+            return codecName;
+        }
     
         void start(const std::string url, std::function<void(bool)> loadingCallback) {
             running = true;
@@ -84,10 +115,12 @@ class InternetRadioMode::StreamingPipeline {
                         ESP_LOGI(LOG_TAG, "Server reports content-type: %s", srv_mime.c_str());
                         if(srv_mime == "audio/mpeg" || srv_mime == "audio/mp3") {
                             activeCodec = &mp3;
+                            codecName = "MP3";
                             ESP_LOGI(LOG_TAG, "Using MP3/Helix");
                         }
                         else if(srv_mime == "audio/aac" || srv_mime == "audio/aacp" /* found on Keygen FM */) {
                             activeCodec = &aac;
+                            codecName = "AAC";
                             ESP_LOGI(LOG_TAG, "Using AAC/Helix");
                         }
                         else {
@@ -114,17 +147,26 @@ class InternetRadioMode::StreamingPipeline {
                     codecTask.begin([this, loadingCallback]() {
                         xSemaphoreTake(semaCodec, portMAX_DELAY);
                         while(running) {
-                            while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) { 
+                            while(bufferNetData.levelPercent() < enoughMark && running) { 
+                                if (!didAutoTuneEnoughMark) {
+                                    delay(500);
+                                    int bytes_per_second = getBps();
+                                    if (bytes_per_second > 0) {
+                                        enoughMark = std::min((((float)bytes_per_second * 5.0)/(float)NET_DATA_BUFFER_SIZE) * 100.0, 80.0);
+                                        ESP_LOGI(LOG_TAG, "Autotune enough mark for %s/s: %f", format_bytes(bytes_per_second).c_str(), enoughMark);
+                                    }
+                                }
                                 delay(125);
                             }
-                            
+                            didAutoTuneEnoughMark = true;
+
                             loadingCallback(false);
                             while(copierDecoding.copy() > 0 && !bufferNetData.isEmpty() && running) {
                                 delay(10);
                             }
                             loadingCallback(true);
-                            while(bufferNetData.levelPercent() < NET_DATA_ENOUGH_MARK_PCT && running) delay(250);
-
+                            enoughMark = min(enoughMark + 5.0, 90.0);
+                            ESP_LOGW(LOG_TAG, "Hiccup? new enoughMark=[%f]", enoughMark);
                             delay(5);
                         }
 
@@ -208,6 +250,9 @@ class InternetRadioMode::StreamingPipeline {
     
     protected:
         bool running = false;
+        float enoughMark = NET_DATA_ENOUGH_MARK_PCT;
+        int didAutoTuneEnoughMark = false;
+        std::string codecName = "?";
         AudioStream * outPort;
         MP3DecoderHelix mp3;
         AACDecoderHelix aac;
@@ -216,6 +261,7 @@ class InternetRadioMode::StreamingPipeline {
         SemaphoreHandle_t semaCodec;
         BufferRTOS<uint8_t> bufferNetData;
         QueueStream<uint8_t> queueNetData;
+        MeasuringStream kbpsGauge;
         ICYStream urlStream;
         EncodedAudioStream decoder;
         StreamCopy copierDownloading;
