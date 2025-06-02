@@ -40,8 +40,8 @@ class InternetRadioMode::StreamingPipeline {
             activeCodec(nullptr),
             decoder(&queueNetData, activeCodec),
             copierDownloading(kbpsGauge, urlStream),
-            codecTask("IRADEC", 20000, 4, 0),
-            netTask("IRANET", 10000, 8, 0),
+            codecTask("IRADEC", 8000, 4, 1),
+            netTask("IRANET", 6000, 8, 0),
             copierDecoding(decoder, queueNetData) {
                 outPort = router->get_io_port_nub();
                 semaNet = xSemaphoreCreateBinary();
@@ -105,9 +105,12 @@ class InternetRadioMode::StreamingPipeline {
                     
                     urlStream.setMetadataCallback(_update_meta_global);
                     urlStream.httpRequest().setTimeout(NET_CLIENT_TIMEOUT);
+                    urlStream.setTimeout(NET_CLIENT_TIMEOUT);
+                    urlStream.setConnectionClose(false);
                     urlStream.httpRequest().header().setProtocol("HTTP/1.0"); // <- important, because chunked transfer of some servers seems to cause trouble with buffering!
                     urlStream.begin(url.c_str());
                     ESP_LOGI(LOG_TAG, "Streamer did begin URL");
+                    urlStream.waitForData(NET_CLIENT_TIMEOUT);
 
                     const char * _srv_mime = urlStream.httpRequest().reply().get("Content-Type");
                     if(_srv_mime != nullptr) {
@@ -162,7 +165,7 @@ class InternetRadioMode::StreamingPipeline {
 
                             loadingCallback(false);
                             while(copierDecoding.copy() > 0 && !bufferNetData.isEmpty() && running) {
-                                delay(10);
+                                delay(20);
                             }
                             loadingCallback(true);
                             enoughMark = min(enoughMark + 5.0, 90.0);
@@ -192,7 +195,7 @@ class InternetRadioMode::StreamingPipeline {
                         int copied = copierDownloading.copy();
                         if(copied > 0) {
                             last_successful_copy = now;
-                            delay(2);
+                            delay(15);
                         } else if(now - last_successful_copy >= pdTICKS_TO_MS(NET_NO_DATA_TIMEOUT)  && (bufferNetData.levelPercent() < 20.0)) {
                             ESP_LOGE(LOG_TAG, "streamer is stalled!? time since last shart = [ %i ms ]", now - last_shart_time);
                             last_shart_time = now;
@@ -214,10 +217,10 @@ class InternetRadioMode::StreamingPipeline {
                             delay(10);
                         } else {
                             // copied nothing, maybe yield to another task
-                            delay(10);
+                            delay(15);
                         }
                         if(now - last_stats >= pdTICKS_TO_MS(LOG_STATS_INTERVAL)) {
-                            ESP_LOGI(LOG_TAG, "Stats: net buffer %.00f%%", bufferNetData.levelPercent()); 
+                            ESP_LOGV(LOG_TAG, "Stats: net buffer %.00f%%", bufferNetData.levelPercent()); 
                             last_stats = now;
                         }
                     }

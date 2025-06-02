@@ -1,5 +1,6 @@
 #pragma once
 #include "mode.h"
+#include "esp_ota_ops.h"
 #include <esper-gui/views/framework.h>
 #include <stdint.h>
 
@@ -59,8 +60,13 @@ public:
     BootMode(const PlatformSharedResources res, ModeHost * host): 
         rootView(&logoimg, {EGPointZero, {160, 32}}),
         Mode(res, host) {
-        auto spinner = std::make_shared<UI::BigSpinner>(UI::BigSpinner({ {142, 4}, {14, 14} }));
+        auto spinner = std::make_shared<UI::BigSpinner>(EGRect { {142, 4}, {14, 14} });
         rootView.subviews.push_back(spinner);
+        if (Fonts::TinyDigitFont->valid) {
+            const esp_app_desc_t *app_desc = esp_ota_get_app_description();
+            auto lblVersion = std::make_shared<UI::Label>(EGRect {{45, 23}, {36, 6}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left, app_desc->version);
+            rootView.subviews.push_back(lblVersion);
+        }
         rootView.set_needs_display();
     }
 

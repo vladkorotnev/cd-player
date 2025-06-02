@@ -108,7 +108,6 @@ void InternetRadioMode::loop() {
     auto stopBtnSts = stopBtn.get_state();
 
     if(stopBtnSts == Button::State::BTN_STATE_HELD) {
-        ESP_LOGI(LOG_TAG, "Stop buffon held");
         rootView->toggle_diags();
         return;
     }
@@ -161,6 +160,10 @@ void InternetRadioMode::on_remote_key_pressed(VirtualKey key) {
         case RVK_TRACK_NEXT:
         case RVK_CURS_RIGHT:
             select_station((cur_station_index + 1) % 6);
+            break;
+
+        case RVK_DISP:
+            rootView->toggle_diags();
             break;
 
         default: break;

@@ -38,6 +38,7 @@ public:
     enoughMark->blinking = bufPct >= enoughPct;
     speed->set_value(format_bytes_as_bits(bytesPerSecond)+"/s");
     bitrate->set_value(format_bits(bps)+"ps");
+    bitrate->hidden = bps <= 0;
     avgSpeedValue += bytesPerSecond;
     avgSpeedValue /= 2;
     avgSpeedLbl->set_value(format_bytes_as_bits(avgSpeedValue)+"/s");
