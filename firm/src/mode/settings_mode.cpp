@@ -14,21 +14,7 @@
 #include "esp_app_format.h"
 #include "esp_ota_ops.h"
 #include <esp_system.h>
-
-static std::string format_disk_space(size_t disk_space) {
-    std::string space_str;
-
-    if (disk_space > 1024 * 1024) {
-        space_str = std::to_string(disk_space / 1024 / 1024) + "M";
-    }
-    else if (disk_space >= 1024) {
-        space_str = std::to_string(disk_space / 1024) + "K";
-    }
-    else {
-        space_str = std::to_string(disk_space) + "B";
-    }
-    return space_str;
-}
+#include <utils.h>
 
 static bool clear_cddb_cache() {
     const char LOG_TAG[] = "ClrCache";
@@ -167,9 +153,9 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
         DetailTextMenuNode("", "ESPer-CDP"),
         DetailTextMenuNode("Ver.", esp_ota_get_app_description()->version),
         DetailTextMenuNode("Type", FVU_FLAVOR),
-        DetailTextMenuNode("Memory", []() { return format_disk_space(LittleFS.totalBytes()); }),
-        DetailTextMenuNode("Used", []() { return format_disk_space(LittleFS.usedBytes()); }),
-        DetailTextMenuNode("Free", []() { return format_disk_space(LittleFS.totalBytes() - LittleFS.usedBytes()); }),
+        DetailTextMenuNode("Memory", []() { return format_bytes(LittleFS.totalBytes()); }),
+        DetailTextMenuNode("Used", []() { return format_bytes(LittleFS.usedBytes()); }),
+        DetailTextMenuNode("Free", []() { return format_bytes(LittleFS.totalBytes() - LittleFS.usedBytes()); }),
         DetailTextMenuNode("Network", []() { return Core::Services::WLAN::network_name(); }),
         DetailTextMenuNode("IP", []() { return Core::Services::WLAN::current_ip(); }),
         ActionMenuNode("CD Diagnostics", [](MenuNavigator* h) { 
@@ -195,7 +181,6 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                     ActionMenuNode("CD", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_CD); }, &icn_cd),
                     ActionMenuNode("Web Radio", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_NET_RADIO); }, &icn_radio),
                     ActionMenuNode("Bluetooth", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_BLUETOOTH); }, &icn_bt),
-                    ActionMenuNode("FTP", [host](MenuNavigator *) { host->activate_mode(ESPER_MODE_CD); }, &icn_cd),
                 }),
                 settings_menu
             }

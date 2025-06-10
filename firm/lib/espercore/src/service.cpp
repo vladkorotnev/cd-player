@@ -56,7 +56,7 @@ namespace Core::Services {
             "TELOG",
             4096,
             NULL,
-            1,
+            0,
             &hTelnet
         );
         esp_log_set_vprintf(_telnet_log_vprintf);
