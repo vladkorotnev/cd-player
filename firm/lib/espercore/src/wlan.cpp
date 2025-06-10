@@ -1,5 +1,6 @@
 #include <esper-core/wlan.h>
 #include <esper-core/prefs.h>
+#include <esp_wifi.h>
 #include <WiFi.h>
 
 static char LOG_TAG[] = "WLAN";

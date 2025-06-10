@@ -2,7 +2,7 @@
 #include "spdif.h"
 #include <esp32-hal-gpio.h>
 #include "AudioTools.h"
-#define ESPER_AUDIO_BUFFER_SIZE 1024
+#define ESPER_AUDIO_BUFFER_SIZE 512
 #define ESPER_AUDIO_BUFFER_COUNT 4
 
 namespace Platform {

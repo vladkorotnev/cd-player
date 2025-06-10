@@ -8,7 +8,9 @@ namespace UI {
         int maximum = 100;
         int value = 50;
         bool filled = true;
+        bool border = true;
         bool blinking = false;
+
         ProgressBar(EGRect frame): View(frame) {
         }
 
@@ -21,6 +23,12 @@ namespace UI {
                     blink_tick = now;
                 }
             }
+            else if(!blinking && !blink_phase) {
+                // make sure turning off blink draws the indicator
+                blink_phase = true;
+                set_needs_display();
+            }
+
             int new_width = calc_pix_width();
             if(new_width != pix_width) {
                 pix_width = new_width;
@@ -30,12 +38,15 @@ namespace UI {
         }
 
         void render(EGGraphBuf * buf) override {
-            // draw a frame around the bar
             EGRect outer_frame = { EGPointZero, frame.size };
-            EGDrawRect(buf, outer_frame);
+
+            // draw a frame around the bar
+            if(border) {
+                EGDrawRect(buf, outer_frame);
+            }
 
             if(!blinking || blink_phase) {
-                EGRect indicator_base = EGRectInset(outer_frame, 2, 2);
+                EGRect indicator_base = border ? EGRectInset(outer_frame, 2, 2) : outer_frame;
                 indicator_base.size.width = std::min(indicator_base.size.width - 1, pix_width);
 
                 if(filled) {
