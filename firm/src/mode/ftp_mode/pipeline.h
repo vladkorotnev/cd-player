@@ -2,6 +2,7 @@
 #include <AudioTools.h>
 #include <AudioTools/AudioCodecs/CodecHelix.h>
 #include <AudioTools/AudioCodecs/ContainerM4A.h>
+#include <AudioTools/AudioCodecs/CodecALAC.h>
 
 /// Size of compressed data buffer in PS-RAM
 const size_t NET_DATA_BUFFER_SIZE = 256 * 1024;
@@ -10,7 +11,7 @@ class FTPStreamingPipeline {
 public:
   std::function<void(MetaDataType, const std::string)> metadataCallback = nullptr;
 
-  FTPStreamingPipeline(AudioStream * outputPort, float netDataReqPct = 90.0, int decoderCore = 0):
+  FTPStreamingPipeline(AudioStream * outputPort, float netDataReqPct = 90.0):
     netDataBorder(netDataReqPct),
     inPort(nullptr),
     outPort(outputPort),
@@ -19,8 +20,8 @@ public:
     splitToMeta(),
     decoder(outPort, &codec),
     copierDownloading(queueNetData, *inPort),
-    codecTask("NETDEC", 40000, 6, decoderCore),
-    netTask("NETNET", 20000, 14, 1),
+    codecTask("NETDEC", 40000, 6, 1),
+    netTask("NETNET", 20000, 14, 0),
     m4a_decap(codec),
     copierDecoding(splitToMeta, queueNetData) {
         outPort = outputPort;
@@ -33,6 +34,7 @@ public:
         codec.addDecoder(aac, "audio/aac");
         codec.addDecoder(wav, "audio/vnd.wave");
         codec.addDecoder(m4a_decap, "audio/m4a");
+        codec.addDecoder(alac, "audio/alac");
         
         splitToMeta.add(decoder);
         splitToMeta.add(outMeta);
@@ -71,25 +73,22 @@ public:
   }
 
   void stop() {
-    NullStream tmp;
-    decoder.setOutput(tmp);
-    codec.setOutput(tmp);
-    codec.end();
-    decoder.end();
-
     running = false;
-    xSemaphoreTake(semaNet, pdMS_TO_TICKS(1000));
-    ESP_LOGI(LOG_TAG, "Streamer finalizing net task");
-    netTask.end();
-
-    // Small shitshow because the codec thread sometimes gets stuck and never exits and leaves the semaphore
-    ESP_LOGI(LOG_TAG, "Streamer finalizing codec task");
-    bool codecNotStuck = xSemaphoreTake(semaCodec, pdMS_TO_TICKS(1000));
+    
+    ESP_LOGI(LOG_TAG, "Finalizing codec task");
+    xSemaphoreTake(semaCodec, portMAX_DELAY);
     codecTask.end();
 
-    if(!codecNotStuck) { 
-        delay(1000); // give it time to unshit itself to prevent explosions 
-    }
+    ESP_LOGI(LOG_TAG, "Finalizing net task");
+    xSemaphoreTake(semaNet, portMAX_DELAY);
+    netTask.end();
+
+    ESP_LOGI(LOG_TAG, "Ending copiers");
+    copierDecoding.end();
+    copierDownloading.end();
+
+    ESP_LOGI(LOG_TAG, "Ending queue");
+    queueNetData.end();
   }
 
   int getNetBufferHealth() {
@@ -111,28 +110,22 @@ protected:
     decoder.begin();
     ESP_LOGI(LOG_TAG, "Streamer did begin decoder");
 
-    TickType_t last_successful_copy = xTaskGetTickCount();
-    TickType_t last_stats = xTaskGetTickCount();
-
     codecTask.begin([this]() { 
+      xSemaphoreTake(semaCodec, portMAX_DELAY);
       while(bufferNetData.levelPercent() < netDataBorder && running) { 
-          delay(1);
-      }
-      
-      if(!running) {
-          ESP_LOGI(LOG_TAG, "Finishing up codec task early");
-          decoder.end();
-          xSemaphoreGive(semaCodec);
-          vTaskDelay(portMAX_DELAY);
+          delay(100);
       }
 
       while(running) {
           copierDecoding.copy();
-          delay(1);
+          delay(5);
       }
 
       ESP_LOGI(LOG_TAG, "Finishing up codec task");
+      ESP_LOGI(LOG_TAG, "Ending decoder");
       decoder.end();
+      ESP_LOGI(LOG_TAG, "Ending codec");
+      codec.end();
       xSemaphoreGive(semaCodec);
       vTaskDelay(portMAX_DELAY);
     });
@@ -141,8 +134,8 @@ protected:
 
   void netLoop() {
     TickType_t last_successful_copy = xTaskGetTickCount();
-    while(true) {
-      xSemaphoreTake(semaNet, portMAX_DELAY);
+    xSemaphoreTake(semaNet, portMAX_DELAY);
+    while(running) {
       TickType_t now = xTaskGetTickCount();
       int copied = copierDownloading.copy();
       if(copied > 0) {
@@ -157,15 +150,9 @@ protected:
           // copied nothing, maybe yield to another task
           delay(10);
       }
-
-      if(!running) {
-          xSemaphoreGive(semaNet);
-          break;
-      }
-
-      xSemaphoreGive(semaNet);
     }
     ESP_LOGI(LOG_TAG, "Finishing up net task");
+    xSemaphoreGive(semaNet);
     vTaskDelay(portMAX_DELAY);
   }
 
@@ -178,15 +165,16 @@ private:
   MP3DecoderHelix mp3;
   AACDecoderHelix aac;
   WAVDecoder wav;
+  DecoderALAC alac;
   MultiDecoder codec;
   ContainerM4A m4a_decap;
   MetaDataOutput outMeta;
   MultiOutput splitToMeta;
+  BufferRTOS<uint8_t> bufferNetData;
+  QueueStream<uint8_t> queueNetData;
   StreamCopy copierDownloading;
   StreamCopy copierDecoding;
   EncodedAudioStream decoder;
-  BufferRTOS<uint8_t> bufferNetData;
-  QueueStream<uint8_t> queueNetData;
   AudioStream * outPort;
   SemaphoreHandle_t semaNet;
   SemaphoreHandle_t semaCodec;
