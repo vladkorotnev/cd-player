@@ -36,7 +36,7 @@ namespace ATAPI {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Reset");
         ide->reset();
-        wait_not_busy();
+        wait_not_busy("RST");
         ide->write(IDE::Register::Command, {{.low = 0x91, .high = 0xFF}});
         xSemaphoreGive(semaphore);
 
@@ -193,7 +193,7 @@ namespace ATAPI {
         // Disable interrupts
         ide->write(IDE::Register::DeviceControl, {{ .low = (DeviceControlRegister {{ .nIEN = true }}).value, .high = 0xFF }});
 
-        wait_not_busy();
+        wait_not_busy("TSK");
         wait_drq_end();
         xSemaphoreGive(semaphore);
     }
@@ -202,7 +202,7 @@ namespace ATAPI {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Self-test");
         ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
-        wait_not_busy();
+        wait_not_busy("ST");
         data16 rslt = ide->read(IDE::Register::Error);
         ESP_LOGI(LOG_TAG, "Error register = 0x%04x", rslt.value);
         _diags.self_test_result = rslt.value;
@@ -216,7 +216,7 @@ namespace ATAPI {
         xSemaphoreTake(semaphore, portMAX_DELAY);
 
         ide->write(IDE::Register::Command, {{ .low = Command::IDENTIFY_PACKET_DEVICE, .high = 0xFF }});
-        wait_not_busy();
+        wait_not_busy("ID");
         wait_drq();
         read_response(&rslt, sizeof(Responses::IdentifyPacket), true);
         xSemaphoreGive(semaphore);
@@ -250,7 +250,8 @@ namespace ATAPI {
             {"CD-S520B", Quirks {.no_media_codes = true, .must_use_softscan = true}},
 
             {"TEAC CD-C68E", Quirks {.fucky_toc_reads = true}},
-            {"NEC                 CD-ROM DRIVE:284", Quirks { .no_media_codes = true, .busy_ass = true }}
+            {"NEC                 CD-ROM DRIVE:284", Quirks { .no_media_codes = true, .busy_ass = true }},
+            {"NEC                 CD-ROM DRIVE:251", Quirks { .no_media_codes = true, .busy_ass = true, .must_use_softscan = true, .no_drq_in_toc = true }}, // NEC PC-CD400/4
         };
 
         for(auto const& id: quirks_db) {
@@ -548,7 +549,7 @@ namespace ATAPI {
 
         send_packet(&req, sizeof(req), true);
         delay(50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
-        wait_not_busy();
+        wait_not_busy("CDTX");
 
         StatusRegister sr = read_sts_regi();
         if(sr.ERR) {
@@ -604,7 +605,7 @@ namespace ATAPI {
             tracks.clear();
             send_packet(&req, sizeof(req), true);
             delay(quirks.fucky_toc_reads ? 1000 : 50); // some drives e.g. CD68E seem to be kinda slow on the response, producing invalid output
-            wait_not_busy();
+            wait_not_busy("TOC");
 
             read_response(&res_hdr, sizeof(res_hdr), false);
             res_hdr.data_length = be16toh(res_hdr.data_length);
@@ -698,9 +699,9 @@ namespace ATAPI {
         }
 
         if(quirks.busy_ass) {
-            delay(5);
+            delay(7);
         }
-        wait_not_busy();
+        wait_not_busy("PKT");
     }
 
     bool Device::read_response(void * outBuf, size_t bufLen, bool flush) {
@@ -724,6 +725,10 @@ namespace ATAPI {
 
                 sts = read_sts_regi();
                 delayMicroseconds(10);
+
+                if(quirks.busy_ass) {
+                    delayMicroseconds(33);
+                }
             } while(bufLen > i && (sts.DRQ || quirks.no_drq_in_toc));
 
             if(bufLen > i) {
@@ -771,22 +776,22 @@ namespace ATAPI {
         } while ((read_sts_regi().value & bits.value) == 0);
     }
 
-    void Device::wait_sts_bit_clr(StatusRegister bits) {
+    void Device::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
         TickType_t start_wait = xTaskGetTickCount();
-        ESP_LOGD(LOG_TAG, "Wait for bit clear 0x%02x", bits.value);
+        ESP_LOGD(tag, "Wait for bit clear 0x%02x", bits.value);
 
         do {
             delay(100);
-            if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(10000)) {
-                ESP_LOGW(LOG_TAG, "Still waiting for bit clear 0x%02x", bits.value);
+            if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(3000)) {
+                ESP_LOGW(tag, "Still waiting for bit clear 0x%02x", bits.value);
                 start_wait = xTaskGetTickCount();
             }
         } while ((read_sts_regi().value & bits.value) != 0);
     }
 
-    void Device::wait_not_busy() { 
-        ESP_LOGV(LOG_TAG, "Waiting for drive to stop being busy...");
-        wait_sts_bit_clr({{.BSY = true}}); 
+    void Device::wait_not_busy(const char * tag) { 
+        ESP_LOGV(tag, "Waiting for drive to stop being busy...");
+        wait_sts_bit_clr({{.BSY = true}}, tag); 
     }
     void Device::wait_drq_end() { wait_sts_bit_clr({{.DRQ = true}}); }
     void Device::wait_drq() { wait_sts_bit_set({{.DRQ = true}}); }

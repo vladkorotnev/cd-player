@@ -93,7 +93,7 @@ namespace CD {
             sts = State::LOAD;
         }
         else {
-            const ATAPI::MediaTypeCode media_type = cdrom->check_media();
+            ATAPI::MediaTypeCode media_type = cdrom->check_media();
             const ATAPI::MechInfo* mech = cdrom->query_state();
             // Initial memory allocation for the slot statuses, even if it's just one
             if(mech->slot_count > slots.size()) {
@@ -184,7 +184,11 @@ namespace CD {
                             if(want_auto_play) {
                                 want_auto_play = false;
                                 sts = State::PLAY;
-                                cdrom->play(slots[cur_slot].disc->tracks.front().disc_position.position, slots[cur_slot].disc->duration);
+                                if(auto_play_start_pos.M == 0 && auto_play_start_pos.S == 0 && auto_play_start_pos.F == 0) {
+                                    auto_play_start_pos = slots[cur_slot].disc->tracks.front().disc_position.position;
+                                }
+                                cdrom->play(auto_play_start_pos, slots[cur_slot].disc->duration);
+                                auto_play_start_pos = { .M = 0, .S = 0, .F = 0 };
                             } else {
                                 sts = State::STOP;
                             }
@@ -211,6 +215,7 @@ namespace CD {
                 case State::NO_DISC:
                     // nothing to do, but if changer, advance to next disc if any
                     if(slots.size() > 1) {
+                        ESP_LOGW(LOG_TAG, "Nothing to do, advance to next disc!");
                         change_discs(true);
                     }
                     break;
@@ -236,9 +241,25 @@ namespace CD {
                 case State::PLAY:
                     {
                         const ATAPI::AudioStatus* audio = cdrom->query_position();
+                        if (audio->track != TRK_NUM_LEAD_OUT) {
+                            did_see_actual_playback = true;
+                        }
                         if(audio->state == ATAPI::AudioStatus::PlayState::Stopped || audio->track == TRK_NUM_LEAD_OUT) {
-                            if(play_mode != PlayMode::PLAYMODE_SHUFFLE || !play_next_shuffled_track()) {
-                                if(slots.size() == 1 || !change_discs(true)) {
+                            if((play_mode != PlayMode::PLAYMODE_SHUFFLE || !play_next_shuffled_track()) && did_see_actual_playback) {
+                                ESP_LOGW(LOG_TAG, "End of Disc?");
+                                bool was_door_open_chgr = false;
+                                if (slots.size() > 1) {
+                                    // check if was door open during play
+                                    media_type = cdrom->check_media();
+                                    mech = cdrom->query_state();
+                                    if((media_type == ATAPI::MediaTypeCode::MTC_DOOR_OPEN || mech->is_door_open) && sts != State::CLOSE) {
+                                        sts = State::OPEN;
+                                        was_door_open_chgr = true;
+                                        auto_play_start_pos = abs_ts;
+                                        want_auto_play = true;
+                                    }
+                                }
+                                if(!was_door_open_chgr && (slots.size() == 1 || !change_discs(true))) {
                                     cur_track.track = 1;
                                     cur_track.index = 1;
                                     abs_ts = { .M = 0, .S = 0, .F = 0 };
@@ -372,6 +393,7 @@ namespace CD {
                 {
                     case Command::PLAY:
                         {
+                            did_see_actual_playback = false;
                             if(play_mode == PlayMode::PLAYMODE_SHUFFLE && cur_track.track == 1) {
                                 play_next_shuffled_track();
                                 shuffle_history.clear(); // don't keep 1.1 always in history
@@ -618,6 +640,10 @@ namespace CD {
         }
 
         cdrom->load_unload(next_expected_slot);
+        cur_track.track = 1;
+        cur_track.index = 1;
+        abs_ts = { .M = 0, .S = 0, .F = 0 };
+        rel_ts = { .M = 0, .S = 0, .F = 0 };
         return true;
     }
 
