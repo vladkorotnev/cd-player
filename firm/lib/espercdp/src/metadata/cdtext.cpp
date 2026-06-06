@@ -72,8 +72,8 @@ namespace CD {
                     const char p = cur->payload[i];
                     if(p == 0) {
                         cur_trk_no_artist++;
-                    } else if(p == 0x9 && cur_trk_no_title > 0) {
-                        tmp_artists[cur_trk_no_artist] = tmp_artists[cur_trk_no_title - 1];
+                    } else if(p == 0x9 && cur_trk_no_artist > 0) {
+                        tmp_artists[cur_trk_no_artist] = tmp_artists[cur_trk_no_artist - 1];
                     } else {
                         tmp_artists[cur_trk_no_artist] += p;
                     }
