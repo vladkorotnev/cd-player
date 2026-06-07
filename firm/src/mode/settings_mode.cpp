@@ -84,6 +84,7 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
                     h->push(std::make_shared<InfoMessageBox>(res ? localized_string("Cache cleared") : localized_string("Failed to clear cache")));
                 }),
                 ListMenuNode("Metadata sources", nullptr, std::tuple {
+                    TogglePreferenceMenuNode("CD Text", PREFS_KEY_CD_CDTEXT_ENABLED),
                     TogglePreferenceMenuNode("MusicBrainz", PREFS_KEY_CD_MUSICBRAINZ_ENABLED),
                     TogglePreferenceMenuNode("CDDB", PREFS_KEY_CD_CDDB_ENABLED),
                     TextPreferenceEditorNode("CDDB server", PREFS_KEY_CDDB_ADDRESS),

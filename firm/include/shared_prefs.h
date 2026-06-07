@@ -17,6 +17,8 @@ static const Prefs::Key<bool> PREFS_KEY_CD_CACHE_META {"cd_cache_meta", true};
 static const Prefs::Key<bool> PREFS_KEY_CD_MUSICBRAINZ_ENABLED {"cd_meta_mb", true};
 /// Whether to use CDDB
 static const Prefs::Key<bool> PREFS_KEY_CD_CDDB_ENABLED {"cd_meta_cddb", true};
+/// Whether to use CD Text
+static const Prefs::Key<bool> PREFS_KEY_CD_CDTEXT_ENABLED {"cd_meta_cdtxt", true};
 /// Whether to use LRCLib
 static const Prefs::Key<bool> PREFS_KEY_CD_LRCLIB_ENABLED {"cd_meta_lrclib", true};
 /// Whether to use QQ Music lyrics
