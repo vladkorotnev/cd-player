@@ -574,6 +574,11 @@ namespace ATAPI {
             std::vector<uint8_t> buffer(head.size);
             read_response(&buffer[0], head.size, true);
             rslt = buffer;
+            // printf("CDTXT: ");
+            // for(size_t i=0;i<head.size; i++) {
+            //     printf("%02x ", buffer[i]);
+            // }
+            // printf("\n");
         }
 
         return rslt;

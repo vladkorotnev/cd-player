@@ -1,4 +1,5 @@
 #include <esper-cdp/metadata.h>
+#include "esp_crc.h"
 
 static const char LOG_TAG[] = "CDTXT";
 
@@ -53,10 +54,20 @@ namespace CD {
             if(cur->block_no != 0) continue; // maybe one day
             if(cur->wide_char) continue; // maybe one day
 
+            ESP_LOGI(LOG_TAG, "Packet Kind=[%i] Track=[%i] Payload=[%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x] CRC=[%08x]", cur->kind, cur->track_no, 
+                cur->payload[0], cur->payload[1], cur->payload[2], cur->payload[3],cur->payload[4],cur->payload[5],cur->payload[6],cur->payload[7],cur->payload[8],cur->payload[9],cur->payload[10],cur->payload[11],
+                cur->crc);
+
             if(cur->kind == CDTextPack::Kind::TITLE) {
                 cur_trk_no_title = cur->track_no;
                 for(int i = 0; i < sizeof(cur->payload); i++) {
                     const char p = cur->payload[i];
+
+                    if (cur_trk_no_title >= tmp_titles.size()) {
+                        ESP_LOGE(LOG_TAG, "Seems to have malformed CD TEXT data. Tried to write title for track %i. Skipping the rest of this pack...", cur_trk_no_title);
+                        break;
+                    }
+
                     if(p == 0) {
                         cur_trk_no_title++;
                     } else if(p == 0x9 && cur_trk_no_title > 0) {
@@ -70,6 +81,12 @@ namespace CD {
                 cur_trk_no_artist = cur->track_no;
                 for(int i = 0; i < sizeof(cur->payload); i++) {
                     const char p = cur->payload[i];
+
+                    if (cur_trk_no_artist >= tmp_artists.size()) {
+                        ESP_LOGE(LOG_TAG, "Seems to have malformed CD TEXT data. Tried to write artist for track %i. Skipping the rest of this pack...", cur_trk_no_artist);
+                        break;
+                    }
+
                     if(p == 0) {
                         cur_trk_no_artist++;
                     } else if(p == 0x9 && cur_trk_no_artist > 0) {
@@ -84,14 +101,14 @@ namespace CD {
         if(album.artist.empty()) album.artist = tmp_artists[0];
         if(album.title.empty()) album.title = tmp_titles[0];
         for(int i = 0; i < tmp_artists.size(); i++) {
-            ESP_LOGV(LOG_TAG, "Artist %i: %s", i, tmp_artists[i].c_str());
+            ESP_LOGI(LOG_TAG, "Artist %i: %s", i, tmp_artists[i].c_str());
 
             if(i > 0 && album.tracks[i - 1].artist.empty() && tmp_artists[0] != tmp_artists[i]) {
                 album.tracks[i - 1].artist = tmp_artists[i];
             }
         }
         for(int i = 0; i < tmp_titles.size(); i++) {
-            ESP_LOGV(LOG_TAG, "Title %i: %s", i, tmp_titles[i].c_str());
+            ESP_LOGI(LOG_TAG, "Title %i: %s", i, tmp_titles[i].c_str());
 
             if(i > 0 && album.tracks[i - 1].title.empty()) {
                 album.tracks[i - 1].title = tmp_titles[i];
