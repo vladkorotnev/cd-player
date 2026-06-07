@@ -146,6 +146,8 @@ namespace CD {
         int next_expected_slot = 0;
         int cur_slot = 0;
         bool want_auto_play = false;
+        bool did_see_actual_playback = false;
+        MSF auto_play_start_pos = {.M = 0, .S = 0, .F = 0};
 
         std::set<int> shuffle_history = {};
         PlayMode play_mode = PlayMode::PLAYMODE_CONTINUE;

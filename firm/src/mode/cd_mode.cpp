@@ -134,7 +134,8 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
     Mode(res, host) {
 
     meta.cache_enabled = Prefs::get(PREFS_KEY_CD_CACHE_META);
-    meta.providers.push_back(new CD::CDTextMetadataProvider());
+    if(Prefs::get(PREFS_KEY_CD_CDTEXT_ENABLED)) 
+        meta.providers.push_back(new CD::CDTextMetadataProvider());
     if(Prefs::get(PREFS_KEY_CD_MUSICBRAINZ_ENABLED)) 
         meta.providers.push_back(new CD::MusicBrainzMetadataProvider());
     if(Prefs::get(PREFS_KEY_CD_CDDB_ENABLED))

@@ -149,11 +149,11 @@ namespace ATAPI {
 
         StatusRegister read_sts_regi();
         void wait_sts_bit_set(StatusRegister bits);
-        void wait_sts_bit_clr(StatusRegister bits);
+        void wait_sts_bit_clr(StatusRegister bits, const char * tag = __func__);
         bool read_response(void * buf, size_t bufLen, bool flush);
         void send_packet(const void * buf, size_t bufLen, bool pad = true);
 
-        void wait_not_busy();
+        void wait_not_busy(const char * tag = __func__);
         void wait_drq_end();
         void wait_drq();
 
