@@ -142,5 +142,7 @@ namespace CD {
         CDTextMetadataProvider() {}
 
         void fetch_album(Album&) override;
+    private:
+        uint16_t crc16(const void * data, size_t length);
     };
 };
