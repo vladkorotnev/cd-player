@@ -24,6 +24,26 @@ namespace CD {
         uint16_t crc;
     };
 
+    uint16_t CDTextMetadataProvider::crc16(const void * d, size_t length) {
+        uint16_t crc = 0x0000;
+        const uint8_t * data = (const uint8_t*) d;
+
+        for (size_t i = 0; i < length; i++) {
+            crc ^= (uint16_t)data[i] << 8;
+            for (uint8_t j = 0; j < 8; j++) {
+                if (crc & 0x8000) {
+                    crc = (crc << 1) ^ 0x1021;
+                } else {
+                    crc <<= 1;
+                }
+            }
+        }
+        crc = ~crc;
+        crc = (crc << 8) | (crc >> 8);
+        
+        return crc;
+    }
+
     void CDTextMetadataProvider::fetch_album(Album& album) {
         if(album.tracks.size() == 0) return; // probably not a CDA!
         
@@ -54,9 +74,15 @@ namespace CD {
             if(cur->block_no != 0) continue; // maybe one day
             if(cur->wide_char) continue; // maybe one day
 
-            ESP_LOGI(LOG_TAG, "Packet Kind=[%i] Track=[%i] Payload=[%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x] CRC=[%08x]", cur->kind, cur->track_no, 
+            uint16_t expect_crc = crc16(cur, sizeof(CDTextPack) - sizeof(cur->crc));
+            ESP_LOGI(LOG_TAG, "Packet Kind=[%i] Track=[%i] Payload=[%02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x %02x] CRC=[%04x] ExpectCRC=[%04x]", cur->kind, cur->track_no, 
                 cur->payload[0], cur->payload[1], cur->payload[2], cur->payload[3],cur->payload[4],cur->payload[5],cur->payload[6],cur->payload[7],cur->payload[8],cur->payload[9],cur->payload[10],cur->payload[11],
-                cur->crc);
+                cur->crc, expect_crc);
+
+            if (expect_crc != cur->crc) {
+                ESP_LOGE(LOG_TAG, "CRC on disc [%02X], expected [%02X], skipping this packet...");
+                continue;
+            }
 
             if(cur->kind == CDTextPack::Kind::TITLE) {
                 cur_trk_no_title = cur->track_no;
