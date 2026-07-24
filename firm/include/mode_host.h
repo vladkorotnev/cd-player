@@ -17,7 +17,6 @@ enum ModeSelection: int {
     ESPER_MODE_SETTINGS,
 
     ESPER_MODE_STANDBY,
-    ESPER_MODE_LOW_LEVEL_UI,
 
     ESPER_MODE_MAX_INVALID
 };
