@@ -9,6 +9,7 @@
 #include <modes/bluetooth_mode.h>
 #include <modes/settings_mode.h>
 #include <modes/standby_mode.h>
+#include <atomic>
 
 enum ModeSelection: int {
     ESPER_MODE_CD,
@@ -23,6 +24,8 @@ enum ModeSelection: int {
 
 class ModeHost {
 public:
+    using ModeChangedCallback = void (*)(ModeSelection, void *);
+
     ModeHost(const PlatformSharedResources res, int uiThreadAffinity = 0, int uiThreadPriority = 2):
         resources(res),
         compositor(res.display),
@@ -73,6 +76,18 @@ public:
         end_current_mode_locked();
         activeMode = mode;
         start_current_mode_locked();
+        publish_mode(cur_mode);
+        xSemaphoreGive(modeSwitchSema);
+    }
+
+    ModeSelection get_current_mode() const {
+        return published_mode.load();
+    }
+
+    void set_mode_changed_callback(ModeChangedCallback callback, void * context) {
+        xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
+        mode_changed_callback = callback;
+        mode_changed_context = context;
         xSemaphoreGive(modeSwitchSema);
     }
 
@@ -161,8 +176,17 @@ private:
     Mode * activeMode = nullptr;
     SemaphoreHandle_t modeSwitchSema = NULL;
     ModeSelection cur_mode = ESPER_MODE_MAX_INVALID;
+    std::atomic<ModeSelection> published_mode {ESPER_MODE_MAX_INVALID};
     ModeSelection req_mode = ESPER_MODE_MAX_INVALID;
+    ModeChangedCallback mode_changed_callback = nullptr;
+    void * mode_changed_context = nullptr;
     Button modeSw;
+
+    void publish_mode(ModeSelection mode) {
+        ModeSelection previous = published_mode.exchange(mode);
+        if(previous != mode && mode_changed_callback != nullptr)
+            mode_changed_callback(mode, mode_changed_context);
+    }
 
     void activate_next_mode() {
         ModeSelection m;
@@ -255,6 +279,7 @@ private:
         start_current_mode_locked();
 
         cur_mode = req_mode;
+        publish_mode(cur_mode);
         if(cur_mode != ESPER_MODE_STANDBY)
             Prefs::set(PREFS_KEY_CUR_MODE, (int) cur_mode);
     }

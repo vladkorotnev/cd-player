@@ -4,13 +4,16 @@
 
 #include <board_cfg.h>
 #include <esper-core/service.h>
+#include <web/web_remote.h>
 #include <esper-gui/hardware/futaba_gp1232.h>
+#include <web/mirrored_display.h>
 #include <esper-gui/text.h>
 
 #include <mode_host.h>
 #include <consts.h>
 #include <mount.h>
 #include <otafvu.h>
+#include <web/web_remote_server.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
@@ -20,6 +23,8 @@ Core::ThreadSafeI2C * i2c;
 Platform::Keypad * keypad;
 Platform::Remote * remote;
 Graphics::Hardware::DisplayDriver * disp;
+Platform::WebRemote * web_remote;
+Graphics::MirroredDisplayDriver * mirrored_display;
 Platform::AudioRouter * router;
 Platform::WM8805 * spdif = nullptr;
 Platform::IDEBus * ide;
@@ -92,16 +97,19 @@ void setup(void) {
   while(!Serial) {}
 
   #if (BCONF_DISPLAY_TYPE == DISP_TYPE_FUTABA_GP1232A)
-    disp = new Graphics::Hardware::FutabaGP1232ADriver(
+    auto * hardware_display = new Graphics::Hardware::FutabaGP1232ADriver(
       BCONF_DISPLAY_UART_NUM,
       BCONF_DISPLAY_RX_PIN,
       BCONF_DISPLAY_TX_PIN,
       BCONF_DISPLAY_BAUD
     );
-    disp->initialize();
   #else
     #error "Display type not set or unknown, check board config or add correct driver"
   #endif
+
+    mirrored_display = new Graphics::MirroredDisplayDriver(*hardware_display);
+    disp = mirrored_display;
+    disp->initialize();
 
   #ifdef BCONF_HAS_I2C
     Wire.begin(BCONF_I2C_SDA, BCONF_I2C_SCL, BCONF_I2C_FRQ);
@@ -118,7 +126,9 @@ void setup(void) {
     #error "ATAPI Device impl not done for the IDE BUS type; write new driver or check board config"
   #endif
 
-  remote = new Platform::Remote(keymap);
+  auto * infrared_remote = new Platform::InfraredRemote(keymap);
+  web_remote = new Platform::WebRemote(*infrared_remote);
+  remote = web_remote;
 
   #ifdef BCONF_HAS_WM8805
     spdif = new Platform::WM8805(i2c);
@@ -160,6 +170,9 @@ void setup(void) {
   bool is_recovery = OTAFVU::start_if_needed(rsrc, host);
   if(is_recovery) return;
   Core::Services::NTP::start();
+
+  static WebRemoteServer web_server(*web_remote, *mirrored_display, *host);
+  web_server.begin();
 
   if (Prefs::get(PREFS_KEY_TELNET_LOGGER)) {
     Core::Services::Telnet::start();

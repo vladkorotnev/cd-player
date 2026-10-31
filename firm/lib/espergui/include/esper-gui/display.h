@@ -19,6 +19,7 @@ typedef EGGraphBuf BackingBuffer;
 
 class DisplayDriver {
 public:
+    virtual ~DisplayDriver() = default;
     virtual void initialize() {}
     virtual void set_power(bool on) {}
     virtual void set_brightness(Brightness b) { cur_brightness = b; }

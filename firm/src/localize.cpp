@@ -4,6 +4,7 @@
 #include <esper-core/prefs.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
+#include <shared_prefs.h>
 
 #ifndef LANG_DIR_PREFIX
 #define LANG_DIR_PREFIX "/lang"
@@ -11,14 +12,12 @@
 
 static const char LOG_TAG[] = "LOCA";
 
-const Prefs::Key<int> ACTIVE_LANGUAGE_PREFS_KEY = {"lang", DSPL_LANG_EN};
-
 DisplayLanguage active_language() {
-    return (DisplayLanguage) Prefs::get(ACTIVE_LANGUAGE_PREFS_KEY);
+    return (DisplayLanguage) Prefs::get(PREFS_KEY_UI_LANGUAGE);
 }
 
 void set_active_language(DisplayLanguage lang) {
-    Prefs::set(ACTIVE_LANGUAGE_PREFS_KEY, (int)lang);
+    Prefs::set(PREFS_KEY_UI_LANGUAGE, (int)lang);
 }
 
 const std::string language_name(DisplayLanguage lang) {

@@ -12,5 +12,15 @@ namespace Prefs {
 };
 
 namespace Core::PrefsKey {
-    static const Prefs::Key<std::string> NTP_SERVER {"ntp_srv", "pool.ntp.org"};
+    static const Prefs::Key<std::string> PREFS_KEY_NTP_SERVER {"ntp_srv", "pool.ntp.org"};
+    
+    #ifndef WIFI_NAME
+    #define WIFI_NAME ""
+    #endif
+    #ifndef WIFI_PASS
+    #define WIFI_PASS ""
+    #endif
+
+    static const Prefs::Key<std::string> PREFS_KEY_WIFI_NAME{"wifi_ssid", WIFI_NAME};
+    static const Prefs::Key<std::string> PREFS_KEY_WIFI_PASS{"wifi_pass", WIFI_PASS};
 };
