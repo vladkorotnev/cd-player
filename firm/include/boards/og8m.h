@@ -1,5 +1,7 @@
 #pragma once
 #include "common.h"
+#include <hal/gpio_types.h>
+#include <driver/uart.h>
 
 // Original ESPer board with 8MB PSRAM / 8MB ROM
 // Uses a shared i2c bus for the keypad and IDE 
