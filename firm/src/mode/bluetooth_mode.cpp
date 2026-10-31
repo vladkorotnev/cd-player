@@ -212,7 +212,7 @@ BluetoothMode::BluetoothMode(const PlatformSharedResources res, ModeHost * host)
     prev(res.keypad, (1 << 4)),
     next(res.keypad, (1 << 5)),
     Mode(res, host) {
-        rootView = new BluetoothView({EGPointZero, DISPLAY_SIZE});
+        rootView = new BluetoothView({EGPointZero, res.display->get_size()});
         _that = this;
 }
 

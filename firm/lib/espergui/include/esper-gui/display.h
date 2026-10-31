@@ -23,6 +23,7 @@ public:
     virtual void set_power(bool on) {}
     virtual void set_brightness(Brightness b) { cur_brightness = b; }
     virtual Brightness get_brightness() { return cur_brightness; }
+    virtual const EGSize& get_size() = 0;
 
     /// NB: Reads from `buffer` are aligned to byte. E.g. writing (W=1 H=8) at (X=0 Y=4) will read from `buffer[0]` for the top half of the blitted bitmap and `buffer[1]` for the bottom half.
     virtual void transfer(const std::vector<EGRect> changes, const BackingBuffer * buffer) {}

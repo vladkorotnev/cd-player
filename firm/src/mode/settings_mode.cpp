@@ -114,10 +114,7 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
             m->set_content(std::tuple {
                 LanguageMenuNode(DSPL_LANG_EN),
                 LanguageMenuNode(DSPL_LANG_RU),
-                LanguageMenuNode(DSPL_LANG_JA),
-                LanguageMenuNode(DSPL_LANG_HU),
-                LanguageMenuNode(DSPL_LANG_DE),
-                LanguageMenuNode(DSPL_LANG_NL),
+                LanguageMenuNode(DSPL_LANG_JA)
             });
         }),
         DynamicListMenuNode("Mode toggle button", nullptr, [](DynamicListMenuNode * m) {

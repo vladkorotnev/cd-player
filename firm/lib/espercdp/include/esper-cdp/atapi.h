@@ -28,45 +28,68 @@ namespace ATAPI {
             ModeSenseCDAControlModePage cda;
         };
 
-        Device(Platform::IDEBus * bus);
+        virtual ~Device() = default;
 
-        void reset();
-        bool check_atapi_compatible();
-        bool self_test();
-        void wait_ready();
+        virtual void reset() = 0;
+        virtual void wait_ready() = 0;
 
         /// @brief Eject or close the tray
         /// @param open_tray true = open tray, false = close tray
-        void eject(bool open_tray);
+        virtual void eject(bool open_tray) = 0;
         /// @brief Request the changer (if any) to switch to a specified slot and put the disc in play position
         /// @note The changer might not move right away (e.g. TEAC CD-C68E does not). In this case maybe follow up the command with `eject(false)`.
-        void load_unload(SlotNumber slot);
+        virtual void load_unload(SlotNumber slot) = 0;
         /// @brief Sends a device start command to ask the drive to read the disc.
-        void start(bool state = true);
-        void set_tray_locked(bool lock);
+        virtual void start(bool state = true) = 0;
+        virtual void set_tray_locked(bool lock) = 0;
 
         /// @brief Request the player to play audio data
         /// @param start Start of the played segment. Set to beginning of first track (usually M00S02F00, but can vary disc by disc)
         /// @param end End of the played segment. Set to lead-out to play the whole track.
-        void play(const MSF start, const MSF end);
+        virtual void play(const MSF start, const MSF end) = 0;
         /// @brief Change the pause state of the player
         /// @param pause true = pause playback, false = continue playback
-        void pause(bool pause);
+        virtual void pause(bool pause) = 0;
         /// @brief Stop the audio playback
-        void stop();
-        void scan(bool forward, const MSF from);
+        virtual void stop() = 0;
+        virtual void scan(bool forward, const MSF from) = 0;
 
         /// @brief Check the media status
-        MediaTypeCode check_media();
+        virtual MediaTypeCode check_media() = 0;
         /// @brief Read the audio CD TOC
-        const DiscTOC read_toc();
+        virtual const DiscTOC read_toc() = 0;
 
-        const DriveInfo * get_info();
-        const MechInfo * query_state();
-        const AudioStatus * query_position();
-        const Quirks& get_quirks() { return quirks; }
-        const Diags * get_diags() { return &_diags; }
+        virtual const DriveInfo * get_info() = 0;
+        virtual const MechInfo * query_state() = 0;
+        virtual const AudioStatus * query_position() = 0;
+        virtual const Quirks& get_quirks() = 0;
+        virtual const Diags * get_diags() = 0;
+    };
 
+    class AutonomousPlayerDevice: public Device {
+    public:
+        const Quirks& get_quirks() override { return quirks; }
+        const Diags * get_diags() override { return &_diags; }
+
+        void reset() override;
+        void wait_ready() override;
+
+        void eject(bool open_tray) override;
+        void load_unload(SlotNumber slot) override;
+        void start(bool state = true) override;
+        void set_tray_locked(bool lock) override;
+        void play(const MSF start, const MSF end) override;
+        void pause(bool pause) override;
+        void stop() override;
+        void scan(bool forward, const MSF from) override;
+        MediaTypeCode check_media() override;
+        const DiscTOC read_toc() override;
+
+        const DriveInfo * get_info() override;
+        const MechInfo * query_state() override;
+        const AudioStatus * query_position() override;
+
+        AutonomousPlayerDevice(Platform::IDEBus*);
     private:
         SemaphoreHandle_t semaphore;
         Platform::IDEBus * ide;
@@ -166,5 +189,7 @@ namespace ATAPI {
         void mode_select_output_ports();
         void mode_select_power_conditions();
         void set_speed();
+        bool check_atapi_compatible();
+        bool self_test();
     };
 }
