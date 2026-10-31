@@ -110,14 +110,12 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
         TogglePreferenceMenuNode("Auto-connect", PREFS_KEY_BT_RECONNECT),
     }),
     ListMenuNode("System", &icn_sys, std::tuple {
+        TogglePreferenceMenuNode("Web remote", PREFS_KEY_WEB_REMOTE_ENABLED),
         DynamicListMenuNode("Language", nullptr, [](DynamicListMenuNode * m) {
             m->set_content(std::tuple {
                 LanguageMenuNode(DSPL_LANG_EN),
                 LanguageMenuNode(DSPL_LANG_RU),
-                LanguageMenuNode(DSPL_LANG_JA),
-                LanguageMenuNode(DSPL_LANG_HU),
-                LanguageMenuNode(DSPL_LANG_DE),
-                LanguageMenuNode(DSPL_LANG_NL),
+                LanguageMenuNode(DSPL_LANG_JA)
             });
         }),
         DynamicListMenuNode("Mode toggle button", nullptr, [](DynamicListMenuNode * m) {
@@ -139,7 +137,7 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
         ActionMenuNode("Check for Updates", [](MenuNavigator* h) { 
             h->push(std::make_shared<HttpFvuApp>(h));
         }),
-        TextPreferenceEditorNode("NTP server", Core::PrefsKey::NTP_SERVER),
+        TextPreferenceEditorNode("NTP server", Core::PrefsKey::PREFS_KEY_NTP_SERVER),
         ListMenuNode("Full Reset", nullptr, std::tuple {
             ListMenuNode("Yes, Erase All!", nullptr, std::tuple {
                 ActionMenuNode("Yes, I Am Sure!", [](MenuNavigator* h) {

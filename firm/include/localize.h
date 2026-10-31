@@ -5,9 +5,6 @@ enum DisplayLanguage: int {
     DSPL_LANG_EN = 0,
     DSPL_LANG_RU,
     DSPL_LANG_JA,
-    DSPL_LANG_HU,
-    DSPL_LANG_DE,
-    DSPL_LANG_NL,
 
     DSPL_LANG_INVALID
 };

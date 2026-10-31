@@ -19,8 +19,9 @@ namespace ATAPI {
         }
     }
 
-    Device::Device(Platform::IDEBus * bus): 
-        ide(bus) 
+    AutonomousPlayerDevice::AutonomousPlayerDevice(Platform::IDEBus * bus): 
+        ide(bus),
+        Device()
     {
         // compile time sanity checks
         const StatusRegister tmp = StatusRegister { .value = (1 << 7) };
@@ -32,7 +33,7 @@ namespace ATAPI {
         quirks = {0};
     }
 
-    void Device::reset() {
+    void AutonomousPlayerDevice::reset() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Reset");
         ide->reset();
@@ -50,9 +51,9 @@ namespace ATAPI {
         ESP_LOGI(LOG_TAG, "end of Reset");
     }
 
-    const DriveInfo * Device::get_info() { return &info; }
+    const DriveInfo * AutonomousPlayerDevice::get_info() { return &info; }
 
-    const MechInfo * Device::query_state() {
+    const MechInfo * AutonomousPlayerDevice::query_state() {
         Responses::MechanismStatusHeader hdr;
         memset(&hdr, 0, sizeof(hdr));
 
@@ -113,7 +114,7 @@ namespace ATAPI {
         return &mech_sts;
     }
 
-    const AudioStatus * Device::query_position() {
+    const AudioStatus * AutonomousPlayerDevice::query_position() {
         Responses::ReadSubchannel res = { 0 };
 
         const Requests::ReadSubchannel req = {
@@ -162,7 +163,7 @@ namespace ATAPI {
         return &audio_sts;
     }
 
-    bool Device::check_atapi_compatible() {
+    bool AutonomousPlayerDevice::check_atapi_compatible() {
         data16 tmp;
         bool rslt;
 
@@ -181,7 +182,7 @@ namespace ATAPI {
         return rslt;
     }
 
-    void Device::init_task_file() {
+    void AutonomousPlayerDevice::init_task_file() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "init task file");
         ide->write(IDE::Register::Feature, {{ .low = (FeatureRegister {{ .DMA = false, .overlap = false }}).value, .high = 0xFF }});
@@ -198,7 +199,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    bool Device::self_test() {
+    bool AutonomousPlayerDevice::self_test() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Self-test");
         ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
@@ -210,7 +211,7 @@ namespace ATAPI {
         return rslt.low == 0x01;
     }
 
-    void Device::identify() {
+    void AutonomousPlayerDevice::identify() {
         Responses::IdentifyPacket rslt;
         memset(&rslt, 0, sizeof(Responses::IdentifyPacket));
         xSemaphoreTake(semaphore, portMAX_DELAY);
@@ -265,7 +266,7 @@ namespace ATAPI {
         ESP_LOGI(LOG_TAG, "Drive Model = '%s', SN = '%s', FW = '%s', packet size = %i", info.model.c_str(),  info.serial.c_str(), info.firmware.c_str(), packet_size);
     }
 
-    void Device::start(bool state) {
+    void AutonomousPlayerDevice::start(bool state) {
         const Requests::StartStopUnit req = {
             .opcode = OperationCodes::START_STOP_UNIT,
             .start = state,
@@ -276,7 +277,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::eject(bool open) {
+    void AutonomousPlayerDevice::eject(bool open) {
         const Requests::StartStopUnit req = {
             .opcode = OperationCodes::START_STOP_UNIT,
             .start = !open,
@@ -287,7 +288,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::set_tray_locked(bool locked) {
+    void AutonomousPlayerDevice::set_tray_locked(bool locked) {
         const Requests::PreventAllowMediaRemoval req = {
             .opcode = OperationCodes::PREVENT_ALLOW_MEDIA_REMOVAL,
             .prevent = locked,
@@ -298,7 +299,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::load_unload(SlotNumber slot) {
+    void AutonomousPlayerDevice::load_unload(SlotNumber slot) {
         const Requests::LoadUnload lul = {
             .opcode = OperationCodes::LOAD_UNLOAD,
             .start = true,
@@ -311,7 +312,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::stop() {
+    void AutonomousPlayerDevice::stop() {
         const Requests::StopPlayScan req = {
             .opcode = OperationCodes::STOP_PLAY_SCAN
         };
@@ -321,7 +322,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::pause(bool pause) {
+    void AutonomousPlayerDevice::pause(bool pause) {
         const Requests::PauseResume req = {
             .opcode = OperationCodes::PAUSE_RESUME,
             .resume = !pause
@@ -331,7 +332,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    CapabilitiesMechStatusModePage Device::mode_sense_capabilities() {
+    CapabilitiesMechStatusModePage AutonomousPlayerDevice::mode_sense_capabilities() {
         const Requests::ModeSense msrq0 = {
             .opcode = OperationCodes::MODE_SENSE,
             .page = ModeSensePageCode::MSPC_CAPABILITIES_MECH_STS,
@@ -359,7 +360,7 @@ namespace ATAPI {
         return rslt;
     }
 
-    void Device::set_speed() {
+    void AutonomousPlayerDevice::set_speed() {
         // Some drives are too noisy to let them run at full force
         const Requests::SetCDSpeed req = {
             .opcode = OperationCodes::SET_CD_SPEED,
@@ -371,7 +372,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::mode_select_output_ports() {
+    void AutonomousPlayerDevice::mode_select_output_ports() {
         const Requests::ModeSense msrq = {
             .opcode = OperationCodes::MODE_SENSE,
             .page = ModeSensePageCode::MSPC_CDA_CONTROL,
@@ -449,7 +450,7 @@ namespace ATAPI {
         _diags.cda = cdactl2;
     }
 
-    void Device::mode_select_power_conditions() {
+    void AutonomousPlayerDevice::mode_select_power_conditions() {
         // disable standby timers (e.g. some TEAC drives go to sleep during long pause)
         const Requests::ModeSense msrq = {
             .opcode = OperationCodes::MODE_SENSE,
@@ -510,7 +511,7 @@ namespace ATAPI {
         ESP_LOGI(LOG_TAG, "NEW power status: IDLE[%i: %i] STBY[%i: %i]", pwrctl2.idle, pwrctl2.idle_timer, pwrctl2.standby, pwrctl2.standby_timer);
     }
 
-    void Device::play(const MSF start, const MSF end) {
+    void AutonomousPlayerDevice::play(const MSF start, const MSF end) {
         if(!playback_mode_select_flag) {
             mode_select_output_ports();
             mode_select_power_conditions();
@@ -526,7 +527,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void Device::scan(bool forward, const MSF from) {
+    void AutonomousPlayerDevice::scan(bool forward, const MSF from) {
         Requests::Scan req = {
             .opcode = OperationCodes::SCAN,
             .direct = !forward,
@@ -538,7 +539,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    const std::vector<uint8_t> Device::read_cd_text_toc_locked() {
+    const std::vector<uint8_t> AutonomousPlayerDevice::read_cd_text_toc_locked() {
         // just for fun let's try this
         const Requests::ReadTOC req = {
             .opcode = OperationCodes::READ_TOC_PMA_ATIP,
@@ -584,7 +585,7 @@ namespace ATAPI {
         return rslt;
     }
 
-    const DiscTOC Device::read_toc() {
+    const DiscTOC AutonomousPlayerDevice::read_toc() {
         set_speed();
 
         const Requests::ReadTOC req = {
@@ -662,7 +663,7 @@ namespace ATAPI {
         };
     }
 
-    MediaTypeCode Device::check_media() {
+    MediaTypeCode AutonomousPlayerDevice::check_media() {
         const Requests::ModeSense req = {
             .opcode = OperationCodes::MODE_SENSE,
             .page = ModeSensePageCode::MSPC_ERROR_RECOVERY,
@@ -679,7 +680,7 @@ namespace ATAPI {
         return res.media_type;
     }
 
-    void Device::send_packet(const void * buf, size_t bufLen, bool pad) {
+    void AutonomousPlayerDevice::send_packet(const void * buf, size_t bufLen, bool pad) {
         delayMicroseconds(100); // either just the C68E is too old and slow to keep up with the ESP even over 100kHz i2c... or my pcb layout bites me in the ass again!!
         // for our use case those occasional delays don't have too much effect but this will limit potential growth for data disc reading if any!
 
@@ -709,7 +710,7 @@ namespace ATAPI {
         wait_not_busy("PKT");
     }
 
-    bool Device::read_response(void * outBuf, size_t bufLen, bool flush) {
+    bool AutonomousPlayerDevice::read_response(void * outBuf, size_t bufLen, bool flush) {
         if((bufLen == 0 || outBuf == nullptr) && !flush) {
             ESP_LOGE(LOG_TAG, "No buffer provided for response!");
             return false;
@@ -763,13 +764,13 @@ namespace ATAPI {
         return rslt;
     }
 
-    Device::StatusRegister Device::read_sts_regi() {
+    AutonomousPlayerDevice::StatusRegister AutonomousPlayerDevice::read_sts_regi() {
         StatusRegister val;
         val.value = ide->read(IDE::Register::Status).low;
         return val;
     }
 
-    void Device::wait_sts_bit_set(StatusRegister bits) {
+    void AutonomousPlayerDevice::wait_sts_bit_set(StatusRegister bits) {
         TickType_t start_wait = xTaskGetTickCount();
         ESP_LOGD(LOG_TAG, "Wait for bit set 0x%02x", bits.value);
 
@@ -781,7 +782,7 @@ namespace ATAPI {
         } while ((read_sts_regi().value & bits.value) == 0);
     }
 
-    void Device::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
+    void AutonomousPlayerDevice::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
         TickType_t start_wait = xTaskGetTickCount();
         ESP_LOGD(tag, "Wait for bit clear 0x%02x", bits.value);
 
@@ -794,14 +795,14 @@ namespace ATAPI {
         } while ((read_sts_regi().value & bits.value) != 0);
     }
 
-    void Device::wait_not_busy(const char * tag) { 
+    void AutonomousPlayerDevice::wait_not_busy(const char * tag) { 
         ESP_LOGV(tag, "Waiting for drive to stop being busy...");
         wait_sts_bit_clr({{.BSY = true}}, tag); 
     }
-    void Device::wait_drq_end() { wait_sts_bit_clr({{.DRQ = true}}); }
-    void Device::wait_drq() { wait_sts_bit_set({{.DRQ = true}}); }
+    void AutonomousPlayerDevice::wait_drq_end() { wait_sts_bit_clr({{.DRQ = true}}); }
+    void AutonomousPlayerDevice::wait_drq() { wait_sts_bit_set({{.DRQ = true}}); }
 
-    void Device::wait_ready() {
+    void AutonomousPlayerDevice::wait_ready() {
         ESP_LOGI(LOG_TAG, "Waiting for drive to become ready...");
         xSemaphoreTake(semaphore, portMAX_DELAY);
         wait_sts_bit_set({{.DRDY = true}}); 

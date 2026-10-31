@@ -1,6 +1,9 @@
 #pragma once
 #include <esper-core/prefs.h>
 #include <string>
+#include <localize.h>
+
+const Prefs::Key<int> PREFS_KEY_UI_LANGUAGE = {"lang", (int)DSPL_LANG_EN};
 
 /// Whether to include CD mode in the mode cycle button
 static const Prefs::Key<bool> PREFS_KEY_CD_MODE_INCLUDED {"cd_mode_in", true};
@@ -47,3 +50,6 @@ static const Prefs::Key<bool> PREFS_KEY_BT_NEED_PIN {"bt_use_pin", true};
 static const Prefs::Key<bool> PREFS_KEY_OTAFVU_ALLOWED {"otafvu_allow", false};
 /// Is Telnet logger enabled
 static const Prefs::Key<bool> PREFS_KEY_TELNET_LOGGER {"telnet_log", false};
+
+/// Whether to serve the phone remote and preference API over Wi-Fi
+static const Prefs::Key<bool> PREFS_KEY_WEB_REMOTE_ENABLED {"web_remote", false};

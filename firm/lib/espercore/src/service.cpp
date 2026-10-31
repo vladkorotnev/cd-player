@@ -29,7 +29,7 @@ int _telnet_log_vprintf(const char *fmt, va_list args) {
 
 namespace Core::Services {
     void NTP::start() {
-        auto srv = Prefs::get(Core::PrefsKey::NTP_SERVER);
+        auto srv = Prefs::get(Core::PrefsKey::PREFS_KEY_NTP_SERVER);
         // looks like sntp needs this to be a static string
         strncpy(ntp_server_str, srv.c_str(), 128);
         ESP_LOGI("NTP", "Set server [%s]", ntp_server_str);

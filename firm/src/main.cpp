@@ -2,23 +2,31 @@
 #include <WiFi.h>
 #include <LittleFS.h>
 
+#include <board_cfg.h>
 #include <esper-core/service.h>
+#include <web/web_remote.h>
 #include <esper-gui/hardware/futaba_gp1232.h>
+#include <web/mirrored_display.h>
 #include <esper-gui/text.h>
 
 #include <mode_host.h>
 #include <consts.h>
 #include <mount.h>
 #include <otafvu.h>
+#include <web/web_remote_server.h>
 
 static char LOG_TAG[] = "APL_MAIN";
 
+#ifdef BCONF_HAS_I2C
 Core::ThreadSafeI2C * i2c;
+#endif
 Platform::Keypad * keypad;
 Platform::Remote * remote;
-Graphics::Hardware::FutabaGP1232ADriver * disp;
+Graphics::Hardware::DisplayDriver * disp;
+Platform::WebRemote * web_remote;
+Graphics::MirroredDisplayDriver * mirrored_display;
 Platform::AudioRouter * router;
-Platform::WM8805 * spdif;
+Platform::WM8805 * spdif = nullptr;
 Platform::IDEBus * ide;
 ATAPI::Device * cdrom;
 
@@ -70,8 +78,12 @@ void keypadTask(void *) {
   }
 }
 
-static Core::Remote::Sony20bitDecoder sony;
-static Core::Remote::KeymapDecoder keymap(sony, Platform::PS2_REMOTE_KEYMAP);
+#if (BCONF_RC_TYPE == RC_TYPE_SONY_PS2_REMOTE)
+  static Core::Remote::Sony20bitDecoder sony;
+  static Core::Remote::KeymapDecoder keymap(sony, Platform::PS2_REMOTE_KEYMAP);
+#else
+  #error "IR RC type not set or unknown, check board config"
+#endif
 
 // cppcheck-suppress unusedFunction
 void setup(void) { 
@@ -81,36 +93,67 @@ void setup(void) {
   heap_caps_malloc_extmem_enable(64);
 #endif
 
-  Serial.begin(115200);
-  while(!Serial);
+  Serial.begin(BCONF_SERIAL_BAUD);
+  while(!Serial) {}
 
-  disp = new Graphics::Hardware::FutabaGP1232ADriver();
-  disp->initialize();
+  #if (BCONF_DISPLAY_TYPE == DISP_TYPE_FUTABA_GP1232A)
+    auto * hardware_display = new Graphics::Hardware::FutabaGP1232ADriver(
+      BCONF_DISPLAY_UART_NUM,
+      BCONF_DISPLAY_RX_PIN,
+      BCONF_DISPLAY_TX_PIN,
+      BCONF_DISPLAY_BAUD
+    );
+  #else
+    #error "Display type not set or unknown, check board config or add correct driver"
+  #endif
 
-  Wire.begin(32, 33, 400000);
+    mirrored_display = new Graphics::MirroredDisplayDriver(*hardware_display);
+    disp = mirrored_display;
+    disp->initialize();
 
-  i2c = new Core::ThreadSafeI2C(&Wire);
-  keypad = new Platform::Keypad(i2c);
-  remote = new Platform::Remote(keymap);
-  ide = new Platform::IDEBus(i2c);
-  cdrom = new ATAPI::Device(ide);
-  spdif = new Platform::WM8805(i2c);
+  #ifdef BCONF_HAS_I2C
+    Wire.begin(BCONF_I2C_SDA, BCONF_I2C_SCL, BCONF_I2C_FRQ);
+    i2c = new Core::ThreadSafeI2C(&Wire);
+    keypad = new Platform::Keypad(i2c);
+    #if (BCONF_IDE_TYPE == IDEBUS_TYPE_ATAPIDUINO_ISH_I2C)
+      ide = new Platform::IDEBus(i2c);
+    #endif
+  #endif
+
+  #if IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE)
+    cdrom = new ATAPI::AutonomousPlayerDevice(ide);
+  #else
+    #error "ATAPI Device impl not done for the IDE BUS type; write new driver or check board config"
+  #endif
+
+  auto * infrared_remote = new Platform::InfraredRemote(keymap);
+  web_remote = new Platform::WebRemote(*infrared_remote);
+  remote = web_remote;
+
+  #ifdef BCONF_HAS_WM8805
+    spdif = new Platform::WM8805(i2c);
+  #elif (IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE))
+    #error "Not using software playback but no SPDIF Transceiver, check board config"
+  #else
+    #error "TODO: decouple WM8805 from AudioRouter and support working without one!!"
+  #endif
+
   router = new Platform::AudioRouter(
     spdif,
     {
-      .unmute = GPIO_NUM_18,
-      .demph = GPIO_NUM_26
+      .unmute = BCONF_DAC_UNMUTE_PIN,
+      .demph = BCONF_DAC_DEMPH_PIN
     },
     {
-      .mck = GPIO_NUM_3,
-      .bck = GPIO_NUM_5,
-      .lrck = GPIO_NUM_2,
-      .data = GPIO_NUM_27
-    }
+      .mck = BCONF_DAC_MCK_PIN,
+      .bck = BCONF_DAC_BCK_PIN,
+      .lrck = BCONF_DAC_LRCK_PIN,
+      .data = BCONF_DAC_DATA_PIN
+    },
+    BCONF_BYPASS_RELAY_PIN
   );
 
   const PlatformSharedResources rsrc = {
-    .i2c = i2c,
     .keypad = keypad,
     .remote = remote,
     .router = router,
@@ -127,6 +170,9 @@ void setup(void) {
   bool is_recovery = OTAFVU::start_if_needed(rsrc, host);
   if(is_recovery) return;
   Core::Services::NTP::start();
+
+  static WebRemoteServer web_server(*web_remote, *mirrored_display, *host);
+  web_server.begin();
 
   if (Prefs::get(PREFS_KEY_TELNET_LOGGER)) {
     Core::Services::Telnet::start();
