@@ -10,8 +10,7 @@ namespace Graphics::Hardware {
 
 class FutabaGP1232ADriver: public DisplayDriver {
 public:
-    const EGSize DISPLAY_SIZE = {160, 32};
-    FutabaGP1232ADriver(uart_port_t uart_num = 1, gpio_num_t rx_pin = GPIO_NUM_23, gpio_num_t tx_pin = GPIO_NUM_22, int baud = 115200);
+    FutabaGP1232ADriver(uart_port_t uart_num, gpio_num_t rx_pin, gpio_num_t tx_pin, int baud);
     ~FutabaGP1232ADriver() {
         vSemaphoreDelete(_portSema);
     }
@@ -23,6 +22,7 @@ public:
     void set_power(bool on) override;
     void set_brightness(Brightness) override;
     void transfer(const std::vector<EGRect> changes, const BackingBuffer * buffer) override;
+    const EGSize& get_size() override { return DISPLAY_SIZE; }
 private:
     void transfer(const EGPoint address, const EGSize size, const BackingBuffer * buffer);
     const int DSA_FIRST = 0;
@@ -31,6 +31,7 @@ private:
     void flip_pages();
     uart_port_t _port;
     SemaphoreHandle_t _portSema;
+    const EGSize DISPLAY_SIZE = {160, 32};
 };
 
 }

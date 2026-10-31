@@ -16,7 +16,7 @@ InternetRadioMode::InternetRadioMode(const PlatformSharedResources res, ModeHost
     stopBtn(Button(res.keypad, (1 << 0))),
     Mode(res, host) {
         _that = this;
-        rootView = new InternetRadioView({EGPointZero, DISPLAY_SIZE});
+        rootView = new InternetRadioView({EGPointZero, res.display->get_size()});
 
         for(int i = 1; i <= 6; i++) {
             station_buttons.push_back(Button(res.keypad, (1 << i)));

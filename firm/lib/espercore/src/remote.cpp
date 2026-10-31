@@ -5,7 +5,7 @@
 // I'm too burnt out and tired to roll a library, but I can roll a single use thing here at least!
 
 namespace Platform {
-    Remote::Remote(Core::Remote::Decoder& dec, gpio_num_t pin): channel{RMT_CHANNEL_1}, decoder{dec}, rb{NULL} {
+    InfraredRemote::InfraredRemote(Core::Remote::Decoder& dec, gpio_num_t pin): channel{RMT_CHANNEL_1}, decoder{dec}, rb{NULL} {
         rmt_config_t rmt_rx_config = RMT_DEFAULT_CONFIG_RX(pin, channel);
         ESP_ERROR_CHECK(rmt_config(&rmt_rx_config));
         ESP_ERROR_CHECK(rmt_driver_install(channel, 1000, 0));
@@ -14,7 +14,7 @@ namespace Platform {
         assert(rb != NULL);
     }
 
-    void Remote::update() {
+    void InfraredRemote::update() {
         rmt_item32_t *items = NULL;
         size_t length = 0;
 
@@ -39,14 +39,14 @@ namespace Platform {
         }
     }
 
-    bool Remote::has_new_code() {
+    bool InfraredRemote::has_new_code() {
         TickType_t now = xTaskGetTickCount();
         bool rslt = (now - last_reception_ts <= pdMS_TO_TICKS(100) && new_code_flag);
         new_code_flag = false;
         return rslt;
     }
 
-    Platform::Remote::RemoteCode Remote::code() {
+    Platform::Remote::RemoteCode InfraredRemote::code() {
         return last_received_code;
     }
 }

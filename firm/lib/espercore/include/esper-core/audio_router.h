@@ -31,7 +31,7 @@ namespace Platform {
 
     class AudioRouter {
     public:
-        AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio = GPIO_NUM_19);
+        AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio);
 
         void activate_route(AudioRoute);
         void set_deemphasis(bool);

@@ -4,6 +4,7 @@
 #include <esper-core/prefs.h>
 #include <ArduinoJson.h>
 #include <LittleFS.h>
+#include <shared_prefs.h>
 
 #ifndef LANG_DIR_PREFIX
 #define LANG_DIR_PREFIX "/lang"
@@ -11,14 +12,12 @@
 
 static const char LOG_TAG[] = "LOCA";
 
-const Prefs::Key<int> ACTIVE_LANGUAGE_PREFS_KEY = {"lang", DSPL_LANG_EN};
-
 DisplayLanguage active_language() {
-    return (DisplayLanguage) Prefs::get(ACTIVE_LANGUAGE_PREFS_KEY);
+    return (DisplayLanguage) Prefs::get(PREFS_KEY_UI_LANGUAGE);
 }
 
 void set_active_language(DisplayLanguage lang) {
-    Prefs::set(ACTIVE_LANGUAGE_PREFS_KEY, (int)lang);
+    Prefs::set(PREFS_KEY_UI_LANGUAGE, (int)lang);
 }
 
 const std::string language_name(DisplayLanguage lang) {
@@ -26,9 +25,6 @@ const std::string language_name(DisplayLanguage lang) {
         case DSPL_LANG_RU: return "Русский";
         case DSPL_LANG_JA: return "日本語";
         case DSPL_LANG_EN: return "English";
-        case DSPL_LANG_HU: return "Magyar";
-        case DSPL_LANG_DE: return "Deutsch";
-        case DSPL_LANG_NL: return "Nederlands";
         default:
             return "???";
     }
@@ -50,15 +46,6 @@ static bool _load_lang_map_if_needed() {
             break;
         case DSPL_LANG_JA:
             filename = LANG_DIR_PREFIX "/ja.lang";
-            break;
-        case DSPL_LANG_HU:
-            filename = LANG_DIR_PREFIX "/hu.lang";
-            break;
-        case DSPL_LANG_DE:
-            filename = LANG_DIR_PREFIX "/de.lang";
-            break;
-        case DSPL_LANG_NL:
-            filename = LANG_DIR_PREFIX "/nl.lang";
             break;
         case DSPL_LANG_EN:
         default:

@@ -119,12 +119,20 @@ namespace Platform {
     class Remote {
     public:
         using RemoteCode = Core::Remote::Decoder::RemoteCode;
-        explicit Remote(Core::Remote::Decoder& decoder, gpio_num_t pin = GPIO_NUM_34);
+        virtual ~Remote() = default;
+        virtual void update() = 0;
+        virtual bool has_new_code() = 0;
+        virtual RemoteCode code() = 0;
+    };
 
-        void update();
+    class InfraredRemote: public Remote {
+    public:
+        explicit InfraredRemote(Core::Remote::Decoder& decoder, gpio_num_t pin = GPIO_NUM_34);
 
-        bool has_new_code();
-        RemoteCode code();
+        void update() override;
+
+        bool has_new_code() override;
+        RemoteCode code() override;
     protected:
         rmt_channel_t channel;
         RingbufHandle_t rb;

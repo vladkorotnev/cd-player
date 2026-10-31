@@ -13,22 +13,12 @@ static bool is_set_up = false;
 static std::string ssid = "";
 static std::string pass = "";
 
-#ifndef WIFI_NAME
-#define WIFI_NAME ""
-#endif
-#ifndef WIFI_PASS
-#define WIFI_PASS ""
-#endif
-
-static const Prefs::Key<std::string> PREFS_KEY_WIFI_NAME{"wifi_ssid", WIFI_NAME};
-static const Prefs::Key<std::string> PREFS_KEY_WIFI_PASS{"wifi_pass", WIFI_PASS};
-
 namespace Core::Services {
     namespace WLAN {
         static void save_current_network() {
             ESP_LOGD(LOG_TAG, "Save ssid=[%s] pass=[%s]", ssid.c_str(), pass.c_str());
-            Prefs::set(PREFS_KEY_WIFI_NAME, ssid);
-            Prefs::set(PREFS_KEY_WIFI_PASS, pass);
+            Prefs::set(Core::PrefsKey::PREFS_KEY_WIFI_NAME, ssid);
+            Prefs::set(Core::PrefsKey::PREFS_KEY_WIFI_PASS, pass);
         }
 
         static void wifi_event(WiFiEvent_t ev) {
@@ -70,8 +60,8 @@ namespace Core::Services {
         }        
 
         void start() {
-            ssid = Prefs::get(PREFS_KEY_WIFI_NAME);
-            pass = Prefs::get(PREFS_KEY_WIFI_PASS);
+            ssid = Prefs::get(Core::PrefsKey::PREFS_KEY_WIFI_NAME);
+            pass = Prefs::get(Core::PrefsKey::PREFS_KEY_WIFI_PASS);
             initial_connection_succeeded = false;
 
             if(!is_set_up) {

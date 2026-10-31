@@ -58,7 +58,7 @@ public:
     std::shared_ptr<UI::ImageView> imgShuffleIcon;
     std::shared_ptr<WiFiIcon> wifi;
 
-    CDPView(): View({EGPointZero, DISPLAY_SIZE}) {
+    CDPView(EGSize size): View({EGPointZero, size}) {
         allButLyric = std::make_shared<UI::View>(EGRect {EGPointZero, {160, 27}});
         lblSmallTop = std::make_shared<UI::Label>(EGRect {EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
         lblBigMiddle = std::make_shared<UI::Label>(EGRect {{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
@@ -164,7 +164,7 @@ CDMode::CDMode(const PlatformSharedResources res, ModeHost * host):
 
     lyrics_enabled = Prefs::get(PREFS_KEY_CD_LYRICS_ENABLED);
 
-    rootView = new CDPView();
+    rootView = new CDPView(res.display->get_size());
 }
 
 CDMode::~CDMode() {
