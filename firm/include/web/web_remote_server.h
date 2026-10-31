@@ -23,6 +23,7 @@ private:
     void queue_mode_if_changed();
 
     static esp_err_t status_handler(httpd_req_t * req);
+    static esp_err_t page_handler(httpd_req_t * req);
     static esp_err_t display_handler(httpd_req_t * req);
     static esp_err_t preferences_get_handler(httpd_req_t * req);
     static esp_err_t preferences_post_handler(httpd_req_t * req);

@@ -35,6 +35,17 @@ jobs:
           echo LASTFM_API_KEY=\\\"$LASTFM_API_KEY\\\" >> ./firm/.env
           echo LASTFM_API_SECRET=\\\"$LASTFM_API_SECRET\\\" >> ./firm/.env
           echo OTA_FVU_PASSWORD_HASH=\\\"$(echo -n "$OTA_FVU_PASSWORD" | md5sum | awk '{print $1}')\\\" >> ./firm/.env
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: ./web-remote/package-lock.json
+      - name: Build web remote for LittleFS
+        working-directory: ./web-remote
+        run: |
+          npm ci
+          npm run build:device
       - name: Build all targets
         working-directory: ./firm
         run: pio run

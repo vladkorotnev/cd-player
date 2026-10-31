@@ -2,11 +2,13 @@
 #include <mode_host.h>
 #include <shared_prefs.h>
 #include <web/web_preferences.h>
+#include <consts.h>
 #include <esper-core/wlan.h>
 #include <cJSON.h>
 #include <esp32-hal-log.h>
 #include <freertos/task.h>
 #include <cstring>
+#include <cstdio>
 #include <string>
 #include <vector>
 
@@ -146,6 +148,8 @@ bool WebRemoteServer::start_server() {
     }
 
     const httpd_uri_t endpoints[] = {
+        {.uri="/", .method=HTTP_GET, .handler=page_handler, .user_ctx=this},
+        {.uri="/index.html", .method=HTTP_GET, .handler=page_handler, .user_ctx=this},
         {.uri="/api/status", .method=HTTP_GET, .handler=status_handler, .user_ctx=this},
         {.uri="/api/display", .method=HTTP_GET, .handler=display_handler, .user_ctx=this},
         {.uri="/api/preferences", .method=HTTP_GET, .handler=preferences_get_handler, .user_ctx=this},
@@ -246,6 +250,25 @@ esp_err_t WebRemoteServer::status_handler(httpd_req_t * req) {
     cJSON_AddStringToObject(status, "websocket", "/ws");
     cJSON_AddNumberToObject(status, "mode", (int)self->host.get_current_mode());
     return json_response(req, status);
+}
+
+esp_err_t WebRemoteServer::page_handler(httpd_req_t * req) {
+    FILE * page = fopen(FS_MOUNT_POINT "/web/index.html.gz", "rb");
+    if(page == nullptr) return httpd_resp_send_404(req);
+    no_cache(req);
+    httpd_resp_set_type(req, "text/html; charset=utf-8");
+    httpd_resp_set_hdr(req, "Content-Encoding", "gzip");
+    char buffer[1024];
+    size_t count = 0;
+    while((count = fread(buffer, 1, sizeof(buffer), page)) > 0) {
+        if(httpd_resp_send_chunk(req, buffer, count) != ESP_OK) {
+            fclose(page);
+            return ESP_FAIL;
+        }
+    }
+    bool read_error = ferror(page);
+    fclose(page);
+    return read_error ? ESP_FAIL : httpd_resp_send_chunk(req, nullptr, 0);
 }
 
 esp_err_t WebRemoteServer::display_handler(httpd_req_t * req) {

@@ -108,7 +108,7 @@ class InternetRadioMode::StreamingPipeline {
                     urlStream.setTimeout(NET_CLIENT_TIMEOUT);
                     urlStream.setConnectionClose(false);
                     urlStream.httpRequest().header().setProtocol("HTTP/1.0"); // <- important, because chunked transfer of some servers seems to cause trouble with buffering!
-                    urlStream.addRequestHeader(USER_AGENT, "VLC/3.0.21 LibVLC/3.0.21");
+                    urlStream.addRequestHeader(USER_AGENT, "Mozilla/5.0 (iPhone; CPU iPhone OS 16_6 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/16.6 Mobile/15E148 Safari/604.1");
                     urlStream.begin(url.c_str());
                     ESP_LOGI(LOG_TAG, "Streamer did begin URL");
                     urlStream.waitForData(NET_CLIENT_TIMEOUT);
