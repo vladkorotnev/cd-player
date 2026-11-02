@@ -17,10 +17,6 @@ class SettingsMode: public Mode {
     public:
         SettingsMode(const PlatformSharedResources res, ModeHost * host);
     
-        void setup() override {
-            resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_VSYNC, true);
-        }
-
         void loop() override {
             delay(50);
             if(stopEject.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_DEL);
@@ -35,10 +31,6 @@ class SettingsMode: public Mode {
             rootView.on_key_pressed(key);
         }
 
-        void teardown() override {
-            resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_VSYNC, false);
-        }
-    
         UI::View& main_view() override {
             return rootView;
         }
