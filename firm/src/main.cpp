@@ -26,7 +26,6 @@ Graphics::Hardware::DisplayDriver * disp;
 Platform::WebRemote * web_remote;
 Graphics::MirroredDisplayDriver * mirrored_display;
 Platform::AudioRouter * router;
-Platform::WM8805 * spdif = nullptr;
 Platform::IDEBus * ide;
 ATAPI::Device * cdrom;
 
@@ -131,27 +130,26 @@ void setup(void) {
   remote = web_remote;
 
   #ifdef BCONF_HAS_WM8805
-    spdif = new Platform::WM8805(i2c);
+    Platform::WM8805 * spdif = new Platform::WM8805(i2c);
+    router = new Platform::WM8805AudioRouter(
+      spdif,
+      {
+        .unmute = BCONF_DAC_UNMUTE_PIN,
+        .demph = BCONF_DAC_DEMPH_PIN
+      },
+      {
+        .mck = BCONF_DAC_MCK_PIN,
+        .bck = BCONF_DAC_BCK_PIN,
+        .lrck = BCONF_DAC_LRCK_PIN,
+        .data = BCONF_DAC_DATA_PIN
+      },
+      BCONF_BYPASS_RELAY_PIN
+    );
   #elif (IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE))
     #error "Not using software playback but no SPDIF Transceiver, check board config"
   #else
     #error "TODO: decouple WM8805 from AudioRouter and support working without one!!"
   #endif
-
-  router = new Platform::AudioRouter(
-    spdif,
-    {
-      .unmute = BCONF_DAC_UNMUTE_PIN,
-      .demph = BCONF_DAC_DEMPH_PIN
-    },
-    {
-      .mck = BCONF_DAC_MCK_PIN,
-      .bck = BCONF_DAC_BCK_PIN,
-      .lrck = BCONF_DAC_LRCK_PIN,
-      .data = BCONF_DAC_DATA_PIN
-    },
-    BCONF_BYPASS_RELAY_PIN
-  );
 
   const PlatformSharedResources rsrc = {
     .keypad = keypad,
@@ -178,8 +176,10 @@ void setup(void) {
     Core::Services::Telnet::start();
   }
 
-  i2c->log_all_devices();
-  spdif->initialize();
+  #ifdef BCONF_HAS_I2C
+    i2c->log_all_devices();
+  #endif
+  router->initialize();
   cdrom->reset();
   xTaskCreatePinnedToCore(
     keypadTask,

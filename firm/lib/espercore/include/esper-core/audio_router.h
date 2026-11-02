@@ -17,42 +17,53 @@ namespace Platform {
         ROUTE_INTERNAL_CPU,
     };
 
-    struct DACBus {
-        gpio_num_t unmute;
-        gpio_num_t demph;
-    };
-
-    struct I2SBus {
-        gpio_num_t mck;
-        gpio_num_t bck;
-        gpio_num_t lrck;
-        gpio_num_t data;
-    };
-
     class AudioRouter {
+        public:
+            virtual void activate_route(AudioRoute) = 0;
+            virtual AudioStream * get_io_port_nub() = 0;
+            virtual void initialize() {}
+    };
+
+    class I2SOutputAudioRouter: public AudioRouter {
+        public:
+            struct I2SBus {
+                gpio_num_t mck;
+                gpio_num_t bck;
+                gpio_num_t lrck;
+                gpio_num_t data;
+            };
+            I2SOutputAudioRouter(const I2SBus i2s);
+            AudioStream * get_io_port_nub() override;
+            void activate_route(AudioRoute) override;
+        protected:
+            AudioRoute current_route = ROUTE_NONE_INACTIVE;
+        private:
+            bool bus_active = false;
+            const I2SBus i2s_pins;
+            I2SStream * _i2s;
+            AudioInfo cpuOutputParams = AudioInfo(44100, 2, 16);
+            void i2s_bus_release_local();
+            void i2s_bus_setup_local_output();
+    };
+
+    class WM8805AudioRouter: public I2SOutputAudioRouter{
     public:
-        AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio);
+        struct DACBus {
+            gpio_num_t unmute;
+            gpio_num_t demph;
+        };
+        WM8805AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio);
 
-        void activate_route(AudioRoute);
+        void initialize() override;
+        void activate_route(AudioRoute) override;
         void set_deemphasis(bool);
-
-        AudioStream * get_io_port_nub();
-
     private:
-        AudioRoute current_route = ROUTE_NONE_INACTIVE;
         WM8805 * _spdif;
 
-        AudioInfo cpuOutputParams = AudioInfo(44100, 2, 16);
         AudioInfo cdaInputParams = AudioInfo(44100, 2, 16);
-        I2SStream * _i2s;
 
         const DACBus dac_pins;
-        const I2SBus i2s_pins;
         const gpio_num_t relay_pin;
-
-        void i2s_bus_release_local();
-        void i2s_bus_setup_local_output();
-        void i2s_bus_setup_local_input();
 
         void spdif_set_up_muting_hax();
         void spdif_teardown_muting_hax();
