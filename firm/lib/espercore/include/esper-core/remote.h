@@ -127,7 +127,7 @@ namespace Platform {
 
     class InfraredRemote: public Remote {
     public:
-        explicit InfraredRemote(Core::Remote::Decoder& decoder, gpio_num_t pin = GPIO_NUM_34);
+        explicit InfraredRemote(Core::Remote::Decoder& decoder, gpio_num_t pin);
 
         void update() override;
 

@@ -126,7 +126,7 @@ void setup(void) {
     #error "ATAPI Device impl not done for the IDE BUS type; write new driver or check board config"
   #endif
 
-  auto * infrared_remote = new Platform::InfraredRemote(keymap);
+  auto * infrared_remote = new Platform::InfraredRemote(keymap, BCONF_INFRARED_PIN);
   web_remote = new Platform::WebRemote(*infrared_remote);
   remote = web_remote;
 
