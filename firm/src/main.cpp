@@ -8,6 +8,8 @@
 #include <esper-gui/hardware/futaba_gp1232.h>
 #include <web/mirrored_display.h>
 #include <esper-gui/text.h>
+#include <esper-gui/views/label.h>
+#include <shared_prefs.h>
 
 #include <mode_host.h>
 #include <consts.h>
@@ -163,6 +165,7 @@ void setup(void) {
   host = new ModeHost(rsrc);
   mount_fs_if_needed();
   load_all_fonts();
+  UI::Label::set_scroll_speed(Prefs::get(PREFS_KEY_UI_SCROLL_SPEED));
   
   Core::Services::WLAN::start();
   bool is_recovery = OTAFVU::start_if_needed(rsrc, host);

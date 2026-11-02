@@ -72,6 +72,28 @@ protected:
     DisplayLanguage language;
 };
 
+class ScrollSpeedMenuNode: public MenuNode {
+public:
+    ScrollSpeedMenuNode(const std::string& title, int pixels_per_tick):
+        MenuNode(title), speed(pixels_per_tick) {}
+
+    void execute(MenuNavigator * host) const override {
+        Prefs::set(PREFS_KEY_UI_SCROLL_SPEED, speed);
+        UI::Label::set_scroll_speed(speed);
+        host->pop();
+    }
+
+    void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override {
+        if(Prefs::get(PREFS_KEY_UI_SCROLL_SPEED) == speed) {
+            EGBlitImage(buf, {bounds.width - icn_checkmark.size.width, bounds.height/2 - icn_checkmark.size.height/2}, &icn_checkmark);
+        }
+        MenuNode::draw_accessory(buf, bounds);
+    }
+
+private:
+    int speed;
+};
+
 static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
     WiFiNetworksListMenuNode(),
     ListMenuNode("CD", &icn_cd, std::tuple {
@@ -111,6 +133,11 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
     }),
     ListMenuNode("System", &icn_sys, std::tuple {
         TogglePreferenceMenuNode("Web remote", PREFS_KEY_WEB_REMOTE_ENABLED),
+        ListMenuNode("Scroll speed", nullptr, std::tuple {
+            ScrollSpeedMenuNode("Slow", 1),
+            ScrollSpeedMenuNode("Normal", 2),
+            ScrollSpeedMenuNode("Fast", 4),
+        }),
         DynamicListMenuNode("Language", nullptr, [](DynamicListMenuNode * m) {
             m->set_content(std::tuple {
                 LanguageMenuNode(DSPL_LANG_EN),

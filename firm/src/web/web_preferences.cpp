@@ -3,6 +3,7 @@
 #include <radio_store.h>
 #include <localize.h>
 #include <esper-core/prefs.h>
+#include <esper-gui/views/label.h>
 #include <cstring>
 #include <variant>
 #include <vector>
@@ -46,6 +47,7 @@ const std::vector<Preference>& keys() {
             {Core::PrefsKey::PREFS_KEY_WIFI_NAME},
             {Core::PrefsKey::PREFS_KEY_WIFI_PASS, true},
             {PREFS_KEY_UI_LANGUAGE},
+            {PREFS_KEY_UI_SCROLL_SPEED},
         };
         result.reserve(result.size() + 12);
         for(int i = 0; i < 6; ++i) {
@@ -122,7 +124,10 @@ WriteResult write_one(const std::string& name, const cJSON * value) {
         int next = value->valueint;
         if(name == PREFS_KEY_UI_LANGUAGE.first && (next < DSPL_LANG_EN || next >= DSPL_LANG_INVALID))
             return WriteResult::invalid_value;
+        if(name == PREFS_KEY_UI_SCROLL_SPEED.first && next < 1)
+            return WriteResult::invalid_value;
         Prefs::set(*key, next);
+        if(name == PREFS_KEY_UI_SCROLL_SPEED.first) UI::Label::set_scroll_speed(next);
     } else {
         if(!cJSON_IsString(value)) return WriteResult::invalid_value;
         const char * next = value->valuestring;

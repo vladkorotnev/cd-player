@@ -1,7 +1,9 @@
 #pragma once
 #include "view.h"
 #include <esper-gui/text.h>
+#include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
+#include <atomic>
 
 namespace UI {
     class Label: public View {
@@ -14,6 +16,10 @@ namespace UI {
 
         bool auto_scroll = false;
         EGSize str_size = EGSizeZero;
+
+        static void set_scroll_speed(int pixels_per_tick) {
+            scroll_step.store(pixels_per_tick >= 1 && pixels_per_tick <= 4 ? pixels_per_tick : 2);
+        }
 
         Alignment alignment = Alignment::Left;
 
@@ -68,7 +74,8 @@ namespace UI {
                 last_scroll_tick = now;
                 bool is_follower = scroll_synchro != nullptr && (*scroll_synchro)->will_scroll() && (*scroll_synchro)->str_size.width > str_size.width && !(*scroll_synchro)->hidden;
                 if((scroll_holdoff == 0 && (!is_follower || (is_follower && (*scroll_synchro)->scroll_holdoff == 0))) || scroll_offset != 0) {
-                    scroll_offset += 2;
+                    const int next_offset = scroll_offset + scroll_step.load();
+                    scroll_offset = scroll_offset < 0 && next_offset >= 0 ? 0 : next_offset;
                     if(scroll_offset >= str_size.width + 16) {
                         scroll_offset = -frame.size.width;
                     }
@@ -99,5 +106,6 @@ namespace UI {
         int scroll_holdoff = 60;
         TickType_t last_scroll_tick = 0;
         std::shared_ptr<UI::Label>* scroll_synchro = nullptr; // Y U NO HAVE Option<>??
+        inline static std::atomic<int> scroll_step{2};
     };
 }
