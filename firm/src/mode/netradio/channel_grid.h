@@ -51,6 +51,12 @@ public:
                 line_speed = std::max(2, line_speed - 1);
             }
 
+            constexpr int max_width = 32;
+            if(line_right_cur - line_left_cur > max_width) {
+                if(going_right) line_left_cur = line_right_cur - max_width;
+                else            line_right_cur = line_left_cur + max_width;
+            }
+
             set_needs_display();
         }
         return View::needs_display();
