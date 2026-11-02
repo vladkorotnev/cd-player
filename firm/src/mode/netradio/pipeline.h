@@ -94,9 +94,9 @@ class InternetRadioMode::StreamingPipeline {
             return codecName;
         }
     
-        void start(const std::string url, std::function<void(bool)> loadingCallback) {
+        void start(const std::string url, std::function<void(bool, bool)> loadingCallback) {
             running = true;
-            loadingCallback(true);
+            loadingCallback(true, false);
             ESP_LOGI(LOG_TAG, "Streamer is starting");
             queueNetData.begin();
             netTask.begin([this, url, loadingCallback]() { 
@@ -129,7 +129,7 @@ class InternetRadioMode::StreamingPipeline {
                         }
                         else {
                             ESP_LOGE(LOG_TAG, "Content-type is not supported, TODO show error");
-                            loadingCallback(false);
+                            loadingCallback(false, true);
                             xSemaphoreGive(semaNet);
                             vTaskDelay(portMAX_DELAY);
                         }
@@ -139,7 +139,7 @@ class InternetRadioMode::StreamingPipeline {
                         decoder.setOutput(*outPort);
                     } else {
                         ESP_LOGE(LOG_TAG, "No content-type reported, TODO show error");
-                        loadingCallback(false);
+                        loadingCallback(false, true);
                         xSemaphoreGive(semaNet);
                         vTaskDelay(portMAX_DELAY);
                     }
@@ -166,11 +166,11 @@ class InternetRadioMode::StreamingPipeline {
                             }
                             didAutoTuneEnoughMark = true;
 
-                            loadingCallback(false);
+                            loadingCallback(false, false);
                             while(copierDecoding.copy() > 0 && !bufferNetData.isEmpty() && running) {
                                 delay(20);
                             }
-                            loadingCallback(true);
+                            loadingCallback(true, false);
                             enoughMark = min(enoughMark + 5.0, 90.0);
                             ESP_LOGW(LOG_TAG, "Hiccup? new enoughMark=[%f]", enoughMark);
                             delay(5);
@@ -202,7 +202,7 @@ class InternetRadioMode::StreamingPipeline {
                         } else if(now - last_successful_copy >= pdTICKS_TO_MS(NET_NO_DATA_TIMEOUT)  && (bufferNetData.levelPercent() < 20.0)) {
                             ESP_LOGE(LOG_TAG, "streamer is stalled!? time since last shart = [ %i ms ]", now - last_shart_time);
                             last_shart_time = now;
-                            loadingCallback(true);
+                            loadingCallback(true, false);
                             urlStream.end();
                             int retryDelay = 100;
                             do {

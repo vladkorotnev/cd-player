@@ -76,13 +76,17 @@ void InternetRadioMode::update_meta(MetaDataType type, const char * str, int len
 void InternetRadioMode::play(const std::string url) {
     rootView->set_loading(true);
     stop();
+    rootView->lblWarning->hidden = true;
     ESP_LOGI(LOG_TAG, "Create new streamer");
     streamer = new StreamingPipeline(resources.router);
     ESP_LOGI(LOG_TAG, "Start new streamer");
     last_stream_health_check = xTaskGetTickCount();
     streamer->start(
         url,
-        [this](bool isLoading) { rootView->set_loading(isLoading); }
+        [this](bool isLoading, bool isError) {
+            rootView->set_loading(isLoading);
+            if(isError) rootView->lblWarning->hidden = false;
+        }
     );
 }
 
