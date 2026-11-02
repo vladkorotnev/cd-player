@@ -16,12 +16,15 @@ void MirroredDisplayDriver::initialize() {
     wrapped.initialize();
 }
 
-void MirroredDisplayDriver::set_power(bool on) {
-    wrapped.set_power(on);
-    xSemaphoreTake(mutex, portMAX_DELAY);
-    powered = on;
-    ++frame_version;
-    xSemaphoreGive(mutex);
+void MirroredDisplayDriver::set_option(Graphics::Hardware::DriverOption option, bool on) {
+    wrapped.set_option(option, on);
+    
+    if (option == Graphics::Hardware::DriverOption::DISP_OPTION_POWER) {
+        xSemaphoreTake(mutex, portMAX_DELAY);
+        powered = on;
+        ++frame_version;
+        xSemaphoreGive(mutex);
+    }
 }
 
 void MirroredDisplayDriver::set_brightness(Hardware::Brightness b) {

@@ -15,14 +15,19 @@ enum Brightness: uint8_t {
     DISP_BRIGHTNESS_MAX_INVALID
 };
 
+enum DriverOption: uint8_t {
+    DISP_OPTION_POWER,
+    DISP_OPTION_VSYNC
+};
+
 typedef EGGraphBuf BackingBuffer;
 
 class DisplayDriver {
 public:
     virtual ~DisplayDriver() = default;
     virtual void initialize() {}
-    virtual void set_power(bool on) {}
     virtual void set_brightness(Brightness b) { cur_brightness = b; }
+    virtual void set_option(DriverOption opt, bool value) {}
     virtual Brightness get_brightness() { return cur_brightness; }
     virtual const EGSize& get_size() = 0;
 

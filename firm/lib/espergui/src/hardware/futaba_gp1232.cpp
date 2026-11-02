@@ -11,6 +11,7 @@ namespace Graphics::Hardware {
     FutabaGP1232ADriver::FutabaGP1232ADriver(uart_port_t uart_num, gpio_num_t rx_pin, gpio_num_t tx_pin, int baud) {
         _port = uart_num;
         _portSema = xSemaphoreCreateBinary();
+        _frameSema = xSemaphoreCreateBinary();
         const uart_config_t uart_config = {
             .baud_rate = baud,
             .data_bits = UART_DATA_8_BITS,
@@ -28,6 +29,7 @@ namespace Graphics::Hardware {
 
         ESP_LOGI(LOG_TAG, "UART init.");
         xSemaphoreGive(_portSema);
+        xSemaphoreGive(_frameSema);
     }
 
     void FutabaGP1232ADriver::initialize() {
@@ -60,7 +62,30 @@ namespace Graphics::Hardware {
         DisplayDriver::set_brightness(brightness);
     }
 
+    void FutabaGP1232ADriver::set_anti_tearing(bool on) {
+        xSemaphoreTake(_frameSema, portMAX_DELAY);
+        anti_tearing = on;
+        if (!on) {
+            set_visible_dsa(DSA_FIRST);
+        }
+        xSemaphoreGive(_frameSema);
+    }
+
+    void FutabaGP1232ADriver::set_option(DriverOption opt, bool on) {
+        switch (opt) {
+            case DriverOption::DISP_OPTION_POWER:
+                set_power(on);
+                break;
+
+            case DriverOption::DISP_OPTION_VSYNC:
+                set_anti_tearing(on);
+                break;
+        }
+    }
+
     void FutabaGP1232ADriver::transfer(const std::vector<EGRect> changes, const BackingBuffer * buffer) {
+        xSemaphoreTake(_frameSema, portMAX_DELAY);
+        
         for(auto& rect: changes) {
             transfer(rect.origin, rect.size, buffer);
         }
@@ -71,15 +96,20 @@ namespace Graphics::Hardware {
                 transfer(rect.origin, rect.size, buffer);
             }
         }
+        xSemaphoreGive(_frameSema);
+    }
+
+    void FutabaGP1232ADriver::set_visible_dsa(int dsa) {
+        const uint8_t cmd[] = {0x1B, 0x22, (uint8_t)(dsa >> 8), (uint8_t)(dsa & 0xFF)};
+        xSemaphoreTake(_portSema, portMAX_DELAY);
+        uart_write_bytes(_port, (const void*) cmd, 4);
+        xSemaphoreGive(_portSema);
+        visible_dsa = dsa;
     }
 
     void FutabaGP1232ADriver::flip_pages() {
         int new_dsa = (visible_dsa == DSA_FIRST ? DSA_SECOND : DSA_FIRST);
-        const uint8_t cmd[] = {0x1B, 0x22, (uint8_t)(new_dsa >> 8), (uint8_t)(new_dsa & 0xFF)};
-        xSemaphoreTake(_portSema, portMAX_DELAY);
-        uart_write_bytes(_port, (const void*) cmd, 4);
-        xSemaphoreGive(_portSema);
-        visible_dsa = new_dsa;
+        set_visible_dsa(new_dsa);
     }
 
     void FutabaGP1232ADriver::transfer(const EGPoint address, const EGSize size, const BackingBuffer * buffer) {

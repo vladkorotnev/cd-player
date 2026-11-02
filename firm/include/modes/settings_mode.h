@@ -18,10 +18,11 @@ class SettingsMode: public Mode {
         SettingsMode(const PlatformSharedResources res, ModeHost * host);
     
         void setup() override {
+            resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_VSYNC, true);
         }
 
         void loop() override {
-            delay(100);
+            delay(50);
             if(stopEject.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_DEL);
             else if(playPause.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_CURS_ENTER);
             else if(rewind.is_clicked()) on_remote_key_pressed(VirtualKey::RVK_CURS_LEFT);
@@ -35,6 +36,7 @@ class SettingsMode: public Mode {
         }
 
         void teardown() override {
+            resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_VSYNC, false);
         }
     
         UI::View& main_view() override {

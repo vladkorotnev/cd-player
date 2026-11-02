@@ -14,7 +14,7 @@ public:
     ~MirroredDisplayDriver() override;
 
     void initialize() override;
-    void set_power(bool on) override;
+    void set_option(Hardware::DriverOption opt, bool on) override;
     void set_brightness(Hardware::Brightness b) override;
     Hardware::Brightness get_brightness() override;
     const EGSize& get_size() override;

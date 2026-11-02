@@ -22,7 +22,7 @@ class StandbyMode: public Mode {
             resources.cdrom->set_tray_locked(true);
             resources.router->activate_route(Platform::AudioRoute::ROUTE_BYPASS);
             vTaskDelay(pdMS_TO_TICKS(250));
-            resources.display->set_power(false);
+            resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_POWER, false);
             esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
             Core::Services::WLAN::stop();
             setCpuFrequencyMhz(80); // less than that breaks UART!!?
@@ -36,7 +36,7 @@ class StandbyMode: public Mode {
             setCpuFrequencyMhz(240);
             lbl->set_value(localized_string("Hello!"));
             resources.cdrom->set_tray_locked(false);
-            resources.display->set_power(true);
+            resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_POWER, true);
             resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
             esp_wifi_set_ps(WIFI_PS_NONE);
             Core::Services::WLAN::start();
