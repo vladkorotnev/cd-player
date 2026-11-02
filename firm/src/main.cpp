@@ -2,7 +2,7 @@
 #include <WiFi.h>
 #include <LittleFS.h>
 
-#include <board_cfg.h>
+#include <board_cfg.h> //<- must be first so that the config reflects in ESPerCore
 #include <esper-core/service.h>
 #include <web/web_remote.h>
 #include <esper-gui/hardware/futaba_gp1232.h>
@@ -129,7 +129,7 @@ void setup(void) {
   web_remote = new Platform::WebRemote(*infrared_remote);
   remote = web_remote;
 
-  #ifdef BCONF_HAS_WM8805
+  #if (BCONF_AUDIOROUTER_TYPE == AUDIOROUTER_TYPE_WOLFSON_WM8805)
     Platform::WM8805 * spdif = new Platform::WM8805(i2c);
     router = new Platform::WM8805AudioRouter(
       spdif,

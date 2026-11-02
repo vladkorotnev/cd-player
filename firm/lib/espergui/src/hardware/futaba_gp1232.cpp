@@ -1,6 +1,8 @@
 #include <esper-gui/hardware/futaba_gp1232.h>
 #include <driver/uart.h>
 
+#if (BCONF_DISPLAY_TYPE == DISP_TYPE_FUTABA_GP1232A)
+
 static const char LOG_TAG[] = "GP1232";
 
 static const char init_test_string[] = "ESPer-CDP";
@@ -185,3 +187,5 @@ namespace Graphics::Hardware {
         ESP_LOGD(LOG_TAG, "Wrote %i data bytes", out > 0 ? out : 0);
     }
 }
+
+#endif

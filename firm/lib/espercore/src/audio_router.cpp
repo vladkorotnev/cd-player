@@ -20,29 +20,6 @@ namespace Platform {
         _i2s = new I2SStream();
     }
 
-    WM8805AudioRouter::WM8805AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio) :
-        _spdif{spdif},
-        dac_pins{dac},
-        relay_pin(bypass_relay_gpio),
-        I2SOutputAudioRouter(i2s)
-        {
-        gpio_config_t conf = { 0 };
-        conf.mode = GPIO_MODE_OUTPUT;
-        conf.pin_bit_mask = 
-            (1 << dac_pins.demph) | (1 << dac_pins.unmute);
-        if(relay_pin != GPIO_NUM_NC) {
-            conf.pin_bit_mask |= (1 << relay_pin);
-        }
-        gpio_config(&conf);
-
-        set_deemphasis(false);
-    }
-
-    void WM8805AudioRouter::initialize() {
-        _spdif->initialize();
-        I2SOutputAudioRouter::initialize();
-    }
-
     void I2SOutputAudioRouter::activate_route(AudioRoute next) {
         if (next == current_route) return;
 
@@ -53,38 +30,6 @@ namespace Platform {
         }
 
         current_route = next;
-    }
-
-    void WM8805AudioRouter::activate_route(AudioRoute next) {
-        if(next == current_route) return;
-
-        set_bypass_relay(next == ROUTE_BYPASS);
-
-        if (current_route == ROUTE_INTERNAL_CPU) {
-            // tear down the local bus before activating external one
-            I2SOutputAudioRouter::activate_route(next);
-        }
-
-        if(next == ROUTE_NONE_INACTIVE || next == ROUTE_BYPASS) {
-            spdif_teardown_muting_hax();
-            set_mute_internal(true); // shut it up
-            _spdif->set_enabled(false);
-        }
-        else if(next == ROUTE_SPDIF_CD_PORT) {
-            _spdif->set_enabled(true);
-            spdif_set_up_muting_hax();
-        }
-        else if(next == ROUTE_INTERNAL_CPU) {
-            spdif_teardown_muting_hax();
-            _spdif->set_enabled(false);
-            set_mute_internal(false);
-            set_deemphasis(false);
-        }
-
-        if (current_route != ROUTE_INTERNAL_CPU) {
-            // set up the local bus after de-activating external one
-            I2SOutputAudioRouter::activate_route(next);
-        }
     }
 
     AudioStream * I2SOutputAudioRouter::get_io_port_nub() {
@@ -130,6 +75,61 @@ namespace Platform {
         ESP_LOGI(LOG_TAG, "Bus set to output");
     #endif
         bus_active = true;
+    }
+
+#if (BCONF_AUDIOROUTER_TYPE == AUDIOROUTER_TYPE_WOLFSON_WM8805)
+    WM8805AudioRouter::WM8805AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio) :
+        _spdif{spdif},
+        dac_pins{dac},
+        relay_pin(bypass_relay_gpio),
+        I2SOutputAudioRouter(i2s)
+        {
+        gpio_config_t conf = { 0 };
+        conf.mode = GPIO_MODE_OUTPUT;
+        conf.pin_bit_mask = 
+            (1 << dac_pins.demph) | (1 << dac_pins.unmute);
+        if(relay_pin != GPIO_NUM_NC) {
+            conf.pin_bit_mask |= (1 << relay_pin);
+        }
+        gpio_config(&conf);
+
+        set_deemphasis(false);
+    }
+
+    void WM8805AudioRouter::initialize() {
+        _spdif->initialize();
+        I2SOutputAudioRouter::initialize();
+    }
+    void WM8805AudioRouter::activate_route(AudioRoute next) {
+        if(next == current_route) return;
+
+        set_bypass_relay(next == ROUTE_BYPASS);
+
+        if (current_route == ROUTE_INTERNAL_CPU) {
+            // tear down the local bus before activating external one
+            I2SOutputAudioRouter::activate_route(next);
+        }
+
+        if(next == ROUTE_NONE_INACTIVE || next == ROUTE_BYPASS) {
+            spdif_teardown_muting_hax();
+            set_mute_internal(true); // shut it up
+            _spdif->set_enabled(false);
+        }
+        else if(next == ROUTE_SPDIF_CD_PORT) {
+            _spdif->set_enabled(true);
+            spdif_set_up_muting_hax();
+        }
+        else if(next == ROUTE_INTERNAL_CPU) {
+            spdif_teardown_muting_hax();
+            _spdif->set_enabled(false);
+            set_mute_internal(false);
+            set_deemphasis(false);
+        }
+
+        if (current_route != ROUTE_INTERNAL_CPU) {
+            // set up the local bus after de-activating external one
+            I2SOutputAudioRouter::activate_route(next);
+        }
     }
 
     void WM8805AudioRouter::set_deemphasis(bool demph) {
@@ -181,4 +181,5 @@ namespace Platform {
         if(relay_pin == GPIO_NUM_NC) return;
         gpio_set_level(relay_pin, !bypass);
     }
+#endif
 }

@@ -46,6 +46,7 @@ namespace Platform {
             void i2s_bus_setup_local_output();
     };
 
+#if (BCONF_AUDIOROUTER_TYPE == AUDIOROUTER_TYPE_WOLFSON_WM8805)
     class WM8805AudioRouter: public I2SOutputAudioRouter{
     public:
         struct DACBus {
@@ -71,4 +72,6 @@ namespace Platform {
         void set_mute_internal(bool);
         void set_bypass_relay(bool);
     };
+#endif
+
 };

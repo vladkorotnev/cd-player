@@ -3,7 +3,7 @@
 #include <esp32-hal-gpio.h>
 
 namespace Graphics::Hardware {
-
+#if (BCONF_DISPLAY_TYPE == DISP_TYPE_FUTABA_GP1232A)
 class FutabaGP1232ADriver: public DisplayDriver {
 public:
     FutabaGP1232ADriver(uart_port_t uart_num, gpio_num_t rx_pin, gpio_num_t tx_pin, int baud);
@@ -40,5 +40,5 @@ private:
     SemaphoreHandle_t _frameSema;
     const EGSize DISPLAY_SIZE = {160, 32};
 };
-
+#endif
 }
