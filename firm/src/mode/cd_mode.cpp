@@ -59,20 +59,20 @@ public:
     std::shared_ptr<WiFiIcon> wifi;
 
     CDPView(EGSize size): View({EGPointZero, size}) {
-        allButLyric = std::make_shared<UI::View>(EGRect {EGPointZero, {160, 27}});
-        lblSmallTop = std::make_shared<UI::Label>(EGRect {EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
-        lblBigMiddle = std::make_shared<UI::Label>(EGRect {{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
+        allButLyric = std::make_shared<UI::View>(EGRect {EGPointZero, {size.width, 27}});
+        lblSmallTop = std::make_shared<UI::Label>(EGRect {EGPointZero, {size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
+        lblBigMiddle = std::make_shared<UI::Label>(EGRect {{0, 8}, {size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
         lblSmallTop->auto_scroll = true;
         lblBigMiddle->auto_scroll = true;
-        lblTrackIndicator = std::make_shared<UI::Label>(EGRect {{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right);
-        lblTrackInputField = std::make_shared<UI::Label>(EGRect {{140, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right);
+        lblTrackIndicator = std::make_shared<UI::Label>(EGRect {{size.width-20, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right);
+        lblTrackInputField = std::make_shared<UI::Label>(EGRect {{size.width-20, 27}, {20, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Right);
         lblTrackInputField->hidden = true;
         lblDiscIndicator = std::make_shared<UI::Label>(EGRect {{5, 27}, {12, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Left);
-        imgShuffleIcon = std::make_shared<UI::ImageView>(&shuffle_icon, EGRect {{152, 27}, {8, 5}});
+        imgShuffleIcon = std::make_shared<UI::ImageView>(&shuffle_icon, EGRect {{size.width-8, 27}, {8, 5}});
         imgShuffleIcon->hidden = true;
-        lblLyric = std::make_shared<LyricLabel>(EGRect {EGPointZero, {160, 27}});
+        lblLyric = std::make_shared<LyricLabel>(EGRect {EGPointZero, {size.width, 27}});
         lblLyric->hidden = true;
-        timeBar = std::make_shared<TimeBar>(EGRect {{20, 27}, {120, 5}});
+        timeBar = std::make_shared<TimeBar>(EGRect {{20, 27}, {size.width-40, 5}});
 
         wifi = std::make_shared<WiFiIcon>(EGRect {{0, 32 - 5}, {5, 5}});
         loading = std::make_shared<UI::TinySpinner>(EGRect {{0, 32 - 5}, {5, 5}});
@@ -316,7 +316,7 @@ void CDMode::loop() {
     }
 
     // now you know why we have constraints autolayout all that shite in the "real world", duh
-    rootView->lblBigMiddle->frame = (rootView->lblSmallTop->hidden && !rootView->timeBar->hidden && (!rootView->lblTrackIndicator->hidden || !rootView->imgShuffleIcon->hidden)) ? EGRect {EGPointZero, {160, 24}} : EGRect {{0, 8}, {160, 16}};
+    rootView->lblBigMiddle->frame = (rootView->lblSmallTop->hidden && !rootView->timeBar->hidden && (!rootView->lblTrackIndicator->hidden || !rootView->imgShuffleIcon->hidden)) ? EGRect {EGPointZero, {resources.display->get_size().width, 24}} : EGRect {{0, 8}, {resources.display->get_size().width, 16}};
 
     if(stopEject.is_clicked()) {
         player.do_command((sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW) ? Player::Command::STOP : Player::Command::OPEN_CLOSE);

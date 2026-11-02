@@ -12,5 +12,3 @@ struct PlatformSharedResources {
     Platform::IDEBus * ide;
     ATAPI::Device * cdrom;
 };
-
-const EGSize DISPLAY_SIZE = {160, 32};

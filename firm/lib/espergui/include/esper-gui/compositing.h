@@ -7,11 +7,12 @@ namespace Graphics {
 
 class Compositor {
 public:
-    Compositor(Hardware::DisplayDriver* driver, uint16_t width = 160, uint8_t height = 32) {
+    Compositor(Hardware::DisplayDriver* driver) {
+        EGSize display_size = driver->get_size();
         framebuffer = {
             .fmt = EG_FMT_NATIVE,
-            .size = { .width = width, .height = height },
-            .data = (uint8_t*) calloc(width * (height / 8), 1),
+            .size = display_size,
+            .data = (uint8_t*) calloc(display_size.width * (display_size.height / 8), 1),
         };
         display = driver;
     }

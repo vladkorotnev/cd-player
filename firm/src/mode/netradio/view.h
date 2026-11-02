@@ -70,10 +70,10 @@ public:
     shared_ptr<InternetRadioDiagsView> diagsGroup;
 
     InternetRadioView(EGRect f): View(f) {
-        normalGroup = make_shared<UI::View>(EGRect {EGPointZero, {160, 24}});
+        normalGroup = make_shared<UI::View>(EGRect {EGPointZero, {f.size.width, 24}});
         {
-          lblTitle = make_shared<UI::Label>(EGRect {{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
-          lblSubtitle = make_shared<UI::Label>(EGRect {EGPointZero, {160, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
+          lblTitle = make_shared<UI::Label>(EGRect {{0, 8}, {f.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
+          lblSubtitle = make_shared<UI::Label>(EGRect {EGPointZero, {f.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
 
           lblTitle->auto_scroll = true;
           lblTitle->synchronize_scrolling_to(&lblSubtitle);
@@ -92,14 +92,14 @@ public:
         wifi = make_shared<WiFiIcon>(EGRect {{0, 32 - 7}, {5, 5}});
         subviews.push_back(wifi);
 
-        loading = make_shared<UI::TinySpinner>(EGRect {{160 - 6, 32 - 7}, {5, 5}});
+        loading = make_shared<UI::TinySpinner>(EGRect {{f.size.width - 6, f.size.height - 7}, {5, 5}});
         loading->hidden = true;
         subviews.push_back(loading);
 
-        channelBar = make_shared<ChannelGridBar>(EGRect {{5, 32 - 7}, {160 - 12, 7}});
+        channelBar = make_shared<ChannelGridBar>(EGRect {{5, f.size.height - 7}, {f.size.width - 12, 7}});
         subviews.push_back(channelBar);
 
-        lblWarning = make_shared<UI::Label>(EGRect {{160 - 6, 32 - 7}, {5, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Center, "!");
+        lblWarning = make_shared<UI::Label>(EGRect {{f.size.width - 6, f.size.height - 7}, {5, 5}}, Fonts::TinyDigitFont, UI::Label::Alignment::Center, "!");
         lblWarning->hidden = true;
         subviews.push_back(lblWarning);
     }

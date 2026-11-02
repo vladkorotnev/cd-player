@@ -6,8 +6,8 @@
 class StandbyMode: public Mode {
     public:
         StandbyMode(const PlatformSharedResources res, ModeHost * host): 
-            rootView({EGPointZero, {160, 32}}),
-            lbl(std::make_shared<UI::Label>(EGRect {{0, 8}, {160, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center)),
+            rootView({EGPointZero, res.display->get_size()}),
+            lbl(std::make_shared<UI::Label>(EGRect {{0, 8}, {res.display->get_size().width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center)),
             Mode(res, host) {
                 rootView.subviews.push_back(lbl);
         }

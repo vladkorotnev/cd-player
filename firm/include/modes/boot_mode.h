@@ -58,7 +58,7 @@ namespace {
 class BootMode: public Mode {
 public:
     BootMode(const PlatformSharedResources res, ModeHost * host): 
-        rootView(&logoimg, {EGPointZero, {160, 32}}),
+        rootView(&logoimg, {EGPointZero, res.display->get_size()}),
         Mode(res, host) {
         auto spinner = std::make_shared<UI::BigSpinner>(EGRect { {142, 4}, {14, 14} });
         rootView.subviews.push_back(spinner);

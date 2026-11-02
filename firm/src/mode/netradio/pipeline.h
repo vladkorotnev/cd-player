@@ -130,6 +130,7 @@ class InternetRadioMode::StreamingPipeline {
                         else {
                             ESP_LOGE(LOG_TAG, "Content-type is not supported, TODO show error");
                             loadingCallback(false);
+                            xSemaphoreGive(semaNet);
                             vTaskDelay(portMAX_DELAY);
                         }
                         decoder.setDecoder(activeCodec);
@@ -139,6 +140,7 @@ class InternetRadioMode::StreamingPipeline {
                     } else {
                         ESP_LOGE(LOG_TAG, "No content-type reported, TODO show error");
                         loadingCallback(false);
+                        xSemaphoreGive(semaNet);
                         vTaskDelay(portMAX_DELAY);
                     }
                     decoder.setNotifyActive(true);

@@ -13,7 +13,7 @@ class OTAFVUUI: public UI::View {
 public:
     std::shared_ptr<UI::Label> stsLabel;
     std::shared_ptr<UI::ProgressBar> progBar;
-    OTAFVUUI(): View(EGRect {EGPointZero, {160, 32}}),
+    OTAFVUUI(EGSize size): View(EGRect {EGPointZero, size}),
         stsLabel(std::make_shared<UI::Label>(EGRect {{0, 4}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center, "OTA FVU")),
         progBar(std::make_shared<UI::ProgressBar>(EGRect {{0, 24}, {frame.size.width, 8}}))
      {
@@ -27,7 +27,7 @@ public:
 class OTAFVURecoveryBootUI: public UI::View {
 public:
     std::shared_ptr<UI::Label> stsLabel;
-    OTAFVURecoveryBootUI(): View(EGRect {EGPointZero, {160, 32}}),
+    OTAFVURecoveryBootUI(EGSize size): View(EGRect {EGPointZero, size}),
         stsLabel(std::make_shared<UI::Label>(EGRect {{0, 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center, "OTA Recovery !!"))
         {
         subviews = {
@@ -38,7 +38,9 @@ public:
   
 class OTAFVURecoveryBoot: public Mode {
 public:
-    OTAFVURecoveryBoot(const PlatformSharedResources res, ModeHost * host): Mode(res, host) {}
+    OTAFVURecoveryBoot(const PlatformSharedResources res, ModeHost * host): 
+        ui(res.display->get_size()),
+        Mode(res, host) {}
     void loop() { vTaskDelay(pdMS_TO_TICKS(1000)); }
 
     UI::View& main_view() override { return ui; }
@@ -48,7 +50,9 @@ protected:
 
 class OTAFVUUIMode: public Mode {
 public:
-    OTAFVUUIMode(const PlatformSharedResources res, ModeHost * host): Mode(res, host) {}
+    OTAFVUUIMode(const PlatformSharedResources res, ModeHost * host): 
+        ui(res.display->get_size()),
+        Mode(res, host) {}
 
     void on_progress(unsigned int progress, unsigned int total) {
         ui.progBar->maximum = total;

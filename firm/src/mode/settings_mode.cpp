@@ -184,6 +184,6 @@ SettingsMode::SettingsMode(const PlatformSharedResources res, ModeHost * host):
                 settings_menu
             }
         )   
-    ), {EGPointZero, {160, 32}}),
+    ), {EGPointZero, res.display->get_size()}),
     Mode(res, host) {
 }

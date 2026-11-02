@@ -10,7 +10,7 @@ class CDDiagsMenuNode : public ListMenuNode {
 public:
     CDDiagsMenuNode(SettingsMenuNavigator * nav): 
         _host(nav), 
-        spinner(std::make_shared<UI::BigSpinner>(EGRect {{160/2 - 10, 32/2 - 10}, {20, 20}})),
+        spinner(std::make_shared<UI::BigSpinner>(EGRect {{nav->frame.size.width/2 - 10, nav->frame.size.height/2 - 10}, {20, 20}})),
         ListMenuNode("CD Diagnostics", nullptr, std::tuple {})
         {
             subviews.push_back(spinner);
