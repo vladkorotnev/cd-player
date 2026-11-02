@@ -294,7 +294,7 @@ private:
         ModeHost * that = static_cast<ModeHost *>(p);
         while(1) {
             that->composition_pass();
-            vTaskDelay(pdMS_TO_TICKS(33));
+            vTaskDelay(pdMS_TO_TICKS(16));
         }
         vTaskDelete(NULL);
     }
