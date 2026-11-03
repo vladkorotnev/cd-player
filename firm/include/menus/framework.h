@@ -147,7 +147,7 @@ public:
 
     const std::string title;
     const EGImage * icon;
-    virtual void execute(MenuNavigator * host) const { ESP_LOGE("MenuNode", "Did you forget to override execute()?"); }
+    virtual void execute(MenuNavigator * host) const = 0;
     virtual void draw_accessory(EGGraphBuf* buf, EGSize bounds) const {}
 };
 

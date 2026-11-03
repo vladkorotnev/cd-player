@@ -18,6 +18,7 @@
 #define BCONF_DISPLAY_BAUD                      115200
 
 #define BCONF_RC_TYPE                           RC_TYPE_SONY_PS2_REMOTE
+#define BCONF_INFRARED_PIN                      GPIO_NUM_34
 
 #define BCONF_IDE_TYPE                          IDEBUS_TYPE_ATAPIDUINO_ISH_I2C
 
@@ -30,4 +31,3 @@
 #define BCONF_DAC_DATA_PIN                      GPIO_NUM_27
 
 #define BCONF_BYPASS_RELAY_PIN                  GPIO_NUM_19
-#define BCONF_INFRARED_PIN                      GPIO_NUM_34
