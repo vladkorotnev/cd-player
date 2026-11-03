@@ -147,7 +147,7 @@ public:
 
     const std::string title;
     const EGImage * icon;
-    virtual void execute(MenuNavigator * host) const = 0;
+    virtual void execute(MenuNavigator * host) const {}
     virtual void draw_accessory(EGGraphBuf* buf, EGSize bounds) const {}
 };
 
