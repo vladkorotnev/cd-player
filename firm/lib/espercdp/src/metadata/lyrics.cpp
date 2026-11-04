@@ -142,6 +142,9 @@ namespace CD {
         client.setInsecure();
         client.setTimeout(5000);
 
+        // LRCLIB responses may use HTTP/1.1 chunked transfer encoding, while
+        // getStream() exposes the raw chunk framing to ArduinoJson.
+        http.useHTTP10(true);
         http.begin(client, url);
 
         client.setInsecure();
@@ -182,6 +185,7 @@ namespace CD {
 
         client.setTimeout(5000);
         http.addHeader("Referer", referer);
+        http.setReuse(false);
         http.begin(client, url);
 
         ESP_LOGI(LOG_TAG, "Query: %s", url);
@@ -267,6 +271,7 @@ namespace CD {
         
         client.setTimeout(5000);
 
+        http.setReuse(false);
         http.begin(client, query_url.c_str());
         http.addHeader("Referer", "http://music.163.com/");
         http.addHeader("Cookie", "appver=2.0.2");
