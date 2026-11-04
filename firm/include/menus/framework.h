@@ -3,6 +3,8 @@
 #include <esper-core/platform.h>
 #include <esper-core/prefs.h>
 #include <localize.h>
+#include <freertos/FreeRTOS.h>
+#include <freertos/task.h>
 #include <stack>
 #include <tuple>
 
@@ -309,13 +311,11 @@ public:
         editingFont(Fonts::FallbackWildcard16px),
         titleFont(Fonts::FallbackWildcard8px),
         _leftLbl(std::make_shared<UI::Label>(EGRectZero, editingFont, UI::Label::Alignment::Right)),
-        _curLbl(std::make_shared<UI::Label>(EGRectZero, editingFont, UI::Label::Alignment::Center)),
         _rightLbl(std::make_shared<UI::Label>(EGRectZero, editingFont, UI::Label::Alignment::Left)),
         _titleLbl(std::make_shared<UI::Label>(EGRectZero, titleFont, UI::Label::Alignment::Right)),
         MenuPresentable(),
         MenuNode(title) {
             subviews.push_back(_leftLbl);
-            subviews.push_back(_curLbl);
             subviews.push_back(_rightLbl);
             subviews.push_back(_titleLbl);
         }
@@ -328,37 +328,40 @@ public:
         ESP_LOGI("TextEdit", "string before edit = '%s'", edited_string.c_str());
         str_pos = edited_string.size();
         int vert_center = frame.size.height/2 - editingFont->size.height/2;
-        _curLbl->frame = {{frame.size.width / 2 - editingFont->size.width/2, vert_center}, editingFont->size};
-        _leftLbl->frame = {{0, vert_center}, {_curLbl->frame.origin.x - 5, editingFont->size.height}};
-        _rightLbl->frame = {{_curLbl->frame.origin.x + _curLbl->frame.size.width + 5, vert_center}, {frame.size.width - (_curLbl->frame.origin.x + _curLbl->frame.size.width + 5), editingFont->size.height}};
+        _cursorFrame = {{frame.size.width / 2 - editingFont->size.width/2, vert_center}, editingFont->size};
+        _leftLbl->frame = {{0, vert_center}, {_cursorFrame.origin.x - 5, editingFont->size.height}};
+        _rightLbl->frame = {{_cursorFrame.origin.x + _cursorFrame.size.width + 5, vert_center}, {frame.size.width - (_cursorFrame.origin.x + _cursorFrame.size.width + 5), editingFont->size.height}};
+        sync_wheel_to_current_char(false);
         update_labels();
     }
 
     void draw_accessory(EGGraphBuf* buf, EGSize bounds) const override { UI::ListItem::DisclosureIndicatorDrawingFunc(buf, bounds); }
 
+    bool needs_display() override {
+        return wheel_animation_active || View::needs_display();
+    }
+
     void render(EGGraphBuf * buf) override {
-        EGRect cursorRect = EGRectInset(_curLbl->frame, -1, -1);
+        EGRect cursorRect = EGRectInset(_cursorFrame, -1, -1);
+
+        int offset = current_wheel_animation_offset();
+        int row_pitch = wheel_row_pitch();
+        int offset_magnitude = offset < 0 ? -offset : offset;
+        int rows_to_draw = (frame.size.height + offset_magnitude) / row_pitch + 2;
+
+        for(int relative_idx = -rows_to_draw; relative_idx <= rows_to_draw; relative_idx++) {
+            int y = _cursorFrame.origin.y + relative_idx * row_pitch + offset;
+            if(y <= -editingFont->size.height || y >= frame.size.height) continue;
+
+            // At the end of the string the cursor is intentionally empty until
+            // the user chooses a character, matching the old label behavior.
+            if(relative_idx == 0 && str_pos >= edited_string.size() && !wheel_animation_active) continue;
+
+            int glyph_idx = wrap_wheel_index(cur_wheel_idx + relative_idx);
+            auto glyph = Fonts::EGFont_glyph(editingFont, input_wheel[glyph_idx]);
+            EGBlitBuffer(buf, {_cursorFrame.origin.x, y}, &glyph);
+        }
         EGDrawRect(buf, cursorRect);
-
-        int y = _curLbl->frame.origin.y - editingFont->size.height - 1;
-        int cur_idx = cur_wheel_idx;
-        do {
-            if(cur_idx == 0) cur_idx = input_wheel_length - 1;
-            else cur_idx--;
-            auto glyph = Fonts::EGFont_glyph(editingFont, input_wheel[cur_idx]);
-            EGBlitBuffer(buf, {_curLbl->frame.origin.x, y}, &glyph);
-            y -= editingFont->size.height;
-        } while(y > -editingFont->size.height);
-
-        cur_idx = cur_wheel_idx;
-        y = _curLbl->frame.origin.y + editingFont->size.height + 1;
-        do {
-            if(cur_idx == input_wheel_length - 1) cur_idx = 0;
-            else cur_idx++;
-            auto glyph = Fonts::EGFont_glyph(editingFont, input_wheel[cur_idx]);
-            EGBlitBuffer(buf, {_curLbl->frame.origin.x, y}, &glyph);
-            y += editingFont->size.height;
-        } while(y < (frame.size.height + editingFont->size.height));
 
         View::render(buf);
     }
@@ -377,38 +380,43 @@ public:
     void on_key_pressed(VirtualKey k, MenuNavigator* host) override {
         if(k == RVK_CURS_LEFT || k == RVK_TRACK_PREV) {
             str_pos = std::max(0, (str_pos - 1));
+            sync_wheel_to_current_char(true);
             update_labels();
         }
         else if(k == RVK_CURS_RIGHT || k == RVK_TRACK_NEXT) {
             str_pos = std::min((int)edited_string.size(), str_pos + 1);
+            sync_wheel_to_current_char(true);
             update_labels();
         }
         else if(k == RVK_CURS_ENTER) {
             host->pop();
         }
         else if(k == RVK_CURS_DOWN) {
-            if(cur_wheel_idx == input_wheel_length - 1) cur_wheel_idx = 0;
-            else cur_wheel_idx++;
+            cur_wheel_idx = wrap_wheel_index(cur_wheel_idx + 1);
+            start_wheel_animation(1);
             set_cur_char_from_wheel();
         }
         else if(k == RVK_CURS_UP) {
-            if(cur_wheel_idx == 0) cur_wheel_idx = input_wheel_length - 1;
-            else cur_wheel_idx--;
+            cur_wheel_idx = wrap_wheel_index(cur_wheel_idx - 1);
+            start_wheel_animation(-1);
             set_cur_char_from_wheel();
         }
         else if(k == RVK_DEL) {
             if(str_pos < edited_string.size()) {
                 edited_string.erase(str_pos, 1);
+                sync_wheel_to_current_char(true);
                 update_labels();
             }
             else if(str_pos == edited_string.size() && str_pos > 0) {
                 edited_string.erase(str_pos - 1, 1);
                 str_pos--;
+                sync_wheel_to_current_char(true);
                 update_labels();
             }
         }
         
         if(k >= RVK_START_OF_NUMBERS && k < RVK_END_OF_NUMBERS) {
+            int previous_wheel_idx = cur_wheel_idx;
             if(k != last_letter_key && str_pos == (edited_string.size() - 1)) {
                 // auto advance when typing at the end
                 str_pos++;
@@ -459,6 +467,7 @@ public:
 
                 default: break;
             }
+            start_wheel_animation(shortest_wheel_delta(previous_wheel_idx, cur_wheel_idx));
             set_cur_char_from_wheel();
             
         } else {
@@ -472,15 +481,19 @@ protected:
     const Fonts::Font * editingFont;
     const Fonts::Font * titleFont;
     const std::shared_ptr<UI::Label> _leftLbl;
-    const std::shared_ptr<UI::Label> _curLbl;
     const std::shared_ptr<UI::Label> _rightLbl;
     const std::shared_ptr<UI::Label> _titleLbl;
+    EGRect _cursorFrame = EGRectZero;
 
     const char * input_wheel = " ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789.,@!?<>;:{}[]\"'#$%&()+-_*/=|";
     const int input_wheel_length = strlen(input_wheel);
     int cur_wheel_idx = 0;
     bool last_letter_was_lower = false;
     VirtualKey last_letter_key = RVK_MAX_INVALID;
+    static constexpr uint32_t wheel_animation_duration_ms = 140;
+    bool wheel_animation_active = false;
+    int wheel_animation_start_offset = 0;
+    TickType_t wheel_animation_start_tick = 0;
 
     void handle_letter_button(const char upper_start, const char upper_end, const char lower_start, const char lower_end) {
         if(input_wheel[cur_wheel_idx] == upper_end) {
@@ -505,6 +518,51 @@ protected:
         update_labels();
     }
 
+    int wheel_row_pitch() const {
+        return editingFont->size.height + 1;
+    }
+
+    int wrap_wheel_index(int idx) const {
+        idx %= input_wheel_length;
+        if(idx < 0) idx += input_wheel_length;
+        return idx;
+    }
+
+    int shortest_wheel_delta(int from, int to) const {
+        int delta = to - from;
+        if(delta > input_wheel_length / 2) delta -= input_wheel_length;
+        else if(delta < -(input_wheel_length / 2)) delta += input_wheel_length;
+        return delta;
+    }
+
+    int current_wheel_animation_offset() {
+        if(!wheel_animation_active) return 0;
+
+        TickType_t elapsed = xTaskGetTickCount() - wheel_animation_start_tick;
+        TickType_t duration = pdMS_TO_TICKS(wheel_animation_duration_ms);
+        if(elapsed >= duration) {
+            wheel_animation_active = false;
+            return 0;
+        }
+
+        float progress = static_cast<float>(elapsed) / duration;
+        float eased_progress = progress * progress * (3.0f - 2.0f * progress);
+        return static_cast<int>(wheel_animation_start_offset * (1.0f - eased_progress));
+    }
+
+    void start_wheel_animation(int wheel_delta) {
+        int current_offset = current_wheel_animation_offset();
+        wheel_animation_start_offset = current_offset + wheel_delta * wheel_row_pitch();
+        wheel_animation_start_tick = xTaskGetTickCount();
+        wheel_animation_active = wheel_animation_start_offset != 0;
+        set_needs_display();
+    }
+
+    void cancel_wheel_animation() {
+        wheel_animation_active = false;
+        wheel_animation_start_offset = 0;
+    }
+
     void move_wheel_to_char(char c) {
         for(int i = 0; i < input_wheel_length; i++) {
             if(input_wheel[i] == c) {
@@ -514,13 +572,21 @@ protected:
         }
     }
 
+    void sync_wheel_to_current_char(bool animated) {
+        if(str_pos >= edited_string.size()) {
+            cancel_wheel_animation();
+            return;
+        }
+
+        int previous_wheel_idx = cur_wheel_idx;
+        move_wheel_to_char(edited_string[str_pos]);
+        if(animated) start_wheel_animation(shortest_wheel_delta(previous_wheel_idx, cur_wheel_idx));
+        else cancel_wheel_animation();
+        last_letter_was_lower = (edited_string[str_pos] >= 'a' && edited_string[str_pos] <= 'z');
+    }
+
     void update_labels() {
         _leftLbl->set_value(edited_string.substr(0, str_pos));
-        if(str_pos < edited_string.size()) {
-            _curLbl->set_value(edited_string.substr(str_pos, 1));
-        } else {
-            _curLbl->set_value("");
-        }
         if((str_pos + 1) < edited_string.size()) {
             _rightLbl->set_value(edited_string.substr(str_pos + 1));
         } else {
@@ -528,7 +594,6 @@ protected:
         }
 
         if(str_pos < edited_string.size()) {
-            move_wheel_to_char(edited_string[str_pos]);
             last_letter_was_lower = (edited_string[str_pos] >= 'a' && edited_string[str_pos] <= 'z');
         }
 
