@@ -317,9 +317,9 @@ void CDMode::loop() {
     }
 
     // now you know why we have constraints autolayout all that shite in the "real world", duh
-    rootView->lblBigMiddle->frame = (rootView->lblSmallTop->hidden && !rootView->timeBar->hidden && (!rootView->lblTrackIndicator->hidden || !rootView->imgShuffleIcon->hidden)) 
-            ? EGRect {{0, resources.display->get_size().height/2 - 12}, {resources.display->get_size().width, 24}} 
-            : EGRect {{0, resources.display->get_size().height/2 - 8}, {resources.display->get_size().width, 16}};
+    rootView->lblBigMiddle->frame = rootView->lblSmallTop->hidden 
+            ? EGRect {{0, rootView->allButLyric->frame.size.height/2 - 12}, {rootView->allButLyric->frame.size.width, 24}} 
+            : EGRect {{0, rootView->allButLyric->frame.size.height/2 - 8}, {rootView->allButLyric->frame.size.width, 16}};
 
     if(stopEject.is_clicked()) {
         player.do_command((sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW) ? Player::Command::STOP : Player::Command::OPEN_CLOSE);

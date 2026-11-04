@@ -3,6 +3,7 @@
 #include <esper-cdp/player.h>
 #include <esper-cdp/lyrics.h>
 #include <esp32-hal-log.h>
+#include <algorithm>
 
 struct LyricPlayerState {
     bool must_clear;
@@ -39,7 +40,8 @@ public:
             int cur_ms = MSF_TO_MILLIS(pos);
             int idx = cursor;
             for(int i = std::max(0, idx); i < cur_metadata.lyrics.size(); i++) {
-                if(cur_metadata.lyrics[i].millisecond <= cur_ms && cur_metadata.lyrics[i + 1].millisecond > cur_ms) {
+                bool is_last = i + 1 >= cur_metadata.lyrics.size();
+                if(cur_metadata.lyrics[i].millisecond <= cur_ms && (is_last || cur_metadata.lyrics[i + 1].millisecond > cur_ms)) {
                     idx = i;
                     break;
                 }
@@ -47,10 +49,11 @@ public:
             if(idx != cursor && idx != -1) {
                 cursor = idx;
                 ESP_LOGI("Lyric", " %i | %i | e=%i\t -= %s =- ", cur_ms, cur_metadata.lyrics[idx].millisecond, (cur_ms - cur_metadata.lyrics[idx].millisecond), cur_metadata.lyrics[idx].line.c_str());
-                if(idx < cur_metadata.lyrics.size()) {
+                if(idx + 1 < cur_metadata.lyrics.size()) {
                     rslt.length = cur_metadata.lyrics[idx + 1].millisecond - cur_metadata.lyrics[idx].millisecond;
                 } else {
-                    rslt.length = 20000; // default
+                    int remaining = std::max(0, MSF_TO_MILLIS(cur_metadata.duration) - cur_ms);
+                    rslt.length = std::min(20000, remaining);
                 }
                 rslt.line = cur_metadata.lyrics[idx].line;
             }

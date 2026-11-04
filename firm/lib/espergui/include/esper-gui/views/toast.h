@@ -45,7 +45,7 @@ namespace UI {
                     if (dismissCallback) dismissCallback();
                 }
             }
-            return View::needs_display();
+            return !hidden || View::needs_display(); // <- hack since our compositor does not have Z-order yet
         }
 
     private:
