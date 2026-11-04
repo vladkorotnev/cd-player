@@ -1,7 +1,7 @@
 #pragma once
 #include <scrobbler.h>
 #include <HTTPClient.h>
-#include <WiFi.h>
+#include <WiFiClientSecure.h>
 #include <MD5Builder.h>
 #include <Arduino.h>
 #include <ArduinoJson.h>
@@ -60,7 +60,7 @@ private:
     std::string password;
     std::string session_key;
     bool tried_to_auth;
-    const char * url = "http://ws.audioscrobbler.com/2.0/";
+    const char * url = "https://ws.audioscrobbler.com/2.0/";
 
     bool auth_if_needed() {
         if(!tried_to_auth) {
@@ -76,9 +76,11 @@ private:
     }
 
     void perform_lastfm_request(std::string& post_data, const std::string& api_sig, const std::string& action_description) {
+        WiFiClientSecure client;
+        client.setInsecure();
         HTTPClient http;
         http.setTimeout(3000);
-        http.begin(url);
+        http.begin(client, url);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
         post_data += "&api_sig=" + api_sig + "&format=json";
@@ -118,9 +120,11 @@ private:
     }
 
     JsonDocument perform_lastfm_get_response(std::string& post_data, const std::string& api_sig, const std::string& action_description) {
+        WiFiClientSecure client;
+        client.setInsecure();
         HTTPClient http;
         http.setTimeout(3000);
-        http.begin(url);
+        http.begin(client, url);
         http.addHeader("Content-Type", "application/x-www-form-urlencoded");
 
         post_data += "&api_sig=" + api_sig + "&format=json";
