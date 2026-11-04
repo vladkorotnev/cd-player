@@ -296,6 +296,11 @@ void CDMode::loop() {
     if(sts != Player::State::PLAY) {
         rootView->set_lyric_show(false, 0);
         lrc.reset();
+        if(scrobbler != nullptr) {
+            scrobbler->pause();
+            if(sts != Player::State::PAUSE && sts != Player::State::SEEK_FF && sts != Player::State::SEEK_REW)
+                scrobbler->reset();
+        }
     } else if(tracklist.size() >= trk.track && trk.track > 0 && trk.index > 0) {
         const auto& metadata = tracklist[trk.track - 1];
         lrc.feed_track(trk, metadata);
@@ -312,8 +317,10 @@ void CDMode::loop() {
 
         if(scrobbler != nullptr) {
             scrobbler->feed_track(trk, metadata);
-            scrobbler->feed_position(msf_now);
+            scrobbler->feed_playback();
         }
+    } else if(scrobbler != nullptr) {
+        scrobbler->pause();
     }
 
     // now you know why we have constraints autolayout all that shite in the "real world", duh

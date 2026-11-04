@@ -20,20 +20,17 @@ public:
     {}
 
 protected:
-    void do_scrobble(const CD::Track& meta) override {
+    void do_scrobble(const CD::Track& meta, time_t started_at) override {
         if (!auth_if_needed()) return;
-
-        time_t now;
-        time(&now);
 
         std::string post_data = "method=track.scrobble&artist=" + urlEncode(meta.artist) +
                                 "&track=" + urlEncode(meta.title) +
-                                "&timestamp=" + std::to_string(now) +
+                                "&timestamp=" + std::to_string(started_at) +
                                 "&trackNumber=" + std::to_string(meta.disc_position.number) +
                                 "&api_key=" + api_key +
                                 "&sk=" + session_key;
 
-        std::string api_sig = calculate_api_sig("api_key" + api_key + "artist" + meta.artist + "methodtrack.scrobble" + "sk" + session_key + "timestamp" + std::to_string(now) + "track" + meta.title + "trackNumber" + std::to_string(meta.disc_position.number) + api_secret);
+        std::string api_sig = calculate_api_sig("api_key" + api_key + "artist" + meta.artist + "methodtrack.scrobble" + "sk" + session_key + "timestamp" + std::to_string(started_at) + "track" + meta.title + "trackNumber" + std::to_string(meta.disc_position.number) + api_secret);
 
         perform_lastfm_request(post_data, api_sig, "Scrobbling");
     }

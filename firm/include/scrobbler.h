@@ -3,6 +3,7 @@
 #include <esper-cdp/types.h>
 #include <esper-cdp/player.h>
 #include <esp32-hal-log.h>
+#include <ctime>
 
 class Scrobbler {
 friend class ThreadedScrobbler;
@@ -15,8 +16,10 @@ public:
             cur_metadata = meta;
             cur_track = trk;
             scrobbled = false;
-            scrobble_at = 0;
-            scrobble_at = std::min(MSF_TO_FRAMES((MSF { .M = 4, .S = 0, .F = 0 })), MSF_TO_FRAMES(cur_metadata.duration) / 2);
+            started_at = std::time(nullptr);
+            listened_ticks = 0;
+            playback_active = false;
+            scrobble_at = std::min(pdMS_TO_TICKS(4 * 60 * 1000), pdMS_TO_TICKS(MSF_TO_MILLIS(cur_metadata.duration) / 2));
 
             if(cur_metadata.title != "") {
                 do_now_playing(cur_metadata);
@@ -24,29 +27,46 @@ public:
         }
     }
 
-    void feed_position(MSF pos) {
+    void feed_playback() {
+        if(cur_track.track == 0) return;
+        const TickType_t now = xTaskGetTickCount();
+        if(playback_active) listened_ticks += now - last_play_tick;
+        last_play_tick = now;
+        playback_active = true;
+
         if(scrobbled) return;
-        if(MSF_TO_FRAMES(pos) >= scrobble_at) {
+        if(listened_ticks >= scrobble_at) {
             if(MSF_TO_MILLIS(cur_metadata.duration) > 30000 && cur_metadata.title != "")
-                do_scrobble(cur_metadata);
+                do_scrobble(cur_metadata, started_at);
             scrobbled = true;
         }
+    }
+
+    void pause() {
+        playback_active = false;
     }
 
     void reset() {
         cur_track = { 0 };
         scrobbled = false;
         scrobble_at = 0;
+        listened_ticks = 0;
+        playback_active = false;
+        started_at = 0;
     }
 
 protected:
-    virtual void do_scrobble(const CD::Track& meta) {};
+    virtual void do_scrobble(const CD::Track& meta, time_t started_at) {};
     virtual void do_now_playing(const CD::Track& meta) {};
 
 private:
     CD::Player::TrackNo cur_track = {0};
     CD::Track cur_metadata;
-    int scrobble_at = 0;
+    TickType_t scrobble_at = 0;
+    TickType_t last_play_tick = 0;
+    uint64_t listened_ticks = 0;
+    time_t started_at = 0;
+    bool playback_active = false;
     bool scrobbled = false;
 };
 
@@ -78,10 +98,11 @@ public:
     }
 
 protected:
-    void do_scrobble(const CD::Track& meta) override {
+    void do_scrobble(const CD::Track& meta, time_t started_at) override {
         ScrobbleTask tmp;
         tmp.kind = ScrobbleTaskKind::Scrobble;
         tmp.meta = meta;
+        tmp.started_at = started_at;
         queue.push(tmp);
         xSemaphoreGive(queueSemaphore);
     }
@@ -102,6 +123,7 @@ private:
     struct ScrobbleTask {
         CD::Track meta;
         ScrobbleTaskKind kind;
+        time_t started_at = 0;
     };
     SemaphoreHandle_t queueSemaphore;
     TaskHandle_t scrobbleTask;
@@ -121,7 +143,7 @@ private:
                         that->innerScrobbler->do_now_playing(tmp.meta);
                         break;
                     case ScrobbleTaskKind::Scrobble:
-                        that->innerScrobbler->do_scrobble(tmp.meta);
+                        that->innerScrobbler->do_scrobble(tmp.meta, tmp.started_at);
                         break;
                 }
             }
