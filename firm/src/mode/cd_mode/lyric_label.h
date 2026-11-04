@@ -17,8 +17,27 @@ public:
         if(str != value) {
             value = str;
             typeset();
+            animation_started_at = xTaskGetTickCount();
+            last_animation_tick = animation_started_at;
+            animation_active = true;
             set_needs_display();
         }
+    }
+
+    bool needs_display() override {
+        if(animation_active) {
+            TickType_t now = xTaskGetTickCount();
+            if(now - animation_started_at >= pdMS_TO_TICKS(animation_duration_ms)) {
+                animation_active = false;
+                set_needs_display(); // erase the bottom edge after its final frame
+            }
+            else if(now - last_animation_tick >= pdMS_TO_TICKS(animation_frame_interval_ms)) {
+                last_animation_tick = now;
+                set_needs_display();
+            }
+        }
+
+        return View::needs_display();
     }
 
     void render(EGGraphBuf * buf) override {
@@ -33,12 +52,51 @@ public:
             origin.y += font_to_use->size.height;
         }
 
-        EGDrawRect(buf, EGRect {EGPointZero, frame.size});
+        draw_change_swipe(buf);
         
         View::render(buf);
     }
 
 protected:
+    void draw_change_swipe(EGGraphBuf * buf) {
+        if(!animation_active || frame.size.width < 2 || frame.size.height < 2) return;
+
+        const int width = frame.size.width;
+        const int height = frame.size.height;
+        const int elapsed_ms = pdTICKS_TO_MS(xTaskGetTickCount() - animation_started_at);
+        const int side_length = std::min(animation_side_length, height - 1);
+
+        if(elapsed_ms < animation_intro_ms) {
+            // Reveal the top edge while short side rails grow down from it.
+            const int rail_end = std::min(side_length,
+                1 + elapsed_ms * side_length / animation_intro_ms);
+            EGDrawLine(buf, {0, 0}, {0, rail_end});
+            EGDrawLine(buf, {width - 1, 0}, {width - 1, rail_end});
+            return;
+        }
+
+        if(elapsed_ms < animation_intro_ms + animation_travel_ms) {
+            // Drop the top edge and move the fixed-length rails downward.
+            const int travel_elapsed = elapsed_ms - animation_intro_ms;
+            const int rail_end = side_length
+                + travel_elapsed * (height - 1 - side_length) / animation_travel_ms;
+            const int rail_start = rail_end - side_length;
+            EGDrawLine(buf, {0, rail_start}, {0, rail_end});
+            EGDrawLine(buf, {width - 1, rail_start}, {width - 1, rail_end});
+            return;
+        }
+
+        if(elapsed_ms < animation_intro_ms + animation_travel_ms + animation_collapse_ms) {
+            // Reveal the bottom edge and collapse the rails into it.
+            const int collapse_elapsed = elapsed_ms - animation_intro_ms - animation_travel_ms;
+            const int remaining = side_length
+                - collapse_elapsed * side_length / animation_collapse_ms;
+            EGDrawLine(buf, {0, height - 1 - remaining}, {0, height - 1});
+            EGDrawLine(buf, {width - 1, height - 1 - remaining}, {width - 1, height - 1});
+            return;
+        }
+    }
+
     void typeset() {
         if(!try_typesetting_with_font(Fonts::FallbackWildcard16px, value.c_str())) {
             // 12px font we have only looks good with CJK, don't typeset other scripts with it
@@ -164,5 +222,15 @@ protected:
     const Fonts::Font* font_to_use = Fonts::FallbackWildcard16px;
     std::string value = "";
     std::vector<std::wstring> lines = {};
+    static constexpr int animation_intro_ms = 120;
+    static constexpr int animation_travel_ms = 240;
+    static constexpr int animation_collapse_ms = 120;
+    static constexpr int animation_duration_ms = animation_intro_ms
+        + animation_travel_ms + animation_collapse_ms;
+    static constexpr int animation_frame_interval_ms = 16;
+    static constexpr int animation_side_length = 6;
+    TickType_t animation_started_at = 0;
+    TickType_t last_animation_tick = 0;
+    bool animation_active = false;
     const char * LOG_TAG = "Typeset";
 };
