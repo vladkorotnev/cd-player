@@ -11,7 +11,7 @@
 #define BCONF_I2C_SCL                           GPIO_NUM_33
 #define BCONF_I2C_FRQ                           400000
 
-#define BCONF_DISPLAY_TYPE                      DISP_TYPE_FUTABA_GP1232A
+// #define BCONF_DISPLAY_TYPE                      DISP_TYPE_FUTABA_GP1232A
 #define BCONF_DISPLAY_UART_NUM                  UART_NUM_1
 #define BCONF_DISPLAY_RX_PIN                    GPIO_NUM_23
 #define BCONF_DISPLAY_TX_PIN                    GPIO_NUM_22
@@ -31,3 +31,8 @@
 #define BCONF_DAC_DATA_PIN                      GPIO_NUM_27
 
 #define BCONF_BYPASS_RELAY_PIN                  GPIO_NUM_19
+
+// For prototyping
+#define BCONF_DISPLAY_TYPE                      DISP_TYPE_NULL
+#define EGUI_NULL_DISP_SIZE_WIDTH               256
+#define EGUI_NULL_DISP_SIZE_HEIGHT              64

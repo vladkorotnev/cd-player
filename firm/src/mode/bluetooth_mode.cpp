@@ -30,9 +30,9 @@ static const EGImage vol_icn = {
 class BluetoothMode::BluetoothView: public UI::View {
 public:
     BluetoothView(EGRect f): View(f) {
-        lblTitle = make_shared<UI::Label>(EGRect {{0, 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
+        lblTitle = make_shared<UI::Label>(EGRect {{0, frame.size.height/2 - 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
         lblSubtitle = make_shared<UI::Label>(EGRect {EGPointZero, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
-        lblSource = make_shared<UI::Label>(EGRect {{0, 24}, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth");
+        lblSource = make_shared<UI::Label>(EGRect {{0, frame.size.height - 8}, {frame.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right, "Bluetooth");
 
         lblTitle->auto_scroll = true;
         lblTitle->synchronize_scrolling_to(&lblSubtitle);
@@ -40,7 +40,7 @@ public:
         lblSubtitle->synchronize_scrolling_to(&lblTitle);
         lblSource->hidden = true;
 
-        volGrp = make_shared<UI::View>(EGRect { {0, 24}, {frame.size.width, 8} });
+        volGrp = make_shared<UI::View>(EGRect { {0, frame.size.height - 8}, {frame.size.width, 8} });
         volBar = make_shared<UI::ProgressBar>(EGRect {{vol_icn.size.width + 4, 0}, {volGrp->frame.size.width - vol_icn.size.width - 4, 8}});
         auto volIcn = make_shared<UI::ImageView>(&vol_icn, EGRect {EGPointZero, vol_icn.size});
         volGrp->subviews.push_back(volIcn);

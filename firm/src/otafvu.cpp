@@ -14,8 +14,8 @@ public:
     std::shared_ptr<UI::Label> stsLabel;
     std::shared_ptr<UI::ProgressBar> progBar;
     OTAFVUUI(EGSize size): View(EGRect {EGPointZero, size}),
-        stsLabel(std::make_shared<UI::Label>(EGRect {{0, 4}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center, "OTA FVU")),
-        progBar(std::make_shared<UI::ProgressBar>(EGRect {{0, 24}, {frame.size.width, 8}}))
+        stsLabel(std::make_shared<UI::Label>(EGRect {{0, frame.size.height/2-8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center, "OTA FVU")),
+        progBar(std::make_shared<UI::ProgressBar>(EGRect {{0, frame.size.height - 8}, {frame.size.width, 8}}))
      {
         subviews = {
             stsLabel,
@@ -28,7 +28,7 @@ class OTAFVURecoveryBootUI: public UI::View {
 public:
     std::shared_ptr<UI::Label> stsLabel;
     OTAFVURecoveryBootUI(EGSize size): View(EGRect {EGPointZero, size}),
-        stsLabel(std::make_shared<UI::Label>(EGRect {{0, 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center, "OTA Recovery !!"))
+        stsLabel(std::make_shared<UI::Label>(EGRect {{0, frame.size.height/2 - 8}, {frame.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center, "OTA Recovery !!"))
         {
         subviews = {
             stsLabel,

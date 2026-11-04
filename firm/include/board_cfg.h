@@ -14,3 +14,7 @@
 #ifndef BCONF_BYPASS_RELAY_PIN
     #define BCONF_BYPASS_RELAY_PIN GPIO_NUM_NC
 #endif
+
+#if (BCONF_DISPLAY_TYPE == DISP_TYPE_NULL)
+    #warning "Building with no display driver, I assume you know what you're doing."
+#endif

@@ -1,6 +1,7 @@
 #pragma once
 
 // Display types
+#define DISP_TYPE_NULL                  0x00000000
 #define DISP_TYPE_FUTABA_GP1232A        0x00000001
 #define DISP_TYPE_ST7920_SPI            0x00000002
 

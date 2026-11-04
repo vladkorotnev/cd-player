@@ -37,4 +37,19 @@ protected:
     Brightness cur_brightness = DISP_BRIGHTNESS_0;
 };
 
+#ifndef EGUI_NULL_DISP_SIZE_WIDTH
+    #define EGUI_NULL_DISP_SIZE_WIDTH 160
+#endif
+#ifndef EGUI_NULL_DISP_SIZE_HEIGHT
+    #define EGUI_NULL_DISP_SIZE_HEIGHT 32
+#endif
+
+class NullDisplayDriver: public DisplayDriver {
+public:
+    NullDisplayDriver(const EGSize size = {EGUI_NULL_DISP_SIZE_WIDTH, EGUI_NULL_DISP_SIZE_HEIGHT}): virtualSize(size), DisplayDriver() {}
+    const EGSize& get_size() override { return virtualSize; }
+private:
+    const EGSize virtualSize;
+};
+
 }

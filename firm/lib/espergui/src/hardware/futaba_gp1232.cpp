@@ -98,18 +98,18 @@ namespace Graphics::Hardware {
                     auto scan_runs = [&](bool send) {
                         size_t cost = 0;
                         const int stride = buffer->size.height / PAGE_HEIGHT;
-                        for (int row = 0; row < DISPLAY_HEIGHT / PAGE_HEIGHT; ++row) {
+                        for (int row = 0; row < DISPLAY_SIZE.height / PAGE_HEIGHT; ++row) {
                             int x = 0;
-                            while (x < DISPLAY_WIDTH) {
-                                while (x < DISPLAY_WIDTH &&
+                            while (x < DISPLAY_SIZE.width) {
+                                while (x < DISPLAY_SIZE.width &&
                                        page_shadow[target_page][x * stride + row] == buffer->data[x * stride + row]) {
                                     ++x;
                                 }
-                                if (x == DISPLAY_WIDTH) break;
+                                if (x == DISPLAY_SIZE.width) break;
 
                                 const int first = x;
                                 int last_changed = x;
-                                for (++x; x < DISPLAY_WIDTH; ++x) {
+                                for (++x; x < DISPLAY_SIZE.width; ++x) {
                                     if (page_shadow[target_page][x * stride + row] != buffer->data[x * stride + row]) {
                                         last_changed = x;
                                     }

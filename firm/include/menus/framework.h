@@ -113,7 +113,7 @@ public:
     }
 
     void on_presented() override {
-        lbl->frame = { {2, 2}, {frame.size.width - 4, 16} };
+        lbl->frame = { {2, frame.size.height/2 - 8}, {frame.size.width - 4, 16} };
         quasiButton->frame = {{frame.size.width / 2 - 8, frame.size.height - 11}, {16, 8}};
     }
 

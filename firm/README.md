@@ -4,14 +4,15 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 
 ## System Requirements
 
+### Board revision 1 (OG8M)
+
 * ESPer-CDP platform dev board with IDE bus
 * ESP32-WROVER **with ESP32 REV 3 or newer**, with 8MB QIO Flash and 4MB QIO PSRAM (HIMEM is not used currently)
 * ESPer Keypad
 * Futaba GP1232A02 VFD display (take it out of a broken arcade cabinet... or write a driver for something less obscure, but preferably also VFD :-)
 * IR remote receiver + PS2 DVD remote
-* optional: Nixierator module for track # display (not yet implemented)
 
-### Tested CD drives
+### Tested CD drives (in SPDIF mode)
 
 #### The Good
 
@@ -51,27 +52,7 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * Settings UI on screen with multiple language support: English, Japanese, Russian, feel free to add your own?
 * IR Remote (PS2-DVD remote)
 * Scrobbling to Last.FM
-* ... more to come! I need time :P
-
-## Further goals
-
-### Software only
-
 * HTTP updates with CI/CD
-* Hopefully increase size of cache partition
-* Stretch: Bluetooth transmitter from radio/CD
-* Maybe some day: Web interface
-* Dependency, so also maybe some day: Connect to WiFi by QR (**upd:** DPP QR doesn't fit in 29x29 or 31x31, must use captive portal or OSD altogether)
-* More lyric sources (similar to those supported by one popular foobar plugin)
-* Figure out how to disable drive's sleep mode? For now I almost exploded the disc twice from hanging the CPU in the drive, but never got the power condition mode select call to work
-
-### Rev 2 of hardware if it ever comes
-
-* Direct read of CDA from the drive instead of using SPDIF
-* Reading of UDF/ISO9660 drives with AAC/MP3/MOD/XM/IT/other files on them
-* FM radio with RDS
-* AM radio (SW, MW, LW)
-* maybe: other display types
 
 ## Architecture
 
@@ -97,4 +78,4 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 
 ----
 
-&copy; Genjitsu Gadget Lab, 2025 (yes, a CD player project in 2025)
+&copy; Genjitsu Gadget Lab, 2026

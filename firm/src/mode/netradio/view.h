@@ -11,9 +11,9 @@ using std::shared_ptr;
 class InternetRadioDiagsView: public UI::View {
 public:
   InternetRadioDiagsView(EGRect f): View(f) {
-    bufferHealth = make_shared<UI::ProgressBar>(EGRect{{32, 0},{112, 6}});
+    bufferHealth = make_shared<UI::ProgressBar>(EGRect{{32, 0},{f.size.width - 48, 6}});
     subviews.push_back(bufferHealth);
-    enoughMark = make_shared<UI::ProgressBar>(EGRect{{32, 6},{112, 2}});
+    enoughMark = make_shared<UI::ProgressBar>(EGRect{{32, 4},{f.size.width - 48, 4}});
     enoughMark->border = false;
     enoughMark->filled = false;
     subviews.push_back(enoughMark);
@@ -22,11 +22,11 @@ public:
     subviews.push_back(bufferSize);
     codecName = make_shared<UI::Label>(EGRect{{0,8}, {24, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Left);
     subviews.push_back(codecName);
-    bitrate = make_shared<UI::Label>(EGRect{{24, 8}, {56, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right);
+    bitrate = make_shared<UI::Label>(EGRect{{24, 8}, {56, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Left);
     subviews.push_back(bitrate);
-    speed = make_shared<UI::Label>(EGRect{{104, 8}, {56, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right);
+    speed = make_shared<UI::Label>(EGRect{{f.size.width-56, 8}, {56, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right);
     subviews.push_back(speed);
-    avgSpeedLbl = make_shared<UI::Label>(EGRect{{104, 16}, {56, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right);
+    avgSpeedLbl = make_shared<UI::Label>(EGRect{{f.size.width-56, 16}, {56, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Right);
     subviews.push_back(avgSpeedLbl);
   }
 
@@ -72,7 +72,7 @@ public:
     InternetRadioView(EGRect f): View(f) {
         normalGroup = make_shared<UI::View>(EGRect {EGPointZero, {f.size.width, 24}});
         {
-          lblTitle = make_shared<UI::Label>(EGRect {{0, 8}, {f.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
+          lblTitle = make_shared<UI::Label>(EGRect {{0, f.size.height/2 - 8}, {f.size.width, 16}}, Fonts::FallbackWildcard16px, UI::Label::Alignment::Center);
           lblSubtitle = make_shared<UI::Label>(EGRect {EGPointZero, {f.size.width, 8}}, Fonts::FallbackWildcard8px, UI::Label::Alignment::Center);
 
           lblTitle->auto_scroll = true;
@@ -89,7 +89,7 @@ public:
         diagsGroup->hidden = true;
         subviews.push_back(diagsGroup);
 
-        wifi = make_shared<WiFiIcon>(EGRect {{0, 32 - 7}, {5, 5}});
+        wifi = make_shared<WiFiIcon>(EGRect {{0, f.size.height - 7}, {5, 5}});
         subviews.push_back(wifi);
 
         loading = make_shared<UI::TinySpinner>(EGRect {{f.size.width - 6, f.size.height - 7}, {5, 5}});

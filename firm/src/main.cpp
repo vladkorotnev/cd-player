@@ -97,13 +97,16 @@ void setup(void) {
   Serial.begin(BCONF_SERIAL_BAUD);
   while(!Serial) {}
 
+  Graphics::Hardware::DisplayDriver *hardware_display = nullptr;
   #if (BCONF_DISPLAY_TYPE == DISP_TYPE_FUTABA_GP1232A)
-    auto * hardware_display = new Graphics::Hardware::FutabaGP1232ADriver(
+    hardware_display = new Graphics::Hardware::FutabaGP1232ADriver(
       BCONF_DISPLAY_UART_NUM,
       BCONF_DISPLAY_RX_PIN,
       BCONF_DISPLAY_TX_PIN,
       BCONF_DISPLAY_BAUD
     );
+  #elif (BCONF_DISPLAY_TYPE == DISP_TYPE_NULL)
+    hardware_display = new Graphics::Hardware::NullDisplayDriver();
   #else
     #error "Display type not set or unknown, check board config or add correct driver"
   #endif

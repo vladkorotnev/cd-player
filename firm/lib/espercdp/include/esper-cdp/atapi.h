@@ -66,6 +66,58 @@ namespace ATAPI {
         virtual const Diags * get_diags() = 0;
     };
 
+    class NullDevice: public Device {
+    public:
+        NullDevice(): Device() {}
+
+        void reset() override {}
+        void wait_ready() override {}
+        void eject(bool open_tray) override {}
+        void load_unload(SlotNumber slot) override {}
+        void start(bool state = true) override {}
+        void set_tray_locked(bool lock) override {}
+        void play(const MSF start, const MSF end) override {}
+        void pause(bool pause) override {}
+        void stop() override {}
+        void scan(bool forward, const MSF from) override {}
+        MediaTypeCode check_media() override { return MediaTypeCode::MTC_NO_DISC; }
+        const DiscTOC read_toc() override { return DiscTOC { .leadOut = FRAMES_TO_MSF(0), .tracks = {}, .toc_subchannel = {} }; }
+        const DriveInfo * get_info() override { return &driveInfo; }
+        const MechInfo * query_state() override { return &mechInfo; }
+        const AudioStatus * query_position() override { return &audioStatus; }
+        const Quirks& get_quirks() override { return Quirks {}; }
+        const Diags * get_diags() override { return &diags; }
+    private:
+        const MechInfo mechInfo = {
+            .slot_count = 0,
+            .is_door_open = false,
+            .is_playing = false,
+            .is_fault = false,
+            .is_in_motion = false,
+            .current_disc = 0,
+            .changer_state = MechInfo::ChangerState::Idle,
+            .changer_slots = {0},
+        };
+        const DriveInfo driveInfo = {
+            .model = "Null Drive",
+            .serial = "NULLDRIVE01234",
+            .firmware = "00000000"
+        };
+        const AudioStatus audioStatus = {
+            .track = 0,
+            .index = 0,
+            .position_in_disc = FRAMES_TO_MSF(0),
+            .position_in_track = FRAMES_TO_MSF(0),
+            .state = AudioStatus::PlayState::Stopped
+        };
+        const Diags diags = {
+            .is_atapi = true,
+            .self_test_result = 0xFF,
+            .capas = { 0 },
+            .cda = { 0 }
+        };
+    };
+
     class AutonomousPlayerDevice: public Device {
     public:
         const Quirks& get_quirks() override { return quirks; }

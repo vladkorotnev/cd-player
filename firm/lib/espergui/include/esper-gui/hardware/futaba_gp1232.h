@@ -29,16 +29,14 @@ private:
     const int DSA_SECOND = 160;
     int visible_dsa = 0;
     void flip_pages();
+    static constexpr EGSize DISPLAY_SIZE = {160, 32};
     static constexpr int PAGE_HEIGHT = 8;
-    static constexpr int DISPLAY_WIDTH = 160;
-    static constexpr int DISPLAY_HEIGHT = 32;
-    static constexpr int FRAME_BYTES = DISPLAY_WIDTH * DISPLAY_HEIGHT / PAGE_HEIGHT;
+    static constexpr int FRAME_BYTES = DISPLAY_SIZE.width * DISPLAY_SIZE.height / PAGE_HEIGHT;
     uint8_t page_shadow[2][FRAME_BYTES] = {};
     bool page_valid[2] = {false, false};
     uart_port_t _port;
     SemaphoreHandle_t _portSema;
     SemaphoreHandle_t _frameSema;
-    const EGSize DISPLAY_SIZE = {160, 32};
 };
 #endif
 }

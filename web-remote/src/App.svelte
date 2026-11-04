@@ -252,7 +252,6 @@
 
   <section class="section lower" aria-label="Navigation and other controls">
     <div class="navigation">
-    {#if currentMode === ModeSelection.Settings || currentMode === ModeSelection.Radio}
       <h2>Numbers</h2>
       <div class="number-pad">
         {#each [1, 2, 3, 4, 5, 6, 7, 8, 9] as digit}
@@ -260,7 +259,6 @@
         {/each}
         <button class="zero" onclick={() => sendDigit(0)} disabled={connection !== 'connected'}>0</button>
       </div>
-    {/if}
     {#if currentMode === ModeSelection.Settings}
       <h2>Navigate</h2>
       <div class="dpad">
