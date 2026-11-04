@@ -293,9 +293,11 @@ private:
     }
 
     void composition_pass() {
+        xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
         if(activeMode != nullptr) {
             compositor.render(activeMode->main_view());
         }
+        xSemaphoreGive(modeSwitchSema);
     }
 
     static void host_task(void * p) {

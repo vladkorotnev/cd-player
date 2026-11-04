@@ -244,7 +244,7 @@ void CDMode::loop() {
         case Player::State::SEEK_FF:
         case Player::State::SEEK_REW:
             if(tracklist.size() >= trk.track && trk.track > 0) {
-                auto metadata = tracklist[trk.track - 1];
+                const auto& metadata = tracklist[trk.track - 1];
                 update_title(disc, metadata, trk);
                 rootView->timeBar->update_msf(metadata.disc_position.position, msf_now, metadata.duration, trk.index == 0);
             }
@@ -254,7 +254,7 @@ void CDMode::loop() {
         case Player::State::STOP:
             rootView->set_lyric_show(false, 0);
             if(must_show_title_stopped && tracklist.size() >= trk.track && trk.track > 0) {
-                auto metadata = tracklist[trk.track - 1];
+                const auto& metadata = tracklist[trk.track - 1];
                 update_title(disc, metadata, trk);
             } else {
                 rootView->lblTrackIndicator->hidden = true;
@@ -297,7 +297,7 @@ void CDMode::loop() {
         rootView->set_lyric_show(false, 0);
         lrc.reset();
     } else if(tracklist.size() >= trk.track && trk.track > 0 && trk.index > 0) {
-        auto metadata = tracklist[trk.track - 1];
+        const auto& metadata = tracklist[trk.track - 1];
         lrc.feed_track(trk, metadata);
         const auto line = lrc.feed_position(msf_now);
         if(lyrics_enabled) {
@@ -318,8 +318,8 @@ void CDMode::loop() {
 
     // now you know why we have constraints autolayout all that shite in the "real world", duh
     rootView->lblBigMiddle->frame = rootView->lblSmallTop->hidden 
-            ? EGRect {{0, rootView->allButLyric->frame.size.height/2 - 12}, {rootView->allButLyric->frame.size.width, 24}} 
-            : EGRect {{0, rootView->allButLyric->frame.size.height/2 - 8}, {rootView->allButLyric->frame.size.width, 16}};
+            ? EGRect {{0, 0}, {rootView->allButLyric->frame.size.width, rootView->allButLyric->frame.size.height}} 
+            : EGRect {{0, 8}, {rootView->allButLyric->frame.size.width, rootView->allButLyric->frame.size.height - 8}};
 
     if(stopEject.is_clicked()) {
         player.do_command((sts == Player::State::PLAY || sts == Player::State::PAUSE || sts == Player::State::SEEK_FF || sts == Player::State::SEEK_REW) ? Player::Command::STOP : Player::Command::OPEN_CLOSE);
@@ -463,12 +463,13 @@ void CDMode::teardown() {
 
     resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
 
+    player.teardown_tasks();
+
     while(!meta.providers.empty()) {
         delete meta.providers.back();
         meta.providers.pop_back();
     }
 
-    player.teardown_tasks();
     player.power_down();
 }
 
