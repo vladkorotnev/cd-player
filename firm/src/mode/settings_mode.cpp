@@ -119,11 +119,13 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
                 })
             });
         }),
-        ListMenuNode("Last.FM", nullptr, std::tuple {
-            TextPreferenceEditorNode("User name", PREFS_KEY_CD_LASTFM_USER),
-            TextPreferenceEditorNode("Password", PREFS_KEY_CD_LASTFM_PASS),
-            TogglePreferenceMenuNode("Enable", PREFS_KEY_CD_LASTFM_ENABLED),
-        })
+        #if defined(LASTFM_API_KEY) && defined(LASTFM_API_SECRET)
+            ListMenuNode("Last.FM", nullptr, std::tuple {
+                TextPreferenceEditorNode("User name", PREFS_KEY_CD_LASTFM_USER),
+                TextPreferenceEditorNode("Password", PREFS_KEY_CD_LASTFM_PASS),
+                TogglePreferenceMenuNode("Enable", PREFS_KEY_CD_LASTFM_ENABLED),
+            }),
+        #endif
     }),
     RadioStationEditorNode(),
     ListMenuNode("Bluetooth", &icn_bt, std::tuple {

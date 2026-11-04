@@ -9,6 +9,8 @@
     "Changing Disc": "Смена диска",
     "Stop": "Остановлен",
     "Track": "Трек",
+    "Lyrics: ON": "Слова ВКЛ.",
+    "Lyrics: OFF": "Слова ВЫКЛ.",
 
     "(BT Device)": "(Устройство BT)",
     "Confirm PIN and press PLAY": "Сверьте пароль и нажмите PLAY",
@@ -21,6 +23,7 @@
     "Web Remote": "Управление по WiFi",
 
     "Source": "Источники",
+    "CD Audio": "Аудио CD",
     "Web Radio": "Интернет-радио",
 
     "Settings": "Настройки",
@@ -80,5 +83,7 @@
     "Update in progress": "Идёт обновление",
     "DO NOT TURN OFF!!": "НЕ ВЫКЛЮЧАТЬ !!",
     "Update completed": "Обновление успешно",
-    "Update error!": "НЕ УДАЛОСЬ"
+    "Update error!": "НЕ УДАЛОСЬ",
+    "Tray Open/Close": "Открыть/закрыть",
+    "Brightness: ": "Яркость: "
 }

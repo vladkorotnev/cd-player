@@ -138,15 +138,23 @@ public:
                     
                     ESP_LOGD(LOG_TAG, "Brightness = %i -> %i", (int) resources.display->get_brightness(), (int) brightness);
                     resources.display->set_brightness(brightness);
-    
+
                     // don't save 0 into the nvram to avoid confusion on next power on
-                    if(brightness != Graphics::Hardware::Brightness::DISP_BRIGHTNESS_0)
+                    if(brightness != Graphics::Hardware::Brightness::DISP_BRIGHTNESS_0) {
                         Prefs::set(PREFS_KEY_CUR_BRIGHTNESS, (int) brightness);
+                    }
+
+                    if (activeMode != nullptr) {
+                        activeMode->show_toast(localized_string("Brightness: ") + std::to_string( (int) brightness ));
+                    }
                 }
                 else if(code == RVK_EJECT && cur_mode != ESPER_MODE_CD && cur_mode != ESPER_MODE_STANDBY) {
                     // eject when not in CD mode is handled by us
                     auto cd = resources.cdrom;
                     cd->eject(cd->check_media() != ATAPI::MediaTypeCode::MTC_DOOR_OPEN);
+                    if (activeMode != nullptr) {
+                        activeMode->show_toast(localized_string("Tray Open/Close"));
+                    }
                 }
                 else if(activeMode != nullptr) {
                     activeMode->on_remote_key_pressed((VirtualKey)code);

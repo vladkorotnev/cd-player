@@ -9,6 +9,8 @@
     "Changing Disc": "ディスク切替中",
     "Stop": "ストップ",
     "Track": "トラック",
+    "Lyrics: ON": "歌詞表示 ON",
+    "Lyrics: OFF": "歌詞表示 OFF",
 
     "(BT Device)": "(BT端末)",
     "Confirm PIN and press PLAY": "暗証番号が一致する場合はPLAYを押してください",
@@ -80,5 +82,7 @@
     "Update in progress": "バージョンアップ中",
     "DO NOT TURN OFF!!": "電源を切らないでください",
     "Update completed": "バージョンアップ完了",
-    "Update error!": "バージョンアップに失敗しました"
+    "Update error!": "バージョンアップに失敗しました",
+    "Tray Open/Close": "トレイ開閉",
+    "Brightness: ": "明るさ： "
 }

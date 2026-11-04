@@ -176,6 +176,7 @@ CDMode::~CDMode() {
 
 void CDMode::setup() {
     resources.router->activate_route(Platform::AudioRoute::ROUTE_SPDIF_CD_PORT);
+    show_toast(localized_string("CD Audio"), pdMS_TO_TICKS(1500));
 }
 
 void CDMode::update_title(const std::shared_ptr<CD::Album> disc, const CD::Track& metadata, const Player::TrackNo trk) {
@@ -419,10 +420,12 @@ void CDMode::on_remote_key_pressed(VirtualKey key) {
     }
     else if(key == RVK_LYRICS) {
         lyrics_enabled = true;
+        show_toast(localized_string("Lyrics: ON"));
     }
     else if(key == RVK_DISP) {
         lyrics_enabled = false;
         rootView->set_lyric_show(false, 0);
+        show_toast(localized_string("Lyrics: OFF"));
     }
     else if(RVK_IS_DIGIT(key)) {
         int digit = RVK_TO_DIGIT(key);

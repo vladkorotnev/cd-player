@@ -27,6 +27,7 @@ void InternetRadioMode::setup() {
     rootView->reset_meta("");
     AudioToolsLogger.begin(Serial, AudioToolsLogLevel::Warning);
     resources.router->activate_route(Platform::AudioRoute::ROUTE_INTERNAL_CPU);
+    show_toast(localized_string("Web Radio"), pdMS_TO_TICKS(1500));
 }
 
 void InternetRadioMode::select_station(int index) {

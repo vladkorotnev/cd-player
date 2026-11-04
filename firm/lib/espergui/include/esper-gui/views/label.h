@@ -32,13 +32,17 @@ namespace UI {
         void set_value(std::string str) {
             if(str != value) {
                 xSemaphoreTake(valueSemaphore, portMAX_DELAY);
-                scroll_offset = 0;
                 value = str;
-                str_size = Fonts::EGFont_measure_string(fnt, value.c_str());
-                set_needs_display();
-                last_scroll_tick = xTaskGetTickCount();
+                recalculate();
                 xSemaphoreGive(valueSemaphore);
             }
+        }
+
+        void set_font(const Fonts::Font * font) {
+            xSemaphoreTake(valueSemaphore, portMAX_DELAY);
+            fnt = font;
+            recalculate();
+            xSemaphoreGive(valueSemaphore);
         }
 
         void render(EGGraphBuf * buf) override {
@@ -98,6 +102,12 @@ namespace UI {
 
     protected:
         bool will_scroll() { return auto_scroll && str_size.width > frame.size.width; }
+        void recalculate() {
+            scroll_offset = 0;
+            str_size = Fonts::EGFont_measure_string(fnt, value.c_str());
+            set_needs_display();
+            last_scroll_tick = xTaskGetTickCount();
+        }
     private:
         SemaphoreHandle_t valueSemaphore;
         std::string value = "";
