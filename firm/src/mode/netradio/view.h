@@ -13,7 +13,7 @@ public:
   InternetRadioDiagsView(EGRect f): View(f) {
     bufferHealth = make_shared<UI::ProgressBar>(EGRect{{32, 0},{f.size.width - 48, 6}});
     subviews.push_back(bufferHealth);
-    enoughMark = make_shared<UI::ProgressBar>(EGRect{{32, 4},{f.size.width - 48, 4}});
+    enoughMark = make_shared<UI::ProgressBar>(EGRect{{32, 6},{f.size.width - 48, 2}});
     enoughMark->border = false;
     enoughMark->filled = false;
     subviews.push_back(enoughMark);
