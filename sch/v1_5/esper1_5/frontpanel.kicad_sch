@@ -5473,7 +5473,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "0075d743-c967-43e6-8f7e-5229b7c6abc5")
-		(property "Reference" "PLAYPAUSE"
+		(property "Reference" "PLAYPAUSE1"
 			(at 60.96 145.796 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5535,7 +5535,7 @@
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "PLAYPAUSE")
+					(reference "PLAYPAUSE1")
 					(unit 1)
 				)
 			)
@@ -5710,7 +5710,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "0ef5a466-38a6-49cd-a332-2e3f02ef547a")
-		(property "Reference" "PREV"
+		(property "Reference" "PREV1"
 			(at 60.96 130.556 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -5764,15 +5764,15 @@
 			)
 		)
 		(pin "1"
-			(uuid "df082211-644c-4792-a132-9d0103a5b9a3")
+			(uuid "df082211-644c-4792-a132-9d0103a5b9a4")
 		)
 		(pin "2"
-			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd548")
+			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd549")
 		)
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "PREV")
+					(reference "PREV1")
 					(unit 1)
 				)
 			)
@@ -6259,7 +6259,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "1ec9af77-37dc-465e-bad3-5280b1523fbb")
-		(property "Reference" "MODE"
+		(property "Reference" "MODE1"
 			(at 60.96 115.316 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6313,15 +6313,15 @@
 			)
 		)
 		(pin "1"
-			(uuid "df082211-644c-4792-a132-9d0103a5b9a3")
+			(uuid "df082211-644c-4792-a132-9d0103a5b9a5")
 		)
 		(pin "2"
-			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd548")
+			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd54a")
 		)
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "MODE")
+					(reference "MODE1")
 					(unit 1)
 				)
 			)
@@ -6338,7 +6338,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "2a09a09f-16b3-4903-8ab6-226d2e65fc10")
-		(property "Reference" "SEEKFWD"
+		(property "Reference" "SEEKFWD1"
 			(at 60.96 135.636 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6392,15 +6392,15 @@
 			)
 		)
 		(pin "1"
-			(uuid "df082211-644c-4792-a132-9d0103a5b9a3")
+			(uuid "df082211-644c-4792-a132-9d0103a5b9a6")
 		)
 		(pin "2"
-			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd548")
+			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd54b")
 		)
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "SEEKFWD")
+					(reference "SEEKFWD1")
 					(unit 1)
 				)
 			)
@@ -6665,7 +6665,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "48eb4d00-0f55-4424-a342-850f3be70aad")
-		(property "Reference" "NEXT"
+		(property "Reference" "NEXT1"
 			(at 60.96 125.476 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -6719,15 +6719,15 @@
 			)
 		)
 		(pin "1"
-			(uuid "df082211-644c-4792-a132-9d0103a5b9a3")
+			(uuid "df082211-644c-4792-a132-9d0103a5b9a7")
 		)
 		(pin "2"
-			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd548")
+			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd54c")
 		)
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "NEXT")
+					(reference "NEXT1")
 					(unit 1)
 				)
 			)
@@ -7335,10 +7335,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "df2edf98-3e11-44a7-b07f-06c2a1c64fa2")
+			(uuid "df2edf98-3e11-44a7-b07f-06c2a1c64fa3")
 		)
 		(pin "2"
-			(uuid "499d5f66-10f2-4f3d-855a-67d7e061dce2")
+			(uuid "499d5f66-10f2-4f3d-855a-67d7e061dce3")
 		)
 		(instances
 			(project "esper1_5"
@@ -7905,10 +7905,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "df2edf98-3e11-44a7-b07f-06c2a1c64fa2")
+			(uuid "df2edf98-3e11-44a7-b07f-06c2a1c64fa4")
 		)
 		(pin "2"
-			(uuid "499d5f66-10f2-4f3d-855a-67d7e061dce2")
+			(uuid "499d5f66-10f2-4f3d-855a-67d7e061dce4")
 		)
 		(instances
 			(project "esper1_5"
@@ -8149,7 +8149,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "a8e2db48-b823-4470-920a-aa8fc98e59cc")
-		(property "Reference" "STOPEJECT"
+		(property "Reference" "STOPEJECT1"
 			(at 60.96 150.876 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8203,15 +8203,15 @@
 			)
 		)
 		(pin "1"
-			(uuid "df082211-644c-4792-a132-9d0103a5b9a3")
+			(uuid "df082211-644c-4792-a132-9d0103a5b9a8")
 		)
 		(pin "2"
-			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd548")
+			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd54d")
 		)
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "STOPEJECT")
+					(reference "STOPEJECT1")
 					(unit 1)
 				)
 			)
@@ -8306,7 +8306,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "bdb7a8ce-1c75-4230-a20a-14d1631d4bf6")
-		(property "Reference" "SHUFFLE"
+		(property "Reference" "SHUFFLE1"
 			(at 60.96 120.396 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8360,15 +8360,15 @@
 			)
 		)
 		(pin "1"
-			(uuid "df082211-644c-4792-a132-9d0103a5b9a3")
+			(uuid "df082211-644c-4792-a132-9d0103a5b9a9")
 		)
 		(pin "2"
-			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd548")
+			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd54e")
 		)
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "SHUFFLE")
+					(reference "SHUFFLE1")
 					(unit 1)
 				)
 			)
@@ -8854,7 +8854,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "e36dec9c-5920-4672-9de6-d77a966bbc5d")
-		(property "Reference" "SEEKBACK"
+		(property "Reference" "SEEKBACK1"
 			(at 60.96 140.716 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -8908,15 +8908,15 @@
 			)
 		)
 		(pin "1"
-			(uuid "df082211-644c-4792-a132-9d0103a5b9a3")
+			(uuid "df082211-644c-4792-a132-9d0103a5b9aa")
 		)
 		(pin "2"
-			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd548")
+			(uuid "ed036d9f-a072-4d25-93c6-ecb046fcd54f")
 		)
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "SEEKBACK")
+					(reference "SEEKBACK1")
 					(unit 1)
 				)
 			)
@@ -9248,7 +9248,7 @@
 		(in_pos_files yes)
 		(dnp no)
 		(uuid "fcc78477-d45a-4300-a936-a499439fc28b")
-		(property "Reference" "DISPTYPE"
+		(property "Reference" "DISPTYPE1"
 			(at 179.07 71.12 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -9314,7 +9314,7 @@
 		(instances
 			(project "esper1_5"
 				(path "/629d652e-a4c1-46e0-9be9-3e693d055f04"
-					(reference "DISPTYPE")
+					(reference "DISPTYPE1")
 					(unit 1)
 				)
 			)

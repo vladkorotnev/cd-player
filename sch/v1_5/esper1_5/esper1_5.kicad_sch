@@ -3363,10 +3363,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "a95abf81-9876-4d63-b282-5657b3f06d01")
+			(uuid "a95abf81-9876-4d63-b282-5657b3f06d02")
 		)
 		(pin "2"
-			(uuid "02cd424d-ac37-4c6a-beca-c33b710424a2")
+			(uuid "02cd424d-ac37-4c6a-beca-c33b710424a3")
 		)
 		(instances
 			(project "esper1_5"

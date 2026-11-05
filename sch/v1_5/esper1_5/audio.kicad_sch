@@ -3253,10 +3253,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "d569a915-a30a-41d5-9d77-f539d5eddbe7")
+			(uuid "d569a915-a30a-41d5-9d77-f539d5eddbe8")
 		)
 		(pin "2"
-			(uuid "84c9bb1c-84d4-448f-9679-e5796c51a520")
+			(uuid "84c9bb1c-84d4-448f-9679-e5796c51a521")
 		)
 		(instances
 			(project "esper1_5"
@@ -3919,7 +3919,7 @@
 		(dnp no)
 		(fields_autoplaced yes)
 		(uuid "41aafd7b-9ca2-45aa-b15c-eb001ab53a23")
-		(property "Reference" "DAC"
+		(property "Reference" "DAC1"
 			(at 96.1233 27.94 0)
 			(show_name no)
 			(do_not_autoplace no)
@@ -4037,7 +4037,7 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
-					(reference "DAC")
+					(reference "DAC1")
 					(unit 1)
 				)
 			)
@@ -5783,10 +5783,10 @@
 			)
 		)
 		(pin "1"
-			(uuid "f0dd4fe0-d0f0-453b-b804-90703fdc3234")
+			(uuid "f0dd4fe0-d0f0-453b-b804-90703fdc3235")
 		)
 		(pin "2"
-			(uuid "95d7012b-72fe-4ec7-befb-b8c7871434c5")
+			(uuid "95d7012b-72fe-4ec7-befb-b8c7871434c6")
 		)
 		(instances
 			(project "esper1_5"

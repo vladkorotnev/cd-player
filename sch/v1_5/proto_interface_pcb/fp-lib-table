@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "esper_fp") (type "KiCad") (uri "${KIPRJMOD}/esper_fp.pretty") (options "") (descr ""))
+)
