@@ -16,12 +16,13 @@ static const uint8_t CTL_MASK = (CTL_DIOW | CTL_DIOR | CTL_RST);
 
 namespace Platform {
 
-    IDEBus::IDEBus(Core::ThreadSafeI2C * i2c, uint8_t address_flags, uint8_t address_databus):
+    I2CBridgedIDEBus::I2CBridgedIDEBus(Core::ThreadSafeI2C * i2c, uint8_t address_flags, uint8_t address_databus):
         _bus(i2c),
         _addr_flags(address_flags),
-        _addr_databus(address_databus) {}
+        _addr_databus(address_databus),
+        IDEBus() {}
 
-    data16 IDEBus::read(uint8_t reg) {
+    data16 I2CBridgedIDEBus::read(uint8_t reg) {
         ensure_sel_device();
         data16 rslt = { .value = 0xFFFF };
 
@@ -46,12 +47,12 @@ namespace Platform {
         return rslt;
     }
 
-    void IDEBus::write(uint8_t reg, data16 data) { 
+    void I2CBridgedIDEBus::write(uint8_t reg, data16 data) { 
         ensure_sel_device();
         write_internal(reg, data);
     }
 
-    void IDEBus::write_internal(uint8_t reg, data16 data) { 
+    void I2CBridgedIDEBus::write_internal(uint8_t reg, data16 data) { 
         reg = reg & ~CTL_MASK; // don't allow changing DIOW/DIOR/RST from outside
         control_register &= CTL_MASK; // clear CS3FX, CS1FX, A2-A0
         control_register |= reg; // set CS3FX, CS1FX, A2-A0 from input argument
@@ -81,7 +82,7 @@ namespace Platform {
         transact_out(_addr_databus, PCA_CFG_REGI_B, 0xFF);
     }
 
-    void IDEBus::reset() {
+    void I2CBridgedIDEBus::reset() {
         ESP_LOGI(LOG_TAG, "Reset");
 
         transact_out(_addr_flags, PCA_CFG_REGI_B, 0x00); // all outputs
@@ -97,7 +98,7 @@ namespace Platform {
         ESP_LOGV(LOG_TAG, "end of Reset");
     }
 
-    void IDEBus::ensure_sel_device() {
+    void I2CBridgedIDEBus::ensure_sel_device() {
         if(last_sel_device == active_device) return;
 
         ESP_LOGI(LOG_TAG, "Active device change from %i to %i", last_sel_device, active_device);
@@ -115,7 +116,7 @@ namespace Platform {
         last_sel_device = active_device;
     }
 
-    void IDEBus::transact_out(uint8_t addr, uint8_t reg, uint8_t val) {
+    void I2CBridgedIDEBus::transact_out(uint8_t addr, uint8_t reg, uint8_t val) {
         if(!_bus->lock()) {
             ESP_LOGE(LOG_TAG, "Could not acquire bus");
             return;
@@ -134,7 +135,7 @@ namespace Platform {
         _bus->release();
     }
 
-    uint8_t IDEBus::transact_in(uint8_t addr, uint8_t reg) {
+    uint8_t I2CBridgedIDEBus::transact_in(uint8_t addr, uint8_t reg) {
         if(!_bus->lock()) {
             ESP_LOGE(LOG_TAG, "Could not acquire bus");
             return 0xFF;

@@ -120,7 +120,7 @@ void setup(void) {
     i2c = new Core::ThreadSafeI2C(&Wire);
     keypad = new Platform::Keypad(i2c);
     #if (BCONF_IDE_TYPE == IDEBUS_TYPE_ATAPIDUINO_ISH_I2C)
-      ide = new Platform::IDEBus(i2c);
+      ide = new Platform::I2CBridgedIDEBus(i2c);
     #endif
   #endif
 

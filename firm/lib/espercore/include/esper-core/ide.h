@@ -40,21 +40,28 @@ namespace IDE {
 };
 
 namespace Platform {    
-    /// @brief IDE Bus accessor. Not thread safe!
     class IDEBus {
     public:
         using DeviceNumber = IDE::DeviceNumber;
-        /// @brief Create an IDE bus accessor
+        DeviceNumber active_device = DeviceNumber::IDE_MASTER; // <- dont seem to be able to address other device but still
+ 
+        virtual data16 read(uint8_t reg) = 0;
+        virtual void write(uint8_t reg, data16 data) = 0;
+        virtual void reset() = 0;
+    };
+
+    /// @brief IDE Bus accessor. Not thread safe!
+    class I2CBridgedIDEBus: public IDEBus {
+    public:
+        /// @brief Create an IDE bus accessor using the PCA9555 I2C expander-based bridge, akin to that found in the ATAPIDuino project
         /// @param i2c I2C Bus on which the PCA9555 expanders are located
         /// @param address_flags Address of the expander with the port B connected to the flags pins of the IDE bus
         /// @param address_databus Address of the expander with ports A and B connected to the 16 data bits of the IDE bus
-        IDEBus(Core::ThreadSafeI2C * i2c, uint8_t address_flags = 0x20, uint8_t address_databus = 0x22);
+        I2CBridgedIDEBus(Core::ThreadSafeI2C * i2c, uint8_t address_flags = 0x20, uint8_t address_databus = 0x22);
 
-        DeviceNumber active_device = DeviceNumber::IDE_MASTER; // <- dont seem to be able to address other device but still
-
-        data16 read(uint8_t reg);
-        void write(uint8_t reg, data16 data);
-        void reset();
+        data16 read(uint8_t reg) override;
+        void write(uint8_t reg, data16 data) override;
+        void reset() override;
 
     private:
         Core::ThreadSafeI2C * _bus;
