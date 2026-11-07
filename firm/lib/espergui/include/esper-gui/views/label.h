@@ -17,8 +17,14 @@ namespace UI {
         bool auto_scroll = false;
         EGSize str_size = EGSizeZero;
 
-        static void set_scroll_speed(int pixels_per_tick) {
-            scroll_step.store(pixels_per_tick >= 1 && pixels_per_tick <= 4 ? pixels_per_tick : 2);
+        // Positive rates are pixels per 33 ms tick. Negative rates are the
+        // number of ticks per pixel, allowing speeds below one pixel per tick.
+        static bool is_valid_scroll_speed(int rate) {
+            return rate >= -4 && rate <= 4 && rate != 0;
+        }
+
+        static void set_scroll_speed(int rate) {
+            scroll_rate.store(is_valid_scroll_speed(rate) ? rate : 2);
         }
 
         Alignment alignment = Alignment::Left;
@@ -78,7 +84,11 @@ namespace UI {
                 last_scroll_tick = now;
                 bool is_follower = scroll_synchro != nullptr && (*scroll_synchro)->will_scroll() && (*scroll_synchro)->str_size.width > str_size.width && !(*scroll_synchro)->hidden;
                 if((scroll_holdoff == 0 && (!is_follower || (is_follower && (*scroll_synchro)->scroll_holdoff == 0))) || scroll_offset != 0) {
-                    const int next_offset = scroll_offset + scroll_step.load();
+                    const int rate = scroll_rate.load();
+                    const int ticks_per_pixel = rate < 0 ? -rate : 1;
+                    if(++scroll_subtick < ticks_per_pixel) return View::needs_display();
+                    scroll_subtick = 0;
+                    const int next_offset = scroll_offset + (rate < 0 ? 1 : rate);
                     scroll_offset = scroll_offset < 0 && next_offset >= 0 ? 0 : next_offset;
                     if(scroll_offset >= str_size.width + 16) {
                         scroll_offset = -frame.size.width;
@@ -107,6 +117,7 @@ namespace UI {
             str_size = Fonts::EGFont_measure_string(fnt, value.c_str());
             set_needs_display();
             last_scroll_tick = xTaskGetTickCount();
+            scroll_subtick = 0;
         }
     private:
         SemaphoreHandle_t valueSemaphore;
@@ -114,8 +125,9 @@ namespace UI {
         const Fonts::Font* fnt = nullptr;
         int scroll_offset = 0;
         int scroll_holdoff = 60;
+        int scroll_subtick = 0;
         TickType_t last_scroll_tick = 0;
         std::shared_ptr<UI::Label>* scroll_synchro = nullptr; // Y U NO HAVE Option<>??
-        inline static std::atomic<int> scroll_step{2};
+        inline static std::atomic<int> scroll_rate{2};
     };
 }

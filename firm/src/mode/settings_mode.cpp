@@ -136,6 +136,8 @@ static const ListMenuNode settings_menu("Settings", &icn_sys, std::tuple {
     ListMenuNode("System", &icn_sys, std::tuple {
         TogglePreferenceMenuNode("Web remote", PREFS_KEY_WEB_REMOTE_ENABLED),
         ListMenuNode("Scroll speed", nullptr, std::tuple {
+            ScrollSpeedMenuNode("Molasses", -4),
+            ScrollSpeedMenuNode("Very slow", -2),
             ScrollSpeedMenuNode("Slow", 1),
             ScrollSpeedMenuNode("Normal", 2),
             ScrollSpeedMenuNode("Fast", 4),

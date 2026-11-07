@@ -14,27 +14,31 @@ class StandbyMode: public Mode {
     
         void setup() override {
             lbl->set_value(localized_string("Goodbye!"));
-            ESP_LOGW(LOG_TAG, "Entering standby");
-            if(resources.cdrom->check_media() == ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
-                resources.cdrom->eject(false);
-            }
-            resources.cdrom->start(false);
-            resources.cdrom->set_tray_locked(true);
-            resources.router->activate_route(Platform::AudioRoute::ROUTE_BYPASS);
-            vTaskDelay(pdMS_TO_TICKS(250));
-            resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_POWER, false);
-            esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
-            Core::Services::WLAN::stop();
-            setCpuFrequencyMhz(80); // less than that breaks UART!!?
+            need_shutdown = true;
         }
 
         void loop() override {
-            delay(100);
+            if (need_shutdown) {
+                ESP_LOGW(LOG_TAG, "Entering standby");
+                need_shutdown = false;
+                if(resources.cdrom->check_media() == ATAPI::MediaTypeCode::MTC_DOOR_OPEN) {
+                    resources.cdrom->eject(false);
+                }
+                resources.cdrom->start(false);
+                resources.cdrom->set_tray_locked(true);
+                resources.router->activate_route(Platform::AudioRoute::ROUTE_BYPASS);
+                vTaskDelay(pdMS_TO_TICKS(250));
+                resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_POWER, false);
+                esp_wifi_set_ps(WIFI_PS_MAX_MODEM);
+                Core::Services::WLAN::stop();
+                lbl->set_value(localized_string("Hello!"));
+                setCpuFrequencyMhz(80); // less than that breaks UART!!?
+            }
+            delay(500);
         }
 
         void teardown() override {
             setCpuFrequencyMhz(240);
-            lbl->set_value(localized_string("Hello!"));
             resources.cdrom->set_tray_locked(false);
             resources.display->set_option(Graphics::Hardware::DriverOption::DISP_OPTION_POWER, true);
             resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
@@ -50,5 +54,6 @@ class StandbyMode: public Mode {
     private:
         UI::View rootView;
         std::shared_ptr<UI::Label> lbl;
+        bool need_shutdown = false;
         const char * LOG_TAG = "STBY";
 };

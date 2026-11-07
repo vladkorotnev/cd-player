@@ -124,7 +124,7 @@ WriteResult write_one(const std::string& name, const cJSON * value) {
         int next = value->valueint;
         if(name == PREFS_KEY_UI_LANGUAGE.first && (next < DSPL_LANG_EN || next >= DSPL_LANG_INVALID))
             return WriteResult::invalid_value;
-        if(name == PREFS_KEY_UI_SCROLL_SPEED.first && next < 1)
+        if(name == PREFS_KEY_UI_SCROLL_SPEED.first && !UI::Label::is_valid_scroll_speed(next))
             return WriteResult::invalid_value;
         Prefs::set(*key, next);
         if(name == PREFS_KEY_UI_SCROLL_SPEED.first) UI::Label::set_scroll_speed(next);

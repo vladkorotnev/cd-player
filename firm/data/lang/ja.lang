@@ -61,6 +61,8 @@
     "Auto-connect": "自動接続",
     "Language": "言語",
     "Scroll speed": "文字スクロール速度",
+    "Molasses": "最も遅い",
+    "Very slow": "かなり遅い",
     "Slow": "遅い",
     "Normal": "標準",
     "Fast": "速い",

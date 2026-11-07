@@ -68,6 +68,16 @@ export const settingsMenu: SettingGroup = group('Settings', [
   ]),
   group('System', [
     {
+      kind: 'field', label: 'Scroll speed', key: 'ui_scroll',
+      options: [
+        { label: 'Slowest', value: -4 },
+        { label: 'Very slow', value: -2 },
+        { label: 'Slow', value: 1 },
+        { label: 'Normal', value: 2 },
+        { label: 'Fast', value: 4 }
+      ]
+    },
+    {
       kind: 'field', label: 'Language', key: 'lang',
       help: 'Restart the device to apply a language change.',
       options: [

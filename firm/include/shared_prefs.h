@@ -4,7 +4,8 @@
 #include <localize.h>
 
 const Prefs::Key<int> PREFS_KEY_UI_LANGUAGE = {"lang", (int)DSPL_LANG_EN};
-/// Horizontal text scroll step in pixels per 33 ms
+/// Horizontal text scroll rate. Positive values are pixels per 33 ms; negative
+/// values are the number of 33 ms ticks per pixel.
 static const Prefs::Key<int> PREFS_KEY_UI_SCROLL_SPEED {"ui_scroll", 2};
 
 /// Whether to include CD mode in the mode cycle button
