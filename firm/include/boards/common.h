@@ -4,6 +4,7 @@
 #define DISP_TYPE_NULL                  0x00000000
 #define DISP_TYPE_FUTABA_GP1232A        0x00000001
 #define DISP_TYPE_ST7920_SPI            0x00000002
+#define DISP_TYPE_AQM1248A_SPI          0x00000003
 
 // Remote types
 #define RC_TYPE_SONY_PS2_REMOTE         0x00000001

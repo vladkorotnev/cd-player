@@ -5,7 +5,7 @@
 #include <board_cfg.h> //<- must be first so that the config reflects in ESPerCore
 #include <esper-core/service.h>
 #include <web/web_remote.h>
-#include <esper-gui/hardware/futaba_gp1232.h>
+#include <esper-gui/hardware/drivers.h>
 #include <web/mirrored_display.h>
 #include <esper-gui/text.h>
 #include <esper-gui/views/label.h>
@@ -104,6 +104,15 @@ void setup(void) {
       BCONF_DISPLAY_RX_PIN,
       BCONF_DISPLAY_TX_PIN,
       BCONF_DISPLAY_BAUD
+    );
+  #elif (BCONF_DISPLAY_TYPE == DISP_TYPE_AQM1248A_SPI)
+    hardware_display = new Graphics::Hardware::AQM1248ADriver(
+      BCONF_DISPLAY_SPI_HOST,
+      BCONF_DISPLAY_SPI_SCLK_PIN,
+      BCONF_DISPLAY_SPI_MOSI_PIN,
+      BCONF_DISPLAY_SPI_CS_PIN,
+      BCONF_DISPLAY_RS_PIN,
+      BCONF_DISPLAY_SPI_FREQUENCY
     );
   #elif (BCONF_DISPLAY_TYPE == DISP_TYPE_NULL)
     hardware_display = new Graphics::Hardware::NullDisplayDriver();

@@ -1,6 +1,7 @@
 #pragma once
 #include "common.h"
 #include <hal/gpio_types.h>
+#include <driver/spi_master.h>
 #include <driver/uart.h>
 
 // Original ESPer board with 8MB PSRAM / 8MB ROM
@@ -36,3 +37,12 @@
 // #define BCONF_DISPLAY_TYPE                      DISP_TYPE_NULL
 // #define EGUI_NULL_DISP_SIZE_WIDTH               256
 // #define EGUI_NULL_DISP_SIZE_HEIGHT              64
+
+// AQM1248A SPI prototyping
+// #define BCONF_DISPLAY_TYPE                      DISP_TYPE_AQM1248A_SPI
+// #define BCONF_DISPLAY_SPI_HOST                  SPI3_HOST
+// #define BCONF_DISPLAY_SPI_SCLK_PIN              GPIO_NUM_22
+// #define BCONF_DISPLAY_SPI_MOSI_PIN              GPIO_NUM_23
+// #define BCONF_DISPLAY_SPI_CS_PIN                GPIO_NUM_13
+// #define BCONF_DISPLAY_RS_PIN                    GPIO_NUM_14
+// #define BCONF_DISPLAY_SPI_FREQUENCY 1000000
