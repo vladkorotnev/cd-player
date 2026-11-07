@@ -34,7 +34,7 @@ class StandbyMode: public Mode {
                 lbl->set_value(localized_string("Hello!"));
                 setCpuFrequencyMhz(80); // less than that breaks UART!!?
             }
-            delay(500);
+            delay(100);
         }
 
         void teardown() override {
