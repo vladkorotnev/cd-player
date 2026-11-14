@@ -1,4 +1,4 @@
-#include <esper-cdp/streaming_player.h>
+#include <esper-cdp/streaming_device.h>
 #include <esper-cdp/atapi-protocol.h>
 #include <esper-core/audio_router.h>
 #include <esper-core/lock.h>

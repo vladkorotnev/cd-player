@@ -1,4 +1,4 @@
-#include <esper-cdp/atapi.h>
+#include <esper-cdp/autonomous_device.h>
 #include <esper-cdp/atapi-protocol.h>
 #include <endian.h>
 
@@ -242,7 +242,8 @@ namespace ATAPI {
     }
 
     bool AutonomousPlayerDevice::initialize() {
-        HardwareATAPIDevice::initialize();
+        bool rslt = HardwareATAPIDevice::initialize();
         _diags.is_autonomous = true;
+        return rslt;
     }
 }

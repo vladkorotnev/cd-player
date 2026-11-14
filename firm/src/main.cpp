@@ -5,7 +5,7 @@
 #include <board_cfg.h> //<- must be first so that the config reflects in ESPerCore
 #include <esp32-hal-spi.h>
 #include <esper-core/service.h>
-#include <esper-cdp/streaming_player.h>
+#include <esper-cdp/devices.h>
 #include <web/web_remote.h>
 #include <esper-gui/hardware/drivers.h>
 #include <web/mirrored_display.h>
