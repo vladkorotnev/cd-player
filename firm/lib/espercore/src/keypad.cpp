@@ -9,7 +9,7 @@ namespace Platform {
         _addr(addr) {}
 
     bool Keypad::update(uint8_t * outVal) {
-        if(!_bus->lock()) {
+        if(_bus == nullptr || !_bus->lock()) {
             return false;
         }
 

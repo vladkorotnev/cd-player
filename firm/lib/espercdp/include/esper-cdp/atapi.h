@@ -85,11 +85,12 @@ namespace ATAPI {
         const DriveInfo * get_info() override { return &driveInfo; }
         const MechInfo * query_state() override { return &mechInfo; }
         const AudioStatus * query_position() override { return &audioStatus; }
-        const Quirks& get_quirks() override { return Quirks {}; }
+        const Quirks& get_quirks() override { return quirks; }
         const Diags * get_diags() override { return &diags; }
     private:
+        const Quirks quirks = {};
         const MechInfo mechInfo = {
-            .slot_count = 0,
+            .slot_count = 1,
             .is_door_open = false,
             .is_playing = false,
             .is_fault = false,
@@ -123,6 +124,7 @@ namespace ATAPI {
         const Quirks& get_quirks() override { return quirks; }
         const Diags * get_diags() override { return &_diags; }
 
+        bool initialize();
         void reset() override;
         void wait_ready() override;
 
@@ -152,7 +154,7 @@ namespace ATAPI {
         AudioStatus audio_sts = { 0 };
         int packet_size = 12;
         Quirks quirks;
-        Diags _diags;
+        Diags _diags = {};
 
         union StatusRegister {
             struct __attribute__((packed)) {
@@ -224,16 +226,17 @@ namespace ATAPI {
 
         StatusRegister read_sts_regi();
         void wait_sts_bit_set(StatusRegister bits);
-        void wait_sts_bit_clr(StatusRegister bits, const char * tag = __func__);
+        bool wait_sts_bit_clr(StatusRegister bits, const char * tag);
         bool read_response(void * buf, size_t bufLen, bool flush);
-        void send_packet(const void * buf, size_t bufLen, bool pad = true);
+        bool send_packet(const void * buf, size_t bufLen, bool pad = true);
 
-        void wait_not_busy(const char * tag = __func__);
-        void wait_drq_end();
+        bool wait_not_busy(const char * tag);
+        bool wait_for_data(const char * tag);
         void wait_drq();
 
-        void init_task_file();
-        void identify();
+        bool init_task_file();
+        bool identify();
+        void log_inquiry();
 
         CapabilitiesMechStatusModePage mode_sense_capabilities();
 

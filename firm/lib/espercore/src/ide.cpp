@@ -16,6 +16,16 @@ static const uint8_t CTL_MASK = (CTL_DIOW | CTL_DIOR | CTL_RST);
 
 namespace Platform {
 
+    bool IDEBus::read_data(uint8_t * buffer, size_t words) {
+        if (buffer == nullptr && words != 0) return false;
+        for (size_t word = 0; word < words; ++word) {
+            const auto data = read(IDE::Register::Data);
+            buffer[2 * word] = data.low;
+            buffer[2 * word + 1] = data.high;
+        }
+        return true;
+    }
+
     I2CBridgedIDEBus::I2CBridgedIDEBus(Core::ThreadSafeI2C * i2c, uint8_t address_flags, uint8_t address_databus):
         _bus(i2c),
         _addr_flags(address_flags),

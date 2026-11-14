@@ -2,21 +2,26 @@
 #include <esper-cdp/atapi-protocol.h>
 #include <cassert>
 #include <algorithm>
+#include <cctype>
 #include <endian.h>
 
 static const char LOG_TAG[] = "ATAPI";
 
 namespace ATAPI {
-    static void ata_str_to_human(char * atastr, size_t len) {
-        for(int i = 0; i < len; i += 2) {
-            char tmp = atastr[i];
-            atastr[i] = atastr[i + 1];
-            atastr[i + 1] = tmp;
+    static std::string drive_string(const char * bytes, size_t length, bool swap_words = false) {
+        std::string value(bytes, length);
+        if (swap_words) {
+            for (size_t i = 0; i < length; i += 2) {
+                std::swap(value[i], value[i + 1]);
+            }
         }
-        for(int i = len; i >= 0; i--) { 
-            if(isspace(atastr[i]) || !isprint(atastr[i])) atastr[i] = 0;
-            else break;
+        while (!value.empty()) {
+            const auto last = static_cast<unsigned char>(value.back());
+            if (std::isprint(last) && !std::isspace(last)) break;
+            value.pop_back();
         }
+        value.resize(strlen(value.c_str()));
+        return value;
     }
 
     AutonomousPlayerDevice::AutonomousPlayerDevice(Platform::IDEBus * bus): 
@@ -34,21 +39,35 @@ namespace ATAPI {
     }
 
     void AutonomousPlayerDevice::reset() {
+        initialize();
+    }
+
+    bool AutonomousPlayerDevice::initialize() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Reset");
+        info = {};
+        _diags = {};
+        quirks = {};
+        packet_size = 12;
         ide->reset();
-        wait_not_busy("RST");
-        ide->write(IDE::Register::Command, {{.low = 0x91, .high = 0xFF}});
+        const bool reset_complete = wait_not_busy("reset");
         xSemaphoreGive(semaphore);
 
+        if (!reset_complete) return false;
         _diags.is_atapi = check_atapi_compatible();
-        self_test();
-        init_task_file();
-        identify();
+        if (!_diags.is_atapi) {
+            ESP_LOGE(LOG_TAG, "Expected ATAPI signature 0xeb14");
+            return false;
+        }
+
+        if (!self_test()) ESP_LOGW(LOG_TAG, "Drive self-test did not report success");
+        if (!init_task_file() || !identify()) return false;
+        log_inquiry();
         query_state();
         _diags.capas = mode_sense_capabilities();
         set_speed();
         ESP_LOGI(LOG_TAG, "end of Reset");
+        return true;
     }
 
     const DriveInfo * AutonomousPlayerDevice::get_info() { return &info; }
@@ -164,25 +183,16 @@ namespace ATAPI {
     }
 
     bool AutonomousPlayerDevice::check_atapi_compatible() {
-        data16 tmp;
-        bool rslt;
-
         xSemaphoreTake(semaphore, portMAX_DELAY);
-
-        // 5.18.3 Special Handling of ATA Read and Identify Drive Commands
-        tmp = ide->read(IDE::Register::CylinderLow);
-        if(tmp.low == 0x14) {
-            tmp = ide->read(IDE::Register::CylinderHigh);
-            if(tmp.low == 0xEB) rslt = true;
-        }
-
-        if(!rslt) ESP_LOGW(LOG_TAG, "Not an ATAPI device or device faulty!");
-
+        const uint8_t low = ide->read(IDE::Register::CylinderLow).low;
+        const uint8_t high = ide->read(IDE::Register::CylinderHigh).low;
         xSemaphoreGive(semaphore);
-        return rslt;
+
+        ESP_LOGI(LOG_TAG, "Drive signature = 0x%02x%02x", high, low);
+        return low == 0x14 && high == 0xEB;
     }
 
-    void AutonomousPlayerDevice::init_task_file() {
+    bool AutonomousPlayerDevice::init_task_file() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "init task file");
         ide->write(IDE::Register::Feature, {{ .low = (FeatureRegister {{ .DMA = false, .overlap = false }}).value, .high = 0xFF }});
@@ -194,16 +204,19 @@ namespace ATAPI {
         // Disable interrupts
         ide->write(IDE::Register::DeviceControl, {{ .low = (DeviceControlRegister {{ .nIEN = true }}).value, .high = 0xFF }});
 
-        wait_not_busy("TSK");
-        wait_drq_end();
+        const bool idle = wait_sts_bit_clr({{.DRQ = true, .BSY = true}}, "task file");
         xSemaphoreGive(semaphore);
+        return idle;
     }
 
     bool AutonomousPlayerDevice::self_test() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Self-test");
         ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
-        wait_not_busy("ST");
+        if (!wait_not_busy("self-test")) {
+            xSemaphoreGive(semaphore);
+            return false;
+        }
         data16 rslt = ide->read(IDE::Register::Error);
         ESP_LOGI(LOG_TAG, "Error register = 0x%04x", rslt.value);
         _diags.self_test_result = rslt.value;
@@ -211,29 +224,36 @@ namespace ATAPI {
         return rslt.low == 0x01;
     }
 
-    void AutonomousPlayerDevice::identify() {
-        Responses::IdentifyPacket rslt;
-        memset(&rslt, 0, sizeof(Responses::IdentifyPacket));
+    bool AutonomousPlayerDevice::identify() {
+        Responses::IdentifyPacket rslt = {};
+        static_assert(sizeof(rslt) == 512);
         xSemaphoreTake(semaphore, portMAX_DELAY);
 
         ide->write(IDE::Register::Command, {{ .low = Command::IDENTIFY_PACKET_DEVICE, .high = 0xFF }});
-        wait_not_busy("ID");
-        wait_drq();
-        read_response(&rslt, sizeof(Responses::IdentifyPacket), true);
+        delayMicroseconds(1);
+        const bool received = wait_for_data("IDENTIFY PACKET DEVICE") &&
+                              ide->read_data(reinterpret_cast<uint8_t *>(&rslt), sizeof(rslt) / 2) &&
+                              wait_sts_bit_clr({{.DRQ = true, .BSY = true}}, "IDENTIFY completion");
+        const auto status = read_sts_regi();
         xSemaphoreGive(semaphore);
 
-        char buf[41] = { 0 };
-        strncpy(buf, rslt.model, 40);
-        ata_str_to_human(buf, 41);
-        info.model = std::string(buf);
-
-        strncpy(buf, rslt.firmware_rev, 40);
-        ata_str_to_human(buf, 41);
-        info.firmware = std::string(buf);
-
-        strncpy(buf, rslt.serial_no, 40);
-        ata_str_to_human(buf, 41);
-        info.serial = std::string(buf);
+        if (!received || status.ERR || (rslt.general_config & 0xC000) != 0x8000) {
+            ESP_LOGE(LOG_TAG, "IDENTIFY failed: status=0x%02x, word 0=0x%04x",
+                     status.value, rslt.general_config);
+            return false;
+        }
+        const auto * bytes = reinterpret_cast<const uint8_t *>(&rslt);
+        if (bytes[510] == 0xA5) {
+            uint8_t checksum = 0;
+            for (size_t i = 0; i < sizeof(rslt); ++i) checksum += bytes[i];
+            if (checksum != 0) {
+                ESP_LOGE(LOG_TAG, "IDENTIFY checksum mismatch");
+                return false;
+            }
+        }
+        info.model = drive_string(rslt.model, sizeof(rslt.model), true);
+        info.firmware = drive_string(rslt.firmware_rev, sizeof(rslt.firmware_rev), true);
+        info.serial = drive_string(rslt.serial_no, sizeof(rslt.serial_no), true);
 
         packet_size = ((rslt.general_config & 0x1) != 0) ? 16 : 12;
         
@@ -264,6 +284,41 @@ namespace ATAPI {
         }
 
         ESP_LOGI(LOG_TAG, "Drive Model = '%s', SN = '%s', FW = '%s', packet size = %i", info.model.c_str(),  info.serial.c_str(), info.firmware.c_str(), packet_size);
+        return true;
+    }
+
+    void AutonomousPlayerDevice::log_inquiry() {
+        Responses::Inquiry response = {};
+        const Requests::Inquiry request = {
+            .opcode = OperationCodes::INQUIRY,
+            .allocation_length = sizeof(response),
+        };
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        bool received = send_packet(&request, sizeof(request)) && wait_for_data("INQUIRY");
+        if (received) {
+            const uint8_t low = ide->read(IDE::Register::CylinderLow).low;
+            const uint8_t high = ide->read(IDE::Register::CylinderHigh).low;
+            const size_t bytes = (size_t(high) << 8) | low;
+            if (bytes > 0 && bytes <= sizeof(response)) {
+                received = ide->read_data(reinterpret_cast<uint8_t *>(&response), (bytes + 1) / 2) &&
+                           wait_sts_bit_clr({{.DRQ = true, .BSY = true}}, "INQUIRY completion") &&
+                           !read_sts_regi().ERR &&
+                           bytes >= offsetof(Responses::Inquiry, revision);
+            } else {
+                ESP_LOGW(LOG_TAG, "Unexpected INQUIRY transfer length: %u", bytes);
+                received = false;
+            }
+        }
+        xSemaphoreGive(semaphore);
+        if (!received) {
+            ESP_LOGW(LOG_TAG, "Drive vendor unavailable (INQUIRY failed)");
+            return;
+        }
+
+        const auto vendor = drive_string(response.vendor, sizeof(response.vendor));
+        const auto product = drive_string(response.product, sizeof(response.product));
+        ESP_LOGI(LOG_TAG, "Drive Vendor = '%s', Product = '%s'", vendor.c_str(), product.c_str());
     }
 
     void AutonomousPlayerDevice::start(bool state) {
@@ -680,7 +735,7 @@ namespace ATAPI {
         return res.media_type;
     }
 
-    void AutonomousPlayerDevice::send_packet(const void * buf, size_t bufLen, bool pad) {
+    bool AutonomousPlayerDevice::send_packet(const void * buf, size_t bufLen, bool pad) {
         delayMicroseconds(100); // either just the C68E is too old and slow to keep up with the ESP even over 100kHz i2c... or my pcb layout bites me in the ass again!!
         // for our use case those occasional delays don't have too much effect but this will limit potential growth for data disc reading if any!
 
@@ -689,12 +744,15 @@ namespace ATAPI {
         ide->write(IDE::Register::DeviceControl, {{ .low = (DeviceControlRegister {{ .nIEN = true }}).value, .high = 0xFF }});
         delayMicroseconds(100);
         ide->write(IDE::Register::Command, {{ .low = Command::WRITE_PACKET, .high = 0xFF }});
+        delayMicroseconds(1);
+        if (!wait_for_data("PACKET request")) return false;
 
         const uint8_t* data = (const uint8_t*) buf;
         int i = 0;
         for(i = 0; i < bufLen; i+=2) {
             delayMicroseconds(10);
-            ide->write(IDE::Register::Data, {{ .low = data[i], .high = data[i + 1] }});
+            const uint8_t high = i + 1 < bufLen ? data[i + 1] : 0;
+            ide->write(IDE::Register::Data, {{ .low = data[i], .high = high }});
         }
 
         if(pad) {
@@ -707,7 +765,8 @@ namespace ATAPI {
         if(quirks.busy_ass) {
             delay(7);
         }
-        wait_not_busy("PKT");
+        delayMicroseconds(1);
+        return wait_not_busy("PACKET completion");
     }
 
     bool AutonomousPlayerDevice::read_response(void * outBuf, size_t bufLen, bool flush) {
@@ -726,7 +785,7 @@ namespace ATAPI {
             do {
                 val = ide->read(IDE::Register::Data);
                 buf[i++] = val.low;
-                buf[i++] = val.high;
+                if (i < bufLen) buf[i++] = val.high;
                 delayMicroseconds(10);
 
                 sts = read_sts_regi();
@@ -735,7 +794,7 @@ namespace ATAPI {
                 if(quirks.busy_ass) {
                     delayMicroseconds(33);
                 }
-            } while(bufLen > i && (sts.DRQ || quirks.no_drq_in_toc));
+            } while(bufLen > i && !sts.BSY && (sts.DRQ || quirks.no_drq_in_toc));
 
             if(bufLen > i) {
                 ESP_LOGV(LOG_TAG, "Data underrun when reading response: wanted %i bytes, DRQ clear after %i bytes", bufLen, i + 1);
@@ -749,16 +808,22 @@ namespace ATAPI {
         }
 
         if(flush) {
-            int flushed = 0;
+            size_t flushed = 0;
             sts = read_sts_regi();
-            while(sts.DRQ) {
-                val = ide->read(IDE::Register::Data);
+            // The task file caps each packet data phase at 512 bytes.
+            // Allow multiple phases to drain while bounding a stuck DRQ.
+            while(sts.DRQ && !sts.BSY && flushed < 65536) {
+                ide->read(IDE::Register::Data);
                 flushed += 2;
 
                 sts = read_sts_regi();
             }
             if(flushed > 0) ESP_LOGD(LOG_TAG, "Flushed %i extra bytes", flushed);
-            rslt = true;
+            if (sts.DRQ && !sts.BSY) {
+                ESP_LOGE(LOG_TAG, "DRQ stayed set while draining ATAPI response");
+                return false;
+            }
+            if (bufLen == 0) rslt = !sts.BSY;
         }
 
         return rslt;
@@ -782,24 +847,36 @@ namespace ATAPI {
         } while ((read_sts_regi().value & bits.value) == 0);
     }
 
-    void AutonomousPlayerDevice::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
-        TickType_t start_wait = xTaskGetTickCount();
-        ESP_LOGD(tag, "Wait for bit clear 0x%02x", bits.value);
-
+    bool AutonomousPlayerDevice::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
+        const TickType_t start_wait = xTaskGetTickCount();
+        StatusRegister status;
         do {
-            delay(100);
-            if(xTaskGetTickCount() - start_wait >= pdMS_TO_TICKS(3000)) {
-                ESP_LOGW(tag, "Still waiting for bit clear 0x%02x", bits.value);
-                start_wait = xTaskGetTickCount();
-            }
-        } while ((read_sts_regi().value & bits.value) != 0);
+            status = read_sts_regi();
+            if ((status.value & bits.value) == 0) return true;
+            delay(10);
+        } while (xTaskGetTickCount() - start_wait < pdMS_TO_TICKS(30000));
+        ESP_LOGE(LOG_TAG, "%s timed out, status=0x%02x", tag, status.value);
+        return false;
     }
 
-    void AutonomousPlayerDevice::wait_not_busy(const char * tag) { 
-        ESP_LOGV(tag, "Waiting for drive to stop being busy...");
-        wait_sts_bit_clr({{.BSY = true}}, tag); 
+    bool AutonomousPlayerDevice::wait_not_busy(const char * tag) {
+        return wait_sts_bit_clr({{.BSY = true}}, tag);
     }
-    void AutonomousPlayerDevice::wait_drq_end() { wait_sts_bit_clr({{.DRQ = true}}); }
+
+    bool AutonomousPlayerDevice::wait_for_data(const char * tag) {
+        const TickType_t start_wait = xTaskGetTickCount();
+        StatusRegister status;
+        do {
+            status = read_sts_regi();
+            if (!status.BSY) {
+                if (status.ERR || status.DF) break;
+                if (status.DRQ) return true;
+            }
+            delay(1);
+        } while (xTaskGetTickCount() - start_wait < pdMS_TO_TICKS(5000));
+        ESP_LOGE(LOG_TAG, "%s did not reach DRQ, status=0x%02x", tag, status.value);
+        return false;
+    }
     void AutonomousPlayerDevice::wait_drq() { wait_sts_bit_set({{.DRQ = true}}); }
 
     void AutonomousPlayerDevice::wait_ready() {

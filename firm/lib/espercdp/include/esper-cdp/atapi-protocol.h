@@ -14,6 +14,7 @@ namespace ATAPI {
     enum OperationCodes: uint8_t{
         TEST_UNIT_READY = 0x00,
         REQUEST_SENSE = 0x03,
+        INQUIRY = 0x12,
         START_STOP_UNIT = 0x1B,
         PREVENT_ALLOW_MEDIA_REMOVAL = 0x1E,
         READ_SUBCHANNEL = 0x42,
@@ -76,6 +77,13 @@ namespace ATAPI {
     };
 
     namespace Requests {
+        struct ATAPI_PKT Inquiry {
+            uint8_t opcode;
+            uint8_t reserved[3];
+            uint8_t allocation_length;
+            uint8_t control;
+        };
+
         struct ATAPI_PKT ReqPktFooter {
             bool link: 1;
             bool flag: 1;
@@ -363,6 +371,13 @@ namespace ATAPI {
     }
 
     namespace Responses {
+        struct ATAPI_PKT Inquiry {
+            uint8_t header[8];
+            char vendor[8];
+            char product[16];
+            char revision[4];
+        };
+
         struct ATAPI_PKT ReadSubchannel {
             enum SubchannelAudioStatus: uint8_t {
                 AUDIOSTS_UNSUPPORTED_INVALID = 0,
@@ -422,8 +437,7 @@ namespace ATAPI {
             uint16_t reserved3[3];
             char firmware_rev[8];
             char model[40];
-            
-            // ... we dont really care of the rest for now
+            uint16_t remaining_words[256 - 47];
         };
 
         struct ATAPI_PKT MechanismStatusHeader {

@@ -1,4 +1,5 @@
 #pragma once
+#include <driver/spi_master.h>
 #include "thread_safe_i2c.h"
 
 union data16 {
@@ -44,8 +45,11 @@ namespace Platform {
     public:
         using DeviceNumber = IDE::DeviceNumber;
         DeviceNumber active_device = DeviceNumber::IDE_MASTER; // <- dont seem to be able to address other device but still
- 
+
+        virtual ~IDEBus() = default;
         virtual data16 read(uint8_t reg) = 0;
+        /// Read a known-length PIO data phase, low byte first in each word.
+        virtual bool read_data(uint8_t * buffer, size_t words);
         virtual void write(uint8_t reg, data16 data) = 0;
         virtual void reset() = 0;
     };
@@ -75,5 +79,41 @@ namespace Platform {
 
         void ensure_sel_device();
         void write_internal(uint8_t reg, data16 data);
+    };
+
+    /// MCP23S17 and counter-based bridge on the v1.5 IDE prototype.
+    /// Calls must be serialized by the ATAPI device.
+    class SPIBridgedIDEBus: public IDEBus {
+    public:
+        struct Pins {
+            gpio_num_t sck, miso, mosi, cs, write, burst, reset;
+        };
+
+        SPIBridgedIDEBus(spi_host_device_t host, Pins pins);
+        ~SPIBridgedIDEBus() override;
+        SPIBridgedIDEBus(const SPIBridgedIDEBus&) = delete;
+        SPIBridgedIDEBus& operator=(const SPIBridgedIDEBus&) = delete;
+
+        bool begin();
+
+        data16 read(uint8_t reg) override;
+        bool read_data(uint8_t * buffer, size_t words) override;
+        void write(uint8_t reg, data16 data) override;
+        void reset() override;
+
+    private:
+        const spi_host_device_t host;
+        const Pins pins;
+        spi_device_handle_t device = nullptr;
+        uint8_t * dma_buffer = nullptr;
+        bool ready = false;
+        uint8_t selected_device = 0xFF;
+
+        bool transfer(spi_transaction_t& transaction);
+        bool write_expander(uint8_t opcode, uint8_t reg, uint8_t low, uint8_t high = 0, size_t bytes = 1);
+        bool check_expander(uint8_t opcode);
+        bool select_device();
+        bool write_word(uint8_t reg, data16 data);
+        bool clock_payload(uint8_t opcode, spi_transaction_ext_t& payload);
     };
 }

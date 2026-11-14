@@ -18,10 +18,11 @@
 #define BCONF_IDE_SPI_FREQ                      10_000_000
 #define BCONF_IDE_SPI_BURST_PIN                 GPIO_NUM_23
 #define BCONF_IDE_SPI_WRITE_PIN                 GPIO_NUM_19
-#define BCONF_IDE_SPI_CS_PIN                    GPIO_NUM_12
+#define BCONF_IDE_SPI_CS_PIN                    GPIO_NUM_22
 #define BCONF_IDE_SPI_SCK_PIN                   GPIO_NUM_14
 #define BCONF_IDE_SPI_MISO_PIN                  GPIO_NUM_13
 #define BCONF_IDE_SPI_MOSI_PIN                  GPIO_NUM_15
+#define BCONF_IDE_SPI_RST_PIN                   GPIO_NUM_NC
 
 #define BCONF_AUDIOROUTER_TYPE                  AUDIOROUTER_TYPE_NONE
 #define BCONF_DAC_UNMUTE_PIN                    GPIO_NUM_18

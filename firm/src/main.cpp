@@ -3,6 +3,7 @@
 #include <LittleFS.h>
 
 #include <board_cfg.h> //<- must be first so that the config reflects in ESPerCore
+#include <esp32-hal-spi.h>
 #include <esper-core/service.h>
 #include <web/web_remote.h>
 #include <esper-gui/hardware/drivers.h>
@@ -49,6 +50,10 @@ static void print_memory() {
 void load_all_fonts() {
   Fonts::Font tmp;
   FILE * f = fopen((FONT_DIR_PREFIX "/default.mofo"), "rb");
+  if(!f) {
+    ESP_LOGW(LOG_TAG, "Font files unavailable");
+    return;
+  }
   fseek(f, 0, SEEK_SET);
   if(!Fonts::MoFo::LoadFromHandle(f, &tmp)) ESP_LOGE(LOG_TAG, "keyrus0808 err");
   else Fonts::EGFont_register(tmp);
@@ -128,13 +133,39 @@ void setup(void) {
     Wire.begin(BCONF_I2C_SDA, BCONF_I2C_SCL, BCONF_I2C_FRQ);
     i2c = new Core::ThreadSafeI2C(&Wire);
     keypad = new Platform::Keypad(i2c);
-    #if (BCONF_IDE_TYPE == IDEBUS_TYPE_ATAPIDUINO_ISH_I2C)
-      ide = new Platform::I2CBridgedIDEBus(i2c);
-    #endif
+  #else
+    keypad = new Platform::Keypad(nullptr);
   #endif
 
   #if IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE)
-    cdrom = new ATAPI::AutonomousPlayerDevice(ide);
+    #if (BCONF_IDE_TYPE == IDEBUS_TYPE_ATAPIDUINO_ISH_I2C)
+      ide = new Platform::I2CBridgedIDEBus(i2c);
+      cdrom = new ATAPI::AutonomousPlayerDevice(ide);
+    #elif (BCONF_IDE_TYPE == IDEBUS_TYPE_CURSED_SPI)
+      static_assert(BCONF_IDE_SPI_NUM == VSPI || BCONF_IDE_SPI_NUM == HSPI);
+      static Platform::SPIBridgedIDEBus spi_ide(
+        BCONF_IDE_SPI_NUM == VSPI ? SPI3_HOST : SPI2_HOST,
+        {
+          .sck = BCONF_IDE_SPI_SCK_PIN,
+          .miso = BCONF_IDE_SPI_MISO_PIN,
+          .mosi = BCONF_IDE_SPI_MOSI_PIN,
+          .cs = BCONF_IDE_SPI_CS_PIN,
+          .write = BCONF_IDE_SPI_WRITE_PIN,
+          .burst = BCONF_IDE_SPI_BURST_PIN,
+          .reset = BCONF_IDE_SPI_RST_PIN
+        }
+      );
+      if (spi_ide.begin()) {
+        static ATAPI::AutonomousPlayerDevice drive(&spi_ide);
+        ide = &spi_ide;
+        if (drive.initialize()) cdrom = &drive;
+      }
+      if (!cdrom) {
+        ESP_LOGE(LOG_TAG, "SPI ATAPI drive initialization failed");
+        static ATAPI::NullDevice no_drive;
+        cdrom = &no_drive;
+      }
+    #endif
   #else
     #error "ATAPI Device impl not done for the IDE BUS type; write new driver or check board config"
   #endif
@@ -159,10 +190,15 @@ void setup(void) {
       },
       BCONF_BYPASS_RELAY_PIN
     );
-  #elif (IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE))
-    #error "Not using software playback but no SPDIF Transceiver, check board config"
+  #elif (BCONF_AUDIOROUTER_TYPE == AUDIOROUTER_TYPE_NONE)
+    router = new Platform::I2SOutputAudioRouter({
+      .mck = BCONF_DAC_MCK_PIN,
+      .bck = BCONF_DAC_BCK_PIN,
+      .lrck = BCONF_DAC_LRCK_PIN,
+      .data = BCONF_DAC_DATA_PIN
+    });
   #else
-    #error "TODO: decouple WM8805 from AudioRouter and support working without one!!"
+    #error "Unknown audio router type"
   #endif
 
   const PlatformSharedResources rsrc = {
@@ -195,7 +231,9 @@ void setup(void) {
     i2c->log_all_devices();
   #endif
   router->initialize();
-  cdrom->reset();
+  #if (BCONF_IDE_TYPE == IDEBUS_TYPE_ATAPIDUINO_ISH_I2C)
+    cdrom->reset();
+  #endif
   xTaskCreatePinnedToCore(
     keypadTask,
     "KEYP",
