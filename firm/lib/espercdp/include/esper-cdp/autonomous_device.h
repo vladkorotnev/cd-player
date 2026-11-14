@@ -19,6 +19,7 @@ namespace ATAPI {
         AudioStatus audio_sts = { 0 };
         bool playback_mode_select_flag = false;
 
+        void before_packet_completion_poll() override;
         void mode_select_output_ports();
         void mode_select_power_conditions();
     };

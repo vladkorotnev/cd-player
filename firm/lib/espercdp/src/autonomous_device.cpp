@@ -5,6 +5,13 @@
 static const char LOG_TAG[] = "ATAPI";
 
 namespace ATAPI {
+    void AutonomousPlayerDevice::before_packet_completion_poll() {
+        // The I2C-backed original hardware can report BSY clear immediately
+        // after the CDB, before the drive has entered the command. Preserve
+        // the settling window used by the pre-prototype transport.
+        delay(100);
+    }
+
     void AutonomousPlayerDevice::stop() {
         const Requests::StopPlayScan req = {
             .opcode = OperationCodes::STOP_PLAY_SCAN

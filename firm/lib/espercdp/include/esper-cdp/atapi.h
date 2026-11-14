@@ -177,6 +177,10 @@ namespace ATAPI {
         bool send_packet(const void * buf, size_t bufLen, bool pad = true);
         bool write_packet(const void * buf, size_t bufLen, bool pad);
 
+        /// Allow transports which need a settling window after the CDB to
+        /// delay the first command-completion status read.
+        virtual void before_packet_completion_poll() {}
+
     private:
         DriveInfo info = {
             .model = "", .serial = "", .firmware = ""

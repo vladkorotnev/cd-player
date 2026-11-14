@@ -502,6 +502,7 @@ namespace ATAPI {
 
     bool HardwareATAPIDevice::send_packet(const void * buf, size_t bufLen, bool pad) {
         if (!write_packet(buf, bufLen, pad)) return false;
+        before_packet_completion_poll();
         if (quirks.busy_ass) {
             delay(7);
         }
