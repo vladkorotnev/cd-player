@@ -24,7 +24,7 @@ namespace ATAPI {
         return value;
     }
 
-    AutonomousPlayerDevice::AutonomousPlayerDevice(Platform::IDEBus * bus): 
+    HardwareATAPIDevice::HardwareATAPIDevice(Platform::IDEBus * bus):
         ide(bus),
         Device()
     {
@@ -38,11 +38,11 @@ namespace ATAPI {
         quirks = {0};
     }
 
-    void AutonomousPlayerDevice::reset() {
+    void HardwareATAPIDevice::reset() {
         initialize();
     }
 
-    bool AutonomousPlayerDevice::initialize() {
+    bool HardwareATAPIDevice::initialize() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Reset");
         info = {};
@@ -70,9 +70,9 @@ namespace ATAPI {
         return true;
     }
 
-    const DriveInfo * AutonomousPlayerDevice::get_info() { return &info; }
+    const DriveInfo * HardwareATAPIDevice::get_info() { return &info; }
 
-    const MechInfo * AutonomousPlayerDevice::query_state() {
+    const MechInfo * HardwareATAPIDevice::query_state() {
         Responses::MechanismStatusHeader hdr;
         memset(&hdr, 0, sizeof(hdr));
 
@@ -133,56 +133,7 @@ namespace ATAPI {
         return &mech_sts;
     }
 
-    const AudioStatus * AutonomousPlayerDevice::query_position() {
-        Responses::ReadSubchannel res = { 0 };
-
-        const Requests::ReadSubchannel req = {
-            .opcode = OperationCodes::READ_SUBCHANNEL,
-            .msf = true,
-            .subQ = true,
-            .data_format = SubchannelFormat::SUBCH_FMT_CD_POS,
-            .allocation_length = sizeof(res)
-        };
-
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-
-        send_packet(&req, sizeof(req), true);
-        read_response(&res, sizeof(res), true);
-
-        xSemaphoreGive(semaphore);
-
-        switch(res.audio_status) {
-            case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_PLAYING:
-                audio_sts.state = AudioStatus::PlayState::Playing;
-                break;
-
-            case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_PAUSED:
-                audio_sts.state = AudioStatus::PlayState::Paused;
-                break;
-
-            case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_UNSUPPORTED_INVALID:
-            case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_NONE:
-            case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_STOPPED_ERROR:
-            case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_COMPLETED:
-                audio_sts.state = AudioStatus::PlayState::Stopped;
-                break;
-        }
-
-        if(res.data_format != SubchannelFormat::SUBCH_FMT_CD_POS) {
-            ESP_LOGV(LOG_TAG, "Read Subchannel response not of expected type (got 0x%x)", res.data_format);
-        } else {
-            audio_sts.track = res.current_position_data.track_no;
-            audio_sts.index = res.current_position_data.index_no;
-            audio_sts.position_in_disc = res.current_position_data.absolute_address;
-            audio_sts.position_in_track = res.current_position_data.relative_address;
-
-            ESP_LOGV(LOG_TAG, "Audio Sts = %i, track = %i.%i, total time = %02im%02is%02if, track time = %02im%02is%02if", res.audio_status, audio_sts.track, audio_sts.index, audio_sts.position_in_disc.M, audio_sts.position_in_disc.S, audio_sts.position_in_disc.F, audio_sts.position_in_track.M, audio_sts.position_in_track.S, audio_sts.position_in_track.F);
-        }
-
-        return &audio_sts;
-    }
-
-    bool AutonomousPlayerDevice::check_atapi_compatible() {
+    bool HardwareATAPIDevice::check_atapi_compatible() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         const uint8_t low = ide->read(IDE::Register::CylinderLow).low;
         const uint8_t high = ide->read(IDE::Register::CylinderHigh).low;
@@ -192,7 +143,7 @@ namespace ATAPI {
         return low == 0x14 && high == 0xEB;
     }
 
-    bool AutonomousPlayerDevice::init_task_file() {
+    bool HardwareATAPIDevice::init_task_file() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "init task file");
         ide->write(IDE::Register::Feature, {{ .low = (FeatureRegister {{ .DMA = false, .overlap = false }}).value, .high = 0xFF }});
@@ -209,7 +160,7 @@ namespace ATAPI {
         return idle;
     }
 
-    bool AutonomousPlayerDevice::self_test() {
+    bool HardwareATAPIDevice::self_test() {
         xSemaphoreTake(semaphore, portMAX_DELAY);
         ESP_LOGI(LOG_TAG, "Self-test");
         ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
@@ -224,7 +175,7 @@ namespace ATAPI {
         return rslt.low == 0x01;
     }
 
-    bool AutonomousPlayerDevice::identify() {
+    bool HardwareATAPIDevice::identify() {
         Responses::IdentifyPacket rslt = {};
         static_assert(sizeof(rslt) == 512);
         xSemaphoreTake(semaphore, portMAX_DELAY);
@@ -287,7 +238,7 @@ namespace ATAPI {
         return true;
     }
 
-    void AutonomousPlayerDevice::log_inquiry() {
+    void HardwareATAPIDevice::log_inquiry() {
         Responses::Inquiry response = {};
         const Requests::Inquiry request = {
             .opcode = OperationCodes::INQUIRY,
@@ -321,7 +272,7 @@ namespace ATAPI {
         ESP_LOGI(LOG_TAG, "Drive Vendor = '%s', Product = '%s'", vendor.c_str(), product.c_str());
     }
 
-    void AutonomousPlayerDevice::start(bool state) {
+    void HardwareATAPIDevice::start(bool state) {
         const Requests::StartStopUnit req = {
             .opcode = OperationCodes::START_STOP_UNIT,
             .start = state,
@@ -332,7 +283,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void AutonomousPlayerDevice::eject(bool open) {
+    void HardwareATAPIDevice::eject(bool open) {
         const Requests::StartStopUnit req = {
             .opcode = OperationCodes::START_STOP_UNIT,
             .start = !open,
@@ -343,7 +294,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void AutonomousPlayerDevice::set_tray_locked(bool locked) {
+    void HardwareATAPIDevice::set_tray_locked(bool locked) {
         const Requests::PreventAllowMediaRemoval req = {
             .opcode = OperationCodes::PREVENT_ALLOW_MEDIA_REMOVAL,
             .prevent = locked,
@@ -354,7 +305,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void AutonomousPlayerDevice::load_unload(SlotNumber slot) {
+    void HardwareATAPIDevice::load_unload(SlotNumber slot) {
         const Requests::LoadUnload lul = {
             .opcode = OperationCodes::LOAD_UNLOAD,
             .start = true,
@@ -367,27 +318,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void AutonomousPlayerDevice::stop() {
-        const Requests::StopPlayScan req = {
-            .opcode = OperationCodes::STOP_PLAY_SCAN
-        };
-
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&req, sizeof(req), true);
-        xSemaphoreGive(semaphore);
-    }
-
-    void AutonomousPlayerDevice::pause(bool pause) {
-        const Requests::PauseResume req = {
-            .opcode = OperationCodes::PAUSE_RESUME,
-            .resume = !pause
-        };
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&req, sizeof(req), true);
-        xSemaphoreGive(semaphore);
-    }
-
-    CapabilitiesMechStatusModePage AutonomousPlayerDevice::mode_sense_capabilities() {
+    CapabilitiesMechStatusModePage HardwareATAPIDevice::mode_sense_capabilities() {
         const Requests::ModeSense msrq0 = {
             .opcode = OperationCodes::MODE_SENSE,
             .page = ModeSensePageCode::MSPC_CAPABILITIES_MECH_STS,
@@ -415,7 +346,7 @@ namespace ATAPI {
         return rslt;
     }
 
-    void AutonomousPlayerDevice::set_speed() {
+    void HardwareATAPIDevice::set_speed() {
         // Some drives are too noisy to let them run at full force
         const Requests::SetCDSpeed req = {
             .opcode = OperationCodes::SET_CD_SPEED,
@@ -427,174 +358,7 @@ namespace ATAPI {
         xSemaphoreGive(semaphore);
     }
 
-    void AutonomousPlayerDevice::mode_select_output_ports() {
-        const Requests::ModeSense msrq = {
-            .opcode = OperationCodes::MODE_SENSE,
-            .page = ModeSensePageCode::MSPC_CDA_CONTROL,
-            .allocation_length = htobe16(0xFF)
-        };
-
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&msrq, sizeof(msrq), true);
-        Responses::ModeSense mph;
-        ModeSenseCDAControlModePage cdactl;
-        read_response(&mph, sizeof(mph), false);
-        read_response(&cdactl, sizeof(cdactl), true);
-        xSemaphoreGive(semaphore);
-
-        if(cdactl.page_code != ModeSensePageCode::MSPC_CDA_CONTROL) {
-            ESP_LOGE(LOG_TAG, "Expected mode sense page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_CDA_CONTROL, cdactl.page_code);
-            return;
-        }
-
-        _diags.cda = cdactl;
-
-        ESP_LOGW(LOG_TAG, "Before CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
-            cdactl.ports[0].channel, cdactl.ports[0].volume, cdactl.ports[1].channel, cdactl.ports[1].volume, cdactl.ports[2].channel, cdactl.ports[2].volume, cdactl.ports[3].channel, cdactl.ports[3].volume);
-
-        cdactl.ports[0].channel = 1;
-        cdactl.ports[0].volume = 255;
-        cdactl.ports[1].channel = 2;
-        cdactl.ports[1].volume = 255;
-        cdactl.ports[2].channel = 1;
-        cdactl.ports[2].volume = 255;
-        cdactl.ports[3].channel = 2;
-        cdactl.ports[3].volume = 255;
-        mph.media_type = MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN;
-        mph.block_descriptor_length_0 = 0;
-        mph.data_length = 0; // When using the MODE SENSE command, the mode data length field specifies the length in bytes of the following data that is available to be transferred. The mode data length is the total byte count of all data following the mode data length field. When using the MODE SELECT command, this field is reserved.
-
-        ESP_LOGV(LOG_TAG, "SEND CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
-            cdactl.ports[0].channel, cdactl.ports[0].volume, cdactl.ports[1].channel, cdactl.ports[1].volume, cdactl.ports[2].channel, cdactl.ports[2].volume, cdactl.ports[3].channel, cdactl.ports[3].volume);
-
-        Requests::ModeSelect msel = {
-            .opcode = OperationCodes::MODE_SELECT,
-            .set_me_to_true = true,
-            .parameter_list_length = htobe16(sizeof(mph) + sizeof(cdactl))
-        };
-
-        struct ATAPI_PKT {
-            Requests::ModeSelect a = {
-                .opcode = OperationCodes::MODE_SELECT,
-                .set_me_to_true = true,
-                .parameter_list_length = htobe16(sizeof(mph) + sizeof(cdactl))
-            };
-            Responses::ModeSense b;
-            ModeSenseCDAControlModePage c;
-        } tmp;
-        tmp.b = mph;
-        tmp.c = cdactl;
-
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&tmp, sizeof(tmp), true);
-        Responses::ModeSense mph2;
-        ModeSenseCDAControlModePage cdactl2;
-        send_packet(&msrq, sizeof(msrq), true);
-        read_response(&mph2, sizeof(mph2), false);
-        read_response(&cdactl2, sizeof(cdactl2), true);
-        xSemaphoreGive(semaphore);
-
-        if(cdactl2.page_code != ModeSensePageCode::MSPC_CDA_CONTROL) {
-            ESP_LOGE(LOG_TAG, "Expected mode sense 2 page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_CDA_CONTROL, cdactl2.page_code);
-            return;
-        }
-
-        ESP_LOGW(LOG_TAG, "After CDA CTL: port[0] = {%i, %i}, port[1] = {%i, %i}, port[2] = {%i, %i}, port[3] = {%i, %i}", 
-            cdactl2.ports[0].channel, cdactl2.ports[0].volume, cdactl2.ports[1].channel, cdactl2.ports[1].volume, cdactl2.ports[2].channel, cdactl2.ports[2].volume, cdactl2.ports[3].channel, cdactl2.ports[3].volume);
-        
-        _diags.cda = cdactl2;
-    }
-
-    void AutonomousPlayerDevice::mode_select_power_conditions() {
-        // disable standby timers (e.g. some TEAC drives go to sleep during long pause)
-        const Requests::ModeSense msrq = {
-            .opcode = OperationCodes::MODE_SENSE,
-            .page = ModeSensePageCode::MSPC_POWER_CONDITION,
-            .allocation_length = htobe16(0xFF)
-        };
-
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&msrq, sizeof(msrq), true);
-        Responses::ModeSense mph;
-        Responses::ModeSensePowerConditionModePage pwrctl;
-        read_response(&mph, sizeof(mph), false);
-        read_response(&pwrctl, sizeof(pwrctl), true);
-        xSemaphoreGive(semaphore);
-
-        if(pwrctl.page_code != ModeSensePageCode::MSPC_POWER_CONDITION) {
-            ESP_LOGE(LOG_TAG, "Expected mode sense page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_POWER_CONDITION, pwrctl.page_code);
-            return;
-        }
-
-        pwrctl.idle_timer = be16toh(pwrctl.idle_timer);
-        pwrctl.standby_timer = be16toh(pwrctl.standby_timer);
-
-        ESP_LOGI(LOG_TAG, "Initial power status: IDLE[%i: %i] STBY[%i: %i]", pwrctl.idle, pwrctl.idle_timer, pwrctl.standby, pwrctl.standby_timer);
-
-        pwrctl.idle = 0;
-        pwrctl.standby = 0;
-        pwrctl.idle_timer = 0xFFFF;
-        pwrctl.standby_timer = 0xFFFF;
-
-        struct ATAPI_PKT {
-            Requests::ModeSelect a = {
-                .opcode = OperationCodes::MODE_SELECT,
-                .set_me_to_true = true,
-                .parameter_list_length = htobe16(sizeof(mph) + sizeof(pwrctl))
-            };
-            Responses::ModeSense b;
-            Responses::ModeSensePowerConditionModePage c;
-        } tmp;
-        tmp.b = mph;
-        tmp.c = pwrctl;
-
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&tmp, sizeof(tmp), true);
-        Responses::ModeSense mph2;
-        Responses::ModeSensePowerConditionModePage pwrctl2;
-        send_packet(&msrq, sizeof(msrq), true);
-        read_response(&mph2, sizeof(mph2), false);
-        read_response(&pwrctl2, sizeof(pwrctl2), true);
-        xSemaphoreGive(semaphore);
-
-        if(pwrctl2.page_code != ModeSensePageCode::MSPC_POWER_CONDITION) {
-            ESP_LOGE(LOG_TAG, "Expected mode sense 2 page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_POWER_CONDITION, pwrctl2.page_code);
-            return;
-        }
-        pwrctl2.idle_timer = be16toh(pwrctl.idle_timer);
-        pwrctl2.standby_timer = be16toh(pwrctl.standby_timer);
-        ESP_LOGI(LOG_TAG, "NEW power status: IDLE[%i: %i] STBY[%i: %i]", pwrctl2.idle, pwrctl2.idle_timer, pwrctl2.standby, pwrctl2.standby_timer);
-    }
-
-    void AutonomousPlayerDevice::play(const MSF start, const MSF end) {
-        if(!playback_mode_select_flag) {
-            mode_select_output_ports();
-            mode_select_power_conditions();
-            playback_mode_select_flag = true;
-        }
-        Requests::PlayAudioMSF req = {
-            .opcode = OperationCodes::PLAY_AUDIO_MSF,
-            .start_position = start,
-            .end_position = end,
-        };
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&req, sizeof(req), true);
-        xSemaphoreGive(semaphore);
-    }
-
-    void AutonomousPlayerDevice::scan(bool forward, const MSF from) {
-        Requests::Scan req = {
-            .opcode = OperationCodes::SCAN,
-            .direct = !forward,
-            .msf = from,
-            .addr_type = Requests::Scan::ScanAddrType::ScanAddr_AbsMSF
-        };
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&req, sizeof(req), false);
-        xSemaphoreGive(semaphore);
-    }
-
-    const std::vector<uint8_t> AutonomousPlayerDevice::read_cd_text_toc_locked() {
+    const std::vector<uint8_t> HardwareATAPIDevice::read_cd_text_toc_locked() {
         // just for fun let's try this
         const Requests::ReadTOC req = {
             .opcode = OperationCodes::READ_TOC_PMA_ATIP,
@@ -640,7 +404,7 @@ namespace ATAPI {
         return rslt;
     }
 
-    const DiscTOC AutonomousPlayerDevice::read_toc() {
+    const DiscTOC HardwareATAPIDevice::read_toc() {
         set_speed();
 
         const Requests::ReadTOC req = {
@@ -718,7 +482,7 @@ namespace ATAPI {
         };
     }
 
-    MediaTypeCode AutonomousPlayerDevice::check_media() {
+    MediaTypeCode HardwareATAPIDevice::check_media() {
         const Requests::ModeSense req = {
             .opcode = OperationCodes::MODE_SENSE,
             .page = ModeSensePageCode::MSPC_ERROR_RECOVERY,
@@ -735,98 +499,7 @@ namespace ATAPI {
         return res.media_type;
     }
 
-    bool AutonomousPlayerDevice::read_cd_audio(uint32_t lba, uint16_t sectors, uint8_t * pcm) {
-        if (!pcm || sectors == 0) return false;
-        const Requests::ReadCd request = {
-            .opcode = OperationCodes::READ_CD,
-            .sector_type = Requests::ReadCd::SECT_TYPE_CDDA,
-            .lba = {uint8_t(lba >> 24), uint8_t(lba >> 16), uint8_t(lba >> 8), uint8_t(lba)},
-            .transfer_length_blocks = {0, uint8_t(sectors >> 8), uint8_t(sectors)},
-            .user = true,
-        };
-        static_assert(sizeof(request) == 12);
-        static_assert(CDDA_SECTOR_BYTES <= Platform::SPIBridgedIDEBus::MAX_READ_BYTES);
-        static_assert(Platform::SPIBridgedIDEBus::MAX_READ_BYTES <= 0xFFFE);
-        const size_t total = size_t(sectors) * CDDA_SECTOR_BYTES;
-        constexpr size_t max_phase = Platform::SPIBridgedIDEBus::MAX_READ_BYTES /
-                                     CDDA_SECTOR_BYTES * CDDA_SECTOR_BYTES;
-        const auto phase_limit = static_cast<uint16_t>(std::min(total, max_phase));
-
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        const auto before = read_sts_regi();
-        if (before.BSY || before.DRQ) {
-            ESP_LOGE(LOG_TAG, "Drive busy before READ CD: status=0x%02x", before.value);
-            xSemaphoreGive(semaphore);
-            return false;
-        }
-        // Allow several sectors per PIO phase when they fit in one SPI DMA burst.
-        // The drive can return smaller phases, so use its reported byte count.
-        ide->write(IDE::Feature, {{0, 0xFF}});
-        ide->write(IDE::CylinderLow, {{uint8_t(phase_limit), 0xFF}});
-        ide->write(IDE::CylinderHigh, {{uint8_t(phase_limit >> 8), 0xFF}});
-        bool complete = false;
-        size_t received = 0;
-        if (write_packet(&request, sizeof(request), true)) {
-            const TickType_t started = xTaskGetTickCount();
-            do {
-                const auto status = read_sts_regi();
-                if (status.BSY) {
-                    delay(1);
-                    continue;
-                }
-                if (status.ERR || status.DF) break;
-
-                // Sector Count is Interrupt Reason during a PACKET command.
-                const uint8_t reason = ide->read(IDE::SectorCount).low & 0x03;
-                if (!status.DRQ) {
-                    if (reason == 0x03) {
-                        complete = received == total;
-                        break;
-                    }
-                    delay(1);
-                    continue;
-                }
-
-                const uint8_t low = ide->read(IDE::CylinderLow).low;
-                const uint8_t high = ide->read(IDE::CylinderHigh).low;
-                const size_t count = (size_t(high) << 8) | low;
-                if (reason != 0x02 || !count || (count & 1) ||
-                    count > phase_limit || count > total - received ||
-                    !ide->read_data(pcm + received, count / 2)) {
-                    ESP_LOGE(LOG_TAG, "READ CD data phase: reason=0x%x, bytes=%zu", reason, count);
-                    break;
-                }
-                received += count;
-                delayMicroseconds(1);
-            } while (xTaskGetTickCount() - started < pdMS_TO_TICKS(5000));
-        }
-
-        if (!complete) {
-            auto status = read_sts_regi();
-            ESP_LOGE(LOG_TAG, "READ CD failed at LBA %lu: %zu/%zu bytes, status=0x%02x",
-                     static_cast<unsigned long>(lba), received, total, status.value);
-            if (status.BSY || status.DRQ) {
-                ide->reset();
-                const TickType_t started = xTaskGetTickCount();
-                do {
-                    status = read_sts_regi();
-                    if (!status.BSY && !status.DRQ) break;
-                    delay(10);
-                } while (xTaskGetTickCount() - started < pdMS_TO_TICKS(5000));
-            }
-        }
-        // Restore the byte count limit expected by the existing packet commands
-        // once the task file is writable.
-        const auto status = read_sts_regi();
-        if (!status.BSY && !status.DRQ) {
-            ide->write(IDE::CylinderLow, {{0x00, 0xFF}});
-            ide->write(IDE::CylinderHigh, {{0x02, 0xFF}});
-        }
-        xSemaphoreGive(semaphore);
-        return complete;
-    }
-
-    bool AutonomousPlayerDevice::send_packet(const void * buf, size_t bufLen, bool pad) {
+    bool HardwareATAPIDevice::send_packet(const void * buf, size_t bufLen, bool pad) {
         if (!write_packet(buf, bufLen, pad)) return false;
         if (quirks.busy_ass) {
             delay(7);
@@ -834,7 +507,7 @@ namespace ATAPI {
         return wait_not_busy("PACKET completion");
     }
 
-    bool AutonomousPlayerDevice::write_packet(const void * buf, size_t bufLen, bool pad) {
+    bool HardwareATAPIDevice::write_packet(const void * buf, size_t bufLen, bool pad) {
         delayMicroseconds(100); // either just the C68E is too old and slow to keep up with the ESP even over 100kHz i2c... or my pcb layout bites me in the ass again!!
         // for our use case those occasional delays don't have too much effect but this will limit potential growth for data disc reading if any!
 
@@ -865,7 +538,7 @@ namespace ATAPI {
         return true;
     }
 
-    bool AutonomousPlayerDevice::read_response(void * outBuf, size_t bufLen, bool flush) {
+    bool HardwareATAPIDevice::read_response(void * outBuf, size_t bufLen, bool flush) {
         if((bufLen == 0 || outBuf == nullptr) && !flush) {
             ESP_LOGE(LOG_TAG, "No buffer provided for response!");
             return false;
@@ -925,13 +598,13 @@ namespace ATAPI {
         return rslt;
     }
 
-    AutonomousPlayerDevice::StatusRegister AutonomousPlayerDevice::read_sts_regi() {
+    HardwareATAPIDevice::StatusRegister HardwareATAPIDevice::read_sts_regi() {
         StatusRegister val;
         val.value = ide->read(IDE::Register::Status).low;
         return val;
     }
 
-    void AutonomousPlayerDevice::wait_sts_bit_set(StatusRegister bits) {
+    void HardwareATAPIDevice::wait_sts_bit_set(StatusRegister bits) {
         TickType_t start_wait = xTaskGetTickCount();
         ESP_LOGD(LOG_TAG, "Wait for bit set 0x%02x", bits.value);
 
@@ -943,7 +616,7 @@ namespace ATAPI {
         } while ((read_sts_regi().value & bits.value) == 0);
     }
 
-    bool AutonomousPlayerDevice::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
+    bool HardwareATAPIDevice::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
         const TickType_t start_wait = xTaskGetTickCount();
         StatusRegister status;
         do {
@@ -955,11 +628,11 @@ namespace ATAPI {
         return false;
     }
 
-    bool AutonomousPlayerDevice::wait_not_busy(const char * tag) {
+    bool HardwareATAPIDevice::wait_not_busy(const char * tag) {
         return wait_sts_bit_clr({{.BSY = true}}, tag);
     }
 
-    bool AutonomousPlayerDevice::wait_for_data(const char * tag) {
+    bool HardwareATAPIDevice::wait_for_data(const char * tag) {
         const TickType_t start_wait = xTaskGetTickCount();
         StatusRegister status;
         do {
@@ -973,9 +646,9 @@ namespace ATAPI {
         ESP_LOGE(LOG_TAG, "%s did not reach DRQ, status=0x%02x", tag, status.value);
         return false;
     }
-    void AutonomousPlayerDevice::wait_drq() { wait_sts_bit_set({{.DRQ = true}}); }
+    void HardwareATAPIDevice::wait_drq() { wait_sts_bit_set({{.DRQ = true}}); }
 
-    void AutonomousPlayerDevice::wait_ready() {
+    void HardwareATAPIDevice::wait_ready() {
         ESP_LOGI(LOG_TAG, "Waiting for drive to become ready...");
         xSemaphoreTake(semaphore, portMAX_DELAY);
         wait_sts_bit_set({{.DRDY = true}}); 

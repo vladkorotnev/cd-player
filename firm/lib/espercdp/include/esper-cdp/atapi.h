@@ -119,15 +119,13 @@ namespace ATAPI {
         };
     };
 
-    class AutonomousPlayerDevice: public Device {
+    /// Shared drive control and packet transport for hardware-backed players.
+    class HardwareATAPIDevice: public Device {
     public:
         const Quirks& get_quirks() override { return quirks; }
         const Diags * get_diags() override { return &_diags; }
 
         bool initialize();
-        static constexpr size_t CDDA_SECTOR_BYTES = 2352;
-        /// Read CD-DA main-channel PCM (little-endian stereo), starting at a logical block address.
-        bool read_cd_audio(uint32_t lba, uint16_t sectors, uint8_t * pcm);
         void reset() override;
         void wait_ready() override;
 
@@ -135,28 +133,17 @@ namespace ATAPI {
         void load_unload(SlotNumber slot) override;
         void start(bool state = true) override;
         void set_tray_locked(bool lock) override;
-        void play(const MSF start, const MSF end) override;
-        void pause(bool pause) override;
-        void stop() override;
-        void scan(bool forward, const MSF from) override;
         MediaTypeCode check_media() override;
         const DiscTOC read_toc() override;
 
         const DriveInfo * get_info() override;
         const MechInfo * query_state() override;
-        const AudioStatus * query_position() override;
 
-        AutonomousPlayerDevice(Platform::IDEBus*);
-    private:
+    protected:
+        explicit HardwareATAPIDevice(Platform::IDEBus * bus);
+
         SemaphoreHandle_t semaphore;
         Platform::IDEBus * ide;
-        DriveInfo info = { 
-            .model = "", .serial = "", .firmware = ""
-        };
-        MechInfo mech_sts = { 0 };
-        AudioStatus audio_sts = { 0 };
-        int packet_size = 12;
-        Quirks quirks;
         Diags _diags = {};
 
         union StatusRegister {
@@ -180,6 +167,20 @@ namespace ATAPI {
             };
             uint8_t value;
         };
+
+        // Hold the device semaphore across the entire packet and data exchange.
+        StatusRegister read_sts_regi();
+        bool read_response(void * buf, size_t bufLen, bool flush);
+        bool send_packet(const void * buf, size_t bufLen, bool pad = true);
+        bool write_packet(const void * buf, size_t bufLen, bool pad);
+
+    private:
+        DriveInfo info = {
+            .model = "", .serial = "", .firmware = ""
+        };
+        MechInfo mech_sts = { 0 };
+        int packet_size = 12;
+        Quirks quirks;
 
         union ErrorRegister {
             struct __attribute__((packed)) {
@@ -227,12 +228,8 @@ namespace ATAPI {
 
         const std::vector<uint8_t> read_cd_text_toc_locked();
 
-        StatusRegister read_sts_regi();
         void wait_sts_bit_set(StatusRegister bits);
         bool wait_sts_bit_clr(StatusRegister bits, const char * tag);
-        bool read_response(void * buf, size_t bufLen, bool flush);
-        bool send_packet(const void * buf, size_t bufLen, bool pad = true);
-        bool write_packet(const void * buf, size_t bufLen, bool pad);
 
         bool wait_not_busy(const char * tag);
         bool wait_for_data(const char * tag);
@@ -244,11 +241,26 @@ namespace ATAPI {
 
         CapabilitiesMechStatusModePage mode_sense_capabilities();
 
-        bool playback_mode_select_flag = false;
-        void mode_select_output_ports();
-        void mode_select_power_conditions();
         void set_speed();
         bool check_atapi_compatible();
         bool self_test();
+    };
+
+    class AutonomousPlayerDevice: public HardwareATAPIDevice {
+    public:
+        AutonomousPlayerDevice(Platform::IDEBus * bus): HardwareATAPIDevice(bus) {}
+
+        void play(const MSF start, const MSF end) override;
+        void pause(bool pause) override;
+        void stop() override;
+        void scan(bool forward, const MSF from) override;
+        const AudioStatus * query_position() override;
+
+    private:
+        AudioStatus audio_sts = { 0 };
+        bool playback_mode_select_flag = false;
+
+        void mode_select_output_ports();
+        void mode_select_power_conditions();
     };
 }

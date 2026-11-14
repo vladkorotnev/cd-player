@@ -8,7 +8,7 @@
 
 
 namespace ATAPI {
-    class StreamingPlayerDevice final : public AutonomousPlayerDevice {
+    class StreamingPlayerDevice final : public HardwareATAPIDevice {
     public:
         StreamingPlayerDevice(Platform::IDEBus * bus, Platform::AudioRouter * output, BaseType_t interruptCore);
         ~StreamingPlayerDevice() override;
@@ -26,6 +26,7 @@ namespace ATAPI {
         const AudioStatus * query_position() override;
 
     private:
+        static constexpr size_t CDDA_SECTOR_BYTES = 2352;
         static constexpr unsigned SECTORS_PER_BLOCK = 16;
         static constexpr unsigned BLOCK_COUNT = 12;
         static constexpr size_t BLOCK_BYTES = SECTORS_PER_BLOCK * CDDA_SECTOR_BYTES;
@@ -59,6 +60,8 @@ namespace ATAPI {
         void stop_locked();
         int position_lba() const;
         void read_blocks();
+        /// Read CD-DA main-channel PCM (little-endian stereo) starting at an LBA.
+        bool read_cd_audio(uint32_t lba, uint16_t sectors, uint8_t * pcm);
         void output_blocks();
         static void reader_task(void * context);
         static void output_task(void * context);
