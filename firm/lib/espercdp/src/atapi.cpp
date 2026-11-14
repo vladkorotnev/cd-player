@@ -55,6 +55,7 @@ namespace ATAPI {
 
         if (!reset_complete) return false;
         _diags.is_atapi = check_atapi_compatible();
+        _diags.is_autonomous = false;
         if (!_diags.is_atapi) {
             ESP_LOGE(LOG_TAG, "Expected ATAPI signature 0xeb14");
             return false;

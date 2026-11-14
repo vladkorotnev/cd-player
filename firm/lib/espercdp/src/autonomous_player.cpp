@@ -240,4 +240,9 @@ namespace ATAPI {
 
         return &audio_sts;
     }
+
+    bool AutonomousPlayerDevice::initialize() {
+        HardwareATAPIDevice::initialize();
+        _diags.is_autonomous = true;
+    }
 }

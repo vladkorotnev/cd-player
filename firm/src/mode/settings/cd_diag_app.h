@@ -59,6 +59,7 @@ public:
             std::make_shared<MenuNode>(info->serial.empty() ? "(No Serial#)":info->serial),
             std::make_shared<DetailTextMenuNode>("", "Basic"),
             std::make_shared<BoolDisplayItem>("ATAPI", diags->is_atapi),
+            std::make_shared<BoolDisplayItem>("Streaming", !diags->is_autonomous),
             std::make_shared<DetailTextMenuNode>("Self Test Code", selftest_hex),
             std::make_shared<DetailTextMenuNode>("Media Code", std::to_string((int) _host->resources.cdrom->check_media())),
             std::make_shared<DetailTextMenuNode>("", "Capabilities"),
@@ -120,6 +121,7 @@ public:
 
         // BASIC
         ESP_LOGI(LOG_TAG, "[Basic] ATAPI: %s", diags->is_atapi ? "Yes" : "No");
+        ESP_LOGI(LOG_TAG, "[Basic] Playback type: %s", diags->is_autonomous ? "Autonomous by ATAPI commands" : "Streaming over data bus");
         ESP_LOGI(LOG_TAG, "[Basic] Self Test Code: %s", selftest_hex);
         ESP_LOGI(LOG_TAG, "[Basic] Media Code: %d", (int)_host->resources.cdrom->check_media());
 

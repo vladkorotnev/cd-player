@@ -23,6 +23,7 @@ namespace ATAPI {
 
         struct Diags {
             bool is_atapi;
+            bool is_autonomous;
             uint16_t self_test_result;
             CapabilitiesMechStatusModePage capas;
             ModeSenseCDAControlModePage cda;
@@ -113,6 +114,7 @@ namespace ATAPI {
         };
         const Diags diags = {
             .is_atapi = true,
+            .is_autonomous = true,
             .self_test_result = 0xFF,
             .capas = { 0 },
             .cda = { 0 }
@@ -125,7 +127,7 @@ namespace ATAPI {
         const Quirks& get_quirks() override { return quirks; }
         const Diags * get_diags() override { return &_diags; }
 
-        bool initialize();
+        virtual bool initialize();
         void reset() override;
         void wait_ready() override;
 
@@ -255,6 +257,7 @@ namespace ATAPI {
         void stop() override;
         void scan(bool forward, const MSF from) override;
         const AudioStatus * query_position() override;
+        bool initialize() override;
 
     private:
         AudioStatus audio_sts = { 0 };
