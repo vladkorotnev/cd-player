@@ -12,7 +12,7 @@ namespace ATAPI {
     public:
         StreamingPlayerDevice(Platform::IDEBus * bus, Platform::AudioRouter * output, BaseType_t interruptCore);
         ~StreamingPlayerDevice() override;
-        bool initialize();
+        bool initialize() override;
 
         void reset() override;
         void start(bool state = true) override;

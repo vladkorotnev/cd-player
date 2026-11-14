@@ -147,6 +147,7 @@ namespace ATAPI {
         SemaphoreHandle_t semaphore;
         Platform::IDEBus * ide;
         Diags _diags = {};
+        Quirks quirks;
 
         union StatusRegister {
             struct __attribute__((packed)) {
@@ -182,7 +183,6 @@ namespace ATAPI {
         };
         MechInfo mech_sts = { 0 };
         int packet_size = 12;
-        Quirks quirks;
 
         union ErrorRegister {
             struct __attribute__((packed)) {

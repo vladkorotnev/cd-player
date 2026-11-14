@@ -22,6 +22,8 @@ namespace ATAPI {
 
     bool StreamingPlayerDevice::initialize() {
         if (!HardwareATAPIDevice::initialize()) return false;
+        quirks.must_use_softscan = false; //<- software playback never uses softscan since technically it's always softscan
+
         control = xSemaphoreCreateMutex();
         workers_done = xSemaphoreCreateCounting(2, 0);
         events = xEventGroupCreate();
