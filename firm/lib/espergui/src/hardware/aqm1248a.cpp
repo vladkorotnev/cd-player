@@ -1,6 +1,7 @@
 #if (BCONF_DISPLAY_TYPE == DISP_TYPE_AQM1248A_SPI)
 
 #include <esper-gui/hardware/aqm1248a.h>
+#include <esper-core/lock.h>
 
 #include <algorithm>
 #include <cstring>
@@ -77,39 +78,39 @@ void AQM1248ADriver::initialize() {
     };
     ESP_ERROR_CHECK(spi_bus_add_device(spi_host, &device_config, &spi_device));
 
-    xSemaphoreTake(mutex, portMAX_DELAY);
+    {
+        Lock lock(mutex);
 
-    // Manufacturer-recommended AQM1248A power-up sequence.
-    const uint8_t initial[] = {
-        0xAE, // display off
-        0xA0, // ADC normal: column 0 maps to SEG0
-        0xC8, // reverse COM output direction for this glass
-        0xA3, // 1/7 LCD bias
-        0x2C, // voltage converter on
-    };
-    write_commands(initial, sizeof(initial));
-    vTaskDelay(pdMS_TO_TICKS(2));
+        // Manufacturer-recommended AQM1248A power-up sequence.
+        const uint8_t initial[] = {
+            0xAE, // display off
+            0xA0, // ADC normal: column 0 maps to SEG0
+            0xC8, // reverse COM output direction for this glass
+            0xA3, // 1/7 LCD bias
+            0x2C, // voltage converter on
+        };
+        write_commands(initial, sizeof(initial));
+        vTaskDelay(pdMS_TO_TICKS(2));
 
-    const uint8_t regulator = 0x2E;
-    write_commands(&regulator, 1);
-    vTaskDelay(pdMS_TO_TICKS(2));
+        const uint8_t regulator = 0x2E;
+        write_commands(&regulator, 1);
+        vTaskDelay(pdMS_TO_TICKS(2));
 
-    const uint8_t final[] = {
-        0x2F,             // voltage follower on
-        0x23,             // internal resistor ratio
-        0x81, DEFAULT_CONTRAST,
-        0xA4,             // normal display (not all points on)
-        0x40,             // display start line 0
-        0xA6,             // normal pixel polarity
-    };
-    write_commands(final, sizeof(final));
-    clear_controller_ram();
+        const uint8_t final[] = {
+            0x2F,             // voltage follower on
+            0x23,             // internal resistor ratio
+            0x81, DEFAULT_CONTRAST,
+            0xA4,             // normal display (not all points on)
+            0x40,             // display start line 0
+            0xA6,             // normal pixel polarity
+        };
+        write_commands(final, sizeof(final));
+        clear_controller_ram();
 
-    const uint8_t display_on = 0xAF;
-    write_commands(&display_on, 1);
-    DisplayDriver::set_brightness(DISP_BRIGHTNESS_100);
-
-    xSemaphoreGive(mutex);
+        const uint8_t display_on = 0xAF;
+        write_commands(&display_on, 1);
+        DisplayDriver::set_brightness(DISP_BRIGHTNESS_100);
+    }
     ESP_LOGI(LOG_TAG, "Initialized at %u Hz", frequency);
 }
 
@@ -120,10 +121,9 @@ void AQM1248ADriver::set_option(DriverOption opt, bool on) {
     // Restore normal all-points behavior before turning the display back on.
     const uint8_t power_on[] = {0xA4, 0xAF};
     const uint8_t power_off[] = {0xAE, 0xA5};
-    xSemaphoreTake(mutex, portMAX_DELAY);
+    Lock lock(mutex);
     if (on) write_commands(power_on, sizeof(power_on));
     else write_commands(power_off, sizeof(power_off));
-    xSemaphoreGive(mutex);
 }
 
 void AQM1248ADriver::set_brightness(Brightness brightness) {
@@ -142,9 +142,10 @@ void AQM1248ADriver::set_brightness(Brightness brightness) {
     const uint8_t contrast = contrast_levels[static_cast<uint8_t>(brightness)];
     const uint8_t commands[] = {0x81, contrast};
 
-    xSemaphoreTake(mutex, portMAX_DELAY);
-    write_commands(commands, sizeof(commands));
-    xSemaphoreGive(mutex);
+    {
+        Lock lock(mutex);
+        write_commands(commands, sizeof(commands));
+    }
     DisplayDriver::set_brightness(brightness);
 }
 
@@ -182,7 +183,7 @@ void AQM1248ADriver::transfer(
     const size_t stride = static_cast<size_t>(buffer->size.height / PAGE_HEIGHT);
     uint8_t pixels[DISPLAY_SIZE.width];
 
-    xSemaphoreTake(mutex, portMAX_DELAY);
+    Lock lock(mutex);
     for (int page = 0; page < VISIBLE_PAGES; ++page) {
         int x = 0;
         while (x < DISPLAY_SIZE.width) {
@@ -204,7 +205,6 @@ void AQM1248ADriver::transfer(
             write_bytes(true, pixels, static_cast<size_t>(count));
         }
     }
-    xSemaphoreGive(mutex);
 }
 
 uint8_t AQM1248ADriver::reverse_bits(uint8_t value) {

@@ -1,5 +1,6 @@
 #include <esper-cdp/autonomous_device.h>
 #include <esper-cdp/atapi-protocol.h>
+#include <esper-core/lock.h>
 #include <endian.h>
 
 static const char LOG_TAG[] = "ATAPI";
@@ -17,9 +18,8 @@ namespace ATAPI {
             .opcode = OperationCodes::STOP_PLAY_SCAN
         };
 
-        xSemaphoreTake(semaphore, portMAX_DELAY);
+        Lock lock(semaphore);
         send_packet(&req, sizeof(req), true);
-        xSemaphoreGive(semaphore);
     }
 
     void AutonomousPlayerDevice::pause(bool pause) {
@@ -27,9 +27,8 @@ namespace ATAPI {
             .opcode = OperationCodes::PAUSE_RESUME,
             .resume = !pause
         };
-        xSemaphoreTake(semaphore, portMAX_DELAY);
+        Lock lock(semaphore);
         send_packet(&req, sizeof(req), true);
-        xSemaphoreGive(semaphore);
     }
 
     void AutonomousPlayerDevice::mode_select_output_ports() {
@@ -39,13 +38,14 @@ namespace ATAPI {
             .allocation_length = htobe16(0xFF)
         };
 
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&msrq, sizeof(msrq), true);
         Responses::ModeSense mph;
         ModeSenseCDAControlModePage cdactl;
-        read_response(&mph, sizeof(mph), false);
-        read_response(&cdactl, sizeof(cdactl), true);
-        xSemaphoreGive(semaphore);
+        {
+            Lock lock(semaphore);
+            send_packet(&msrq, sizeof(msrq), true);
+            read_response(&mph, sizeof(mph), false);
+            read_response(&cdactl, sizeof(cdactl), true);
+        }
 
         if(cdactl.page_code != ModeSensePageCode::MSPC_CDA_CONTROL) {
             ESP_LOGE(LOG_TAG, "Expected mode sense page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_CDA_CONTROL, cdactl.page_code);
@@ -90,14 +90,15 @@ namespace ATAPI {
         tmp.b = mph;
         tmp.c = cdactl;
 
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&tmp, sizeof(tmp), true);
         Responses::ModeSense mph2;
         ModeSenseCDAControlModePage cdactl2;
-        send_packet(&msrq, sizeof(msrq), true);
-        read_response(&mph2, sizeof(mph2), false);
-        read_response(&cdactl2, sizeof(cdactl2), true);
-        xSemaphoreGive(semaphore);
+        {
+            Lock lock(semaphore);
+            send_packet(&tmp, sizeof(tmp), true);
+            send_packet(&msrq, sizeof(msrq), true);
+            read_response(&mph2, sizeof(mph2), false);
+            read_response(&cdactl2, sizeof(cdactl2), true);
+        }
 
         if(cdactl2.page_code != ModeSensePageCode::MSPC_CDA_CONTROL) {
             ESP_LOGE(LOG_TAG, "Expected mode sense 2 page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_CDA_CONTROL, cdactl2.page_code);
@@ -118,13 +119,14 @@ namespace ATAPI {
             .allocation_length = htobe16(0xFF)
         };
 
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&msrq, sizeof(msrq), true);
         Responses::ModeSense mph;
         Responses::ModeSensePowerConditionModePage pwrctl;
-        read_response(&mph, sizeof(mph), false);
-        read_response(&pwrctl, sizeof(pwrctl), true);
-        xSemaphoreGive(semaphore);
+        {
+            Lock lock(semaphore);
+            send_packet(&msrq, sizeof(msrq), true);
+            read_response(&mph, sizeof(mph), false);
+            read_response(&pwrctl, sizeof(pwrctl), true);
+        }
 
         if(pwrctl.page_code != ModeSensePageCode::MSPC_POWER_CONDITION) {
             ESP_LOGE(LOG_TAG, "Expected mode sense page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_POWER_CONDITION, pwrctl.page_code);
@@ -153,14 +155,15 @@ namespace ATAPI {
         tmp.b = mph;
         tmp.c = pwrctl;
 
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-        send_packet(&tmp, sizeof(tmp), true);
         Responses::ModeSense mph2;
         Responses::ModeSensePowerConditionModePage pwrctl2;
-        send_packet(&msrq, sizeof(msrq), true);
-        read_response(&mph2, sizeof(mph2), false);
-        read_response(&pwrctl2, sizeof(pwrctl2), true);
-        xSemaphoreGive(semaphore);
+        {
+            Lock lock(semaphore);
+            send_packet(&tmp, sizeof(tmp), true);
+            send_packet(&msrq, sizeof(msrq), true);
+            read_response(&mph2, sizeof(mph2), false);
+            read_response(&pwrctl2, sizeof(pwrctl2), true);
+        }
 
         if(pwrctl2.page_code != ModeSensePageCode::MSPC_POWER_CONDITION) {
             ESP_LOGE(LOG_TAG, "Expected mode sense 2 page code 0x%02x, but got 0x%02x ???", ModeSensePageCode::MSPC_POWER_CONDITION, pwrctl2.page_code);
@@ -182,9 +185,8 @@ namespace ATAPI {
             .start_position = start,
             .end_position = end,
         };
-        xSemaphoreTake(semaphore, portMAX_DELAY);
+        Lock lock(semaphore);
         send_packet(&req, sizeof(req), true);
-        xSemaphoreGive(semaphore);
     }
 
     void AutonomousPlayerDevice::scan(bool forward, const MSF from) {
@@ -194,9 +196,8 @@ namespace ATAPI {
             .msf = from,
             .addr_type = Requests::Scan::ScanAddrType::ScanAddr_AbsMSF
         };
-        xSemaphoreTake(semaphore, portMAX_DELAY);
+        Lock lock(semaphore);
         send_packet(&req, sizeof(req), false);
-        xSemaphoreGive(semaphore);
     }
 
     const AudioStatus * AutonomousPlayerDevice::query_position() {
@@ -210,12 +211,11 @@ namespace ATAPI {
             .allocation_length = sizeof(res)
         };
 
-        xSemaphoreTake(semaphore, portMAX_DELAY);
-
-        send_packet(&req, sizeof(req), true);
-        read_response(&res, sizeof(res), true);
-
-        xSemaphoreGive(semaphore);
+        {
+            Lock lock(semaphore);
+            send_packet(&req, sizeof(req), true);
+            read_response(&res, sizeof(res), true);
+        }
 
         switch(res.audio_status) {
             case Responses::ReadSubchannel::SubchannelAudioStatus::AUDIOSTS_PLAYING:

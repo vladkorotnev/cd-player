@@ -1,4 +1,5 @@
 #include <esper-gui/hardware/futaba_gp1232.h>
+#include <esper-core/lock.h>
 #include <driver/uart.h>
 
 #if (BCONF_DISPLAY_TYPE == DISP_TYPE_FUTABA_GP1232A)
@@ -37,39 +38,38 @@ namespace Graphics::Hardware {
         ESP_LOGI(LOG_TAG, "Reset");
         page_valid[0] = page_valid[1] = false;
         visible_dsa = DSA_FIRST;
-        xSemaphoreTake(_portSema, portMAX_DELAY);
-        uart_write_bytes(_port, "\x1B\x0B", 2); // reset
-        uart_write_bytes(_port, "\x1B\x0C", 2); // clear
-        xSemaphoreGive(_portSema);
+        {
+            Lock lock(_portSema);
+            uart_write_bytes(_port, "\x1B\x0B", 2); // reset
+            uart_write_bytes(_port, "\x1B\x0C", 2); // clear
+        }
         set_visible_dsa(DSA_FIRST);
         set_power(true);
         set_brightness(Brightness::DISP_BRIGHTNESS_100);
-        xSemaphoreTake(_portSema, portMAX_DELAY);
+        Lock lock(_portSema);
         uart_write_bytes(_port, init_test_string, strlen(init_test_string));
-        xSemaphoreGive(_portSema);
     }
 
     void FutabaGP1232ADriver::set_power(bool on) {
         ESP_LOGV(LOG_TAG, "Power = %i", on);
         const uint8_t cmd[] = {0x1B, 0x21, (uint8_t)(on ? 0x1 : 0x0)};
-        xSemaphoreTake(_portSema, portMAX_DELAY);
+        Lock lock(_portSema);
         uart_write_bytes(_port, (const void*) cmd, 3);
-        xSemaphoreGive(_portSema);
     }
 
     void FutabaGP1232ADriver::set_brightness(Brightness brightness) {
         ESP_LOGV(LOG_TAG, "Brightness = %i", brightness);
         const uint8_t cmd[] = {0x1B, 0x20, brightness};
-        xSemaphoreTake(_portSema, portMAX_DELAY);
-        uart_write_bytes(_port, (const void*) cmd, 3);
-        xSemaphoreGive(_portSema);
+        {
+            Lock lock(_portSema);
+            uart_write_bytes(_port, (const void*) cmd, 3);
+        }
         DisplayDriver::set_brightness(brightness);
     }
 
     void FutabaGP1232ADriver::set_anti_tearing(bool on) {
-        xSemaphoreTake(_frameSema, portMAX_DELAY);
+        Lock lock(_frameSema);
         anti_tearing = on;
-        xSemaphoreGive(_frameSema);
     }
 
     void FutabaGP1232ADriver::set_option(DriverOption opt, bool on) {
@@ -85,7 +85,7 @@ namespace Graphics::Hardware {
     }
 
     void FutabaGP1232ADriver::transfer(const std::vector<EGRect> changes, const BackingBuffer * buffer) {
-        xSemaphoreTake(_frameSema, portMAX_DELAY);
+        Lock lock(_frameSema);
         const int visible_page = (visible_dsa == DSA_FIRST ? 0 : 1);
         if (!changes.empty() && page_differs(visible_page, buffer)) {
             const int target_page = anti_tearing ? 1 - visible_page : visible_page;
@@ -135,7 +135,6 @@ namespace Graphics::Hardware {
             }
             if (anti_tearing) flip_pages();
         }
-        xSemaphoreGive(_frameSema);
     }
 
     bool FutabaGP1232ADriver::page_differs(int page, const BackingBuffer * buffer) const {
@@ -149,9 +148,10 @@ namespace Graphics::Hardware {
 
     void FutabaGP1232ADriver::set_visible_dsa(int dsa) {
         const uint8_t cmd[] = {0x1B, 0x22, (uint8_t)(dsa >> 8), (uint8_t)(dsa & 0xFF)};
-        xSemaphoreTake(_portSema, portMAX_DELAY);
-        uart_write_bytes(_port, (const void*) cmd, 4);
-        xSemaphoreGive(_portSema);
+        {
+            Lock lock(_portSema);
+            uart_write_bytes(_port, (const void*) cmd, 4);
+        }
         visible_dsa = dsa;
     }
 
@@ -172,18 +172,19 @@ namespace Graphics::Hardware {
         const int actual_x = address.x + dsa;
 
         const uint8_t cmd[] = {0x1B, 0x2E, (uint8_t) (actual_x >> 8), (uint8_t) (actual_x & 0xFF), (uint8_t) (address.y / 8), (uint8_t) (w >> 8), (uint8_t) (w & 0xFF), (uint8_t) (h - 1)};
-        
-        xSemaphoreTake(_portSema, portMAX_DELAY);
-        uart_write_bytes(_port, (const void*) cmd, 8);
+        int out;
+        {
+            Lock lock(_portSema);
+            uart_write_bytes(_port, (const void*) cmd, 8);
 
-        ESP_LOGV(LOG_TAG, "Blitting address=(%i, %i) size=(%i, %i) stride=%i sidx=%i", address.x, address.y, w, h, stride, start_idx_in_buffer);
-        uint8_t pixels[FRAME_BYTES];
-        for (int col = 0; col < w; ++col) {
-            memcpy(pixels + col * h, buffer->data + start_idx_in_buffer + col * stride, h);
+            ESP_LOGV(LOG_TAG, "Blitting address=(%i, %i) size=(%i, %i) stride=%i sidx=%i", address.x, address.y, w, h, stride, start_idx_in_buffer);
+            uint8_t pixels[FRAME_BYTES];
+            for (int col = 0; col < w; ++col) {
+                memcpy(pixels + col * h, buffer->data + start_idx_in_buffer + col * stride, h);
+            }
+            out = uart_write_bytes(_port, pixels, w * h);
+            if(out <= 0) ESP_LOGE(LOG_TAG, "Blit tx error!");
         }
-        int out = uart_write_bytes(_port, pixels, w * h);
-        if(out <= 0) ESP_LOGE(LOG_TAG, "Blit tx error!");
-        xSemaphoreGive(_portSema);
         ESP_LOGD(LOG_TAG, "Wrote %i data bytes", out > 0 ? out : 0);
     }
 }

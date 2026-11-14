@@ -9,6 +9,7 @@
 #include <modes/bluetooth_mode.h>
 #include <modes/settings_mode.h>
 #include <modes/standby_mode.h>
+#include <esper-core/lock.h>
 #include <atomic>
 
 enum ModeSelection: int {
@@ -70,14 +71,13 @@ public:
     }
 
     void set_external_mode(Mode* mode) {
-        xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
+        Lock lock(modeSwitchSema);
         cur_mode = ESPER_MODE_MAX_INVALID;
         req_mode = cur_mode;
         end_current_mode_locked();
         activeMode = mode;
         start_current_mode_locked();
         publish_mode(cur_mode);
-        xSemaphoreGive(modeSwitchSema);
     }
 
     ModeSelection get_current_mode() const {
@@ -85,14 +85,13 @@ public:
     }
 
     void set_mode_changed_callback(ModeChangedCallback callback, void * context) {
-        xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
+        Lock lock(modeSwitchSema);
         mode_changed_callback = callback;
         mode_changed_context = context;
-        xSemaphoreGive(modeSwitchSema);
     }
 
     void loop() {
-        xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
+        Lock lock(modeSwitchSema);
         if(activeMode != nullptr) {
             activeMode->loop();
         }
@@ -171,7 +170,6 @@ public:
         if(cur_mode != req_mode) {
             switch_to_req_mode_locked();
         }
-        xSemaphoreGive(modeSwitchSema);
     }
 
 private:
@@ -293,11 +291,10 @@ private:
     }
 
     void composition_pass() {
-        xSemaphoreTake(modeSwitchSema, portMAX_DELAY);
+        Lock lock(modeSwitchSema);
         if(activeMode != nullptr) {
             compositor.render(activeMode->main_view());
         }
-        xSemaphoreGive(modeSwitchSema);
     }
 
     static void host_task(void * p) {

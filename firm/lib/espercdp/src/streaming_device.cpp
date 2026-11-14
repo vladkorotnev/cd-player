@@ -226,11 +226,10 @@ namespace ATAPI {
                                      CDDA_SECTOR_BYTES * CDDA_SECTOR_BYTES;
         const auto phase_limit = static_cast<uint16_t>(std::min(total, max_phase));
 
-        xSemaphoreTake(semaphore, portMAX_DELAY);
+        Lock lock(semaphore);
         const auto before = read_sts_regi();
         if (before.BSY || before.DRQ) {
             ESP_LOGE(LOG_TAG, "Drive busy before READ CD: status=0x%02x", before.value);
-            xSemaphoreGive(semaphore);
             return false;
         }
         // Allow several sectors per PIO phase when they fit in one SPI DMA burst.
@@ -296,7 +295,6 @@ namespace ATAPI {
             ide->write(IDE::CylinderLow, {{0x00, 0xFF}});
             ide->write(IDE::CylinderHigh, {{0x02, 0xFF}});
         }
-        xSemaphoreGive(semaphore);
         return complete;
     }
 

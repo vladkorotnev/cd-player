@@ -1,4 +1,5 @@
 #include <esper-cdp/player.h>
+#include <esper-core/lock.h>
 const uint8_t TRK_NUM_LEAD_OUT = 0xAA;
 static char LOG_TAG[] = "CDP";
 
@@ -69,32 +70,31 @@ namespace CD {
     }
 
     void Player::process_metadata_queue() {
-        if(xSemaphoreTake(_metaSemaphore, portMAX_DELAY)) {
-            if(!_metaQueue.empty()) {
-                std::shared_ptr<Album> album_ptr = _metaQueue.front();
+        Lock lock(_metaSemaphore);
+        if(!_metaQueue.empty()) {
+            std::shared_ptr<Album> album_ptr = _metaQueue.front();
 
-                meta->fetch_album(*album_ptr);
-                _metaQueue.pop();
-            }
-            xSemaphoreGive(_metaSemaphore);
+            meta->fetch_album(*album_ptr);
+            _metaQueue.pop();
         }
     }
 
     void Player::poll_state() {
         State oldSts = sts;
         int delay = 0;
-        xSemaphoreTake(_cmdSemaphore, portMAX_DELAY);
+        {
+            Lock lock(_cmdSemaphore);
 
-        if(sts == State::INIT) {
-            cdrom->start();
-            cdrom->wait_ready();
-            vTaskDelay(pdMS_TO_TICKS(500));
-            cdrom->eject(false); // <- close aka start unit, otherwise any disc is BAD_DISC on some drives
-            sts = State::LOAD;
-        }
-        else {
-            ATAPI::MediaTypeCode media_type = cdrom->check_media();
-            const ATAPI::MechInfo* mech = cdrom->query_state();
+            if(sts == State::INIT) {
+                cdrom->start();
+                cdrom->wait_ready();
+                vTaskDelay(pdMS_TO_TICKS(500));
+                cdrom->eject(false); // <- close aka start unit, otherwise any disc is BAD_DISC on some drives
+                sts = State::LOAD;
+            }
+            else {
+                ATAPI::MediaTypeCode media_type = cdrom->check_media();
+                const ATAPI::MechInfo* mech = cdrom->query_state();
             // Initial memory allocation for the slot statuses, even if it's just one
             if(mech->slot_count > slots.size()) {
                 for(int i = slots.size(); i < mech->slot_count; i++) {
@@ -175,9 +175,10 @@ namespace CD {
                             slots[cur_slot].disc = std::make_shared<Album>(toc);
                             
                             // NB: std::queue is not thread safe, can this lead to a problem? realistically we shouldn't have more than one in the pipeline anyway...
-                            xSemaphoreTake(_metaSemaphore, portMAX_DELAY);
-                            _metaQueue.push(slots[cur_slot].disc);
-                            xSemaphoreGive(_metaSemaphore); // let the background task go
+                            {
+                                Lock lock(_metaSemaphore);
+                                _metaQueue.push(slots[cur_slot].disc);
+                            }
 
                             cur_track.track = 1;
                             cur_track.index = 1;
@@ -313,10 +314,9 @@ namespace CD {
                         }
                     }
                 break;
+                }
             }
         }
-
-        xSemaphoreGive(_cmdSemaphore);
         if(sts != oldSts) {
             ESP_LOGI(LOG_TAG, "State change from %s to %s", PlayerStateString(oldSts), PlayerStateString(sts));
         }
@@ -326,7 +326,7 @@ namespace CD {
     }
 
     void Player::do_command(Command cmd) {
-        xSemaphoreTake(_cmdSemaphore, portMAX_DELAY);
+        Lock lock(_cmdSemaphore);
 
         if(sts != State::INIT && sts != State::CHANGE_DISC && sts != State::LOAD) {
             // Open/Close works in any state
@@ -549,7 +549,6 @@ namespace CD {
             break;
         }
 
-        xSemaphoreGive(_cmdSemaphore);
     }
 
     void Player::navigate_to_track(int track) {

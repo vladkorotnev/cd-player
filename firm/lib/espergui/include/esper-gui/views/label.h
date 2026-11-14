@@ -4,6 +4,7 @@
 #include <freertos/FreeRTOS.h>
 #include <freertos/semphr.h>
 #include <atomic>
+#include <esper-core/lock.h>
 
 namespace UI {
     class Label: public View {
@@ -36,19 +37,17 @@ namespace UI {
         }
 
         void set_value(std::string str) {
+            Lock lock(valueSemaphore);
             if(str != value) {
-                xSemaphoreTake(valueSemaphore, portMAX_DELAY);
                 value = str;
                 recalculate();
-                xSemaphoreGive(valueSemaphore);
             }
         }
 
         void set_font(const Fonts::Font * font) {
-            xSemaphoreTake(valueSemaphore, portMAX_DELAY);
+            Lock lock(valueSemaphore);
             fnt = font;
             recalculate();
-            xSemaphoreGive(valueSemaphore);
         }
 
         void render(EGGraphBuf * buf) override {
