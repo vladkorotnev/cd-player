@@ -2,6 +2,8 @@
 
 #ifdef BOARD_TYPE_OG8M
     #include "boards/og8m.h"
+#elif BOARD_TYPE_M32027_PROTO
+    #include "boards/m3_2027.h"
 #else
     #error "Board type not defined or unknown"
 #endif

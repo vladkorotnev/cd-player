@@ -120,10 +120,17 @@ void WebRemoteServer::task_entry(void * arg) {
 
 void WebRemoteServer::run() {
     TickType_t last_lifecycle_check = xTaskGetTickCount() - pdMS_TO_TICKS(250);
+    
+#if (BCONF_DISPLAY_TYPE == DISP_TYPE_NULL)
+    const bool always_wanted = true;
+#else
+    const bool always_wanted = false;
+#endif
+
     for(;;) {
         TickType_t now = xTaskGetTickCount();
         if(now - last_lifecycle_check >= pdMS_TO_TICKS(250)) {
-            bool wanted = Prefs::get(PREFS_KEY_WEB_REMOTE_ENABLED) && Core::Services::WLAN::is_up();
+            bool wanted = (always_wanted || Prefs::get(PREFS_KEY_WEB_REMOTE_ENABLED)) && Core::Services::WLAN::is_up();
             if(wanted && server == nullptr) start_server();
             else if(!wanted && server != nullptr) stop_server();
             last_lifecycle_check = now;
