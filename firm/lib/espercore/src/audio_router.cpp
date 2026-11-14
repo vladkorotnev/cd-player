@@ -15,9 +15,14 @@ AudioStreamWrapper nullAs(null);
 static const char LOG_TAG[] = "AudioRouter";
 
 namespace Platform {
-    I2SOutputAudioRouter::I2SOutputAudioRouter(const I2SBus i2s):
-        i2s_pins(i2s) {
+    I2SOutputAudioRouter::I2SOutputAudioRouter(const DACBus dac, const I2SBus i2s):
+        i2s_pins(i2s), dac_pins(dac) {
         _i2s = new I2SStream();
+        for (const auto pin : {dac.demph, dac.unmute}) {
+            if (pin == GPIO_NUM_NC) continue;
+            gpio_set_level(pin, 0);
+            gpio_set_direction(pin, GPIO_MODE_OUTPUT);
+        }
     }
 
     void I2SOutputAudioRouter::activate_route(AudioRoute next) {
@@ -41,10 +46,17 @@ namespace Platform {
     #endif
     }
 
+    void I2SOutputAudioRouter::clear_output() {
+        if (bus_active && _i2s->isActive()) {
+            i2s_zero_dma_buffer(static_cast<i2s_port_t>(_i2s->driver()->config().port_no));
+        }
+    }
+
     void I2SOutputAudioRouter::i2s_bus_release_local() {
         if (!bus_active) return;
 
         ESP_LOGI(LOG_TAG, "Bus release");
+        if (dac_pins.unmute != GPIO_NUM_NC) gpio_set_level(dac_pins.unmute, 0);
         if(_i2s->isActive()) {
             _i2s->end();
         }
@@ -71,7 +83,15 @@ namespace Platform {
         cfg.pin_ws = i2s_pins.lrck;
         cfg.buffer_count = ESPER_AUDIO_BUFFER_COUNT;
         cfg.buffer_size = ESPER_AUDIO_BUFFER_SIZE;
-        _i2s->begin(cfg);
+        cfg.auto_clear = true;
+        if (!_i2s->begin(cfg)) {
+            ESP_LOGE(LOG_TAG, "Could not start I2S output");
+            return;
+        }
+        if (dac_pins.unmute != GPIO_NUM_NC) {
+            _i2s->driver()->setWaitTimeWriteMs(40);
+            gpio_set_level(dac_pins.unmute, 1);
+        }
         ESP_LOGI(LOG_TAG, "Bus set to output");
     #endif
         bus_active = true;
@@ -80,9 +100,8 @@ namespace Platform {
 #if (BCONF_AUDIOROUTER_TYPE == AUDIOROUTER_TYPE_WOLFSON_WM8805)
     WM8805AudioRouter::WM8805AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio) :
         _spdif{spdif},
-        dac_pins{dac},
         relay_pin(bypass_relay_gpio),
-        I2SOutputAudioRouter(i2s)
+        I2SOutputAudioRouter(dac, i2s)
         {
         gpio_config_t conf = { 0 };
         conf.mode = GPIO_MODE_OUTPUT;

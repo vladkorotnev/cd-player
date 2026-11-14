@@ -15,7 +15,6 @@
 
 #define BCONF_IDE_TYPE                          IDEBUS_TYPE_CURSED_SPI
 #define BCONF_IDE_SPI_NUM                       VSPI
-#define BCONF_IDE_SPI_FREQ                      10_000_000
 #define BCONF_IDE_SPI_BURST_PIN                 GPIO_NUM_23
 #define BCONF_IDE_SPI_WRITE_PIN                 GPIO_NUM_19
 #define BCONF_IDE_SPI_CS_PIN                    GPIO_NUM_22

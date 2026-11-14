@@ -125,6 +125,9 @@ namespace ATAPI {
         const Diags * get_diags() override { return &_diags; }
 
         bool initialize();
+        static constexpr size_t CDDA_SECTOR_BYTES = 2352;
+        /// Read CD-DA main-channel PCM (little-endian stereo), starting at a logical block address.
+        bool read_cd_audio(uint32_t lba, uint16_t sectors, uint8_t * pcm);
         void reset() override;
         void wait_ready() override;
 
@@ -229,6 +232,7 @@ namespace ATAPI {
         bool wait_sts_bit_clr(StatusRegister bits, const char * tag);
         bool read_response(void * buf, size_t bufLen, bool flush);
         bool send_packet(const void * buf, size_t bufLen, bool pad = true);
+        bool write_packet(const void * buf, size_t bufLen, bool pad);
 
         bool wait_not_busy(const char * tag);
         bool wait_for_data(const char * tag);

@@ -89,12 +89,16 @@ namespace Platform {
             gpio_num_t sck, miso, mosi, cs, write, burst, reset;
         };
 
-        SPIBridgedIDEBus(spi_host_device_t host, Pins pins);
+        static constexpr size_t CDDA_SECTOR_BYTES = 2352;
+        static constexpr size_t MAX_READ_BYTES = CDDA_SECTOR_BYTES * 2;
+
+        SPIBridgedIDEBus(spi_host_device_t host, Pins pins, const int frequency = 5000000, const uint8_t control_expander = 0x42, const uint8_t data_expander = 0x40);
         ~SPIBridgedIDEBus() override;
         SPIBridgedIDEBus(const SPIBridgedIDEBus&) = delete;
         SPIBridgedIDEBus& operator=(const SPIBridgedIDEBus&) = delete;
 
         bool begin();
+        BaseType_t interrupt_core() const { return spi_interrupt_core; }
 
         data16 read(uint8_t reg) override;
         bool read_data(uint8_t * buffer, size_t words) override;
@@ -104,12 +108,16 @@ namespace Platform {
     private:
         const spi_host_device_t host;
         const Pins pins;
+        const int spi_freq;
         spi_device_handle_t device = nullptr;
+        BaseType_t spi_interrupt_core = tskNO_AFFINITY;
         uint8_t * dma_buffer = nullptr;
         bool ready = false;
         uint8_t selected_device = 0xFF;
+        const uint8_t data_expander_addr;
+        const uint8_t control_expander_addr;
 
-        bool transfer(spi_transaction_t& transaction);
+        bool transfer(spi_transaction_t& transaction, bool queued = false);
         bool write_expander(uint8_t opcode, uint8_t reg, uint8_t low, uint8_t high = 0, size_t bytes = 1);
         bool check_expander(uint8_t opcode);
         bool select_device();

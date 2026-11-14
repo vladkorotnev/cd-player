@@ -299,20 +299,8 @@ namespace ATAPI {
             bool reserved0: 1;
             SectorType sector_type: 3;
             uint8_t lun: 3;
-            union {
-                struct {
-                    uint16_t lba_hi;
-                    uint16_t lba_low;
-                };
-                struct {
-                    uint8_t padding0;
-                    MSF msf; // is this valid here?
-                };
-            };
-            struct {
-                uint8_t high;
-                uint16_t low;
-            } transfer_length_blocks;
+            uint8_t lba[4];
+            uint8_t transfer_length_blocks[3];
 
             bool reserved1: 1;
             uint8_t error_flags: 2;
@@ -322,6 +310,8 @@ namespace ATAPI {
             bool synch: 1;
 
             SubchannelDataSelection subchannel: 3;
+            uint8_t reserved2: 5;
+            uint8_t control;
         };
 
         struct ATAPI_PKT Scan {

@@ -1,4 +1,5 @@
 #include <modes/cd_mode.h>
+#include <board_cfg.h>
 #include <shared_prefs.h>
 #include <consts.h>
 #include "cd_mode/time_bar.h"
@@ -175,7 +176,11 @@ CDMode::~CDMode() {
 }
 
 void CDMode::setup() {
+    #if IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE)
     resources.router->activate_route(Platform::AudioRoute::ROUTE_SPDIF_CD_PORT);
+    #else
+    resources.router->activate_route(Platform::AudioRoute::ROUTE_INTERNAL_CPU);
+    #endif
     show_toast(localized_string("CD Audio"), pdMS_TO_TICKS(1500));
 }
 
@@ -467,17 +472,15 @@ void CDMode::commit_entered_digits() {
 
 void CDMode::teardown() {
     player.do_command(Player::Command::STOP);
-
-    resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
-
     player.teardown_tasks();
+    player.power_down();
+    resources.router->activate_route(Platform::AudioRoute::ROUTE_NONE_INACTIVE);
 
     while(!meta.providers.empty()) {
         delete meta.providers.back();
         meta.providers.pop_back();
     }
 
-    player.power_down();
 }
 
 UI::View& CDMode::main_view() {

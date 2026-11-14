@@ -6,14 +6,12 @@
 
 namespace {
     constexpr char LOG_TAG[] = "IDE_SPI";
-    constexpr int SPI_CLOCK_HZ = 5000000;
     // Four SPI bytes per PIO word, including the discarded recovery samples.
-    constexpr size_t DMA_BUFFER_SIZE = 8192;
-    constexpr unsigned ONE_SHOT_SETTLE_US = 5;
+    constexpr size_t DMA_BUFFER_SIZE = Platform::SPIBridgedIDEBus::MAX_READ_BYTES * 2;
+
+    constexpr unsigned ONE_SHOT_SETTLE_US = 5; //<- defined by R and C of the 74hc040 on the board
 
     // JP1-JP3 strap U3 to address 0, and JP4-JP6 strap U9 to address 1.
-    constexpr uint8_t DATA_EXPANDER = 0x40;
-    constexpr uint8_t CONTROL_EXPANDER = 0x42;
     constexpr uint8_t SPI_READ = 0x01;
     constexpr uint8_t IODIR_A = 0x00;
     constexpr uint8_t IPOL_A = 0x02;
@@ -35,8 +33,8 @@ namespace {
 }
 
 namespace Platform {
-    SPIBridgedIDEBus::SPIBridgedIDEBus(spi_host_device_t host, Pins pins):
-        host(host), pins(pins) {}
+    SPIBridgedIDEBus::SPIBridgedIDEBus(spi_host_device_t host, Pins pins, const int frequency, const uint8_t control_expander_addr_, const uint8_t data_expander_addr_):
+        host(host), pins(pins), spi_freq(frequency), control_expander_addr(control_expander_addr_), data_expander_addr(data_expander_addr_) {}
 
     SPIBridgedIDEBus::~SPIBridgedIDEBus() {
         if (device != nullptr) {
@@ -79,13 +77,15 @@ namespace Platform {
             .mode = 0,
             .cs_ena_pretrans = 1,
             .cs_ena_posttrans = 1,
-            .clock_speed_hz = SPI_CLOCK_HZ,
+            .clock_speed_hz = spi_freq,
             .spics_io_num = pins.cs,
             .flags = SPI_DEVICE_HALFDUPLEX | SPI_DEVICE_NO_DUMMY,
             .queue_size = 1,
         };
         esp_err_t result = spi_bus_initialize(host, &bus_config, SPI_DMA_CH_AUTO);
         if (result == ESP_OK) {
+            // ESP-IDF 4.4 installs the SPI ISR on the core adding the first device.
+            spi_interrupt_core = xPortGetCoreID();
             result = spi_bus_add_device(host, &device_config, &device);
             if (result != ESP_OK) spi_bus_free(host);
         }
@@ -96,23 +96,28 @@ namespace Platform {
             return false;
         }
 
-        // At power-on both chips accept 0x40 until the shared write enables HAEN.
-        // The addressed write also works when the ESP reboots with HAEN already set.
-        ready = write_expander(DATA_EXPANDER, IOCON, IOCON_CONFIG) &&
-                write_expander(CONTROL_EXPANDER, IOCON, IOCON_CONFIG) &&
-                check_expander(DATA_EXPANDER) && check_expander(CONTROL_EXPANDER) &&
-                write_expander(DATA_EXPANDER, IODIR_A, 0xFF, 0xFF, 2) &&
-                write_expander(DATA_EXPANDER, IPOL_A, 0, 0, 2) &&
-                write_expander(DATA_EXPANDER, GPPU_A, 0xFF, 0xFF, 2) &&
-                write_expander(CONTROL_EXPANDER, IPOL_A, 0) &&
-                write_expander(CONTROL_EXPANDER, OLAT_A, CONTROL_IDLE) &&
-                write_expander(CONTROL_EXPANDER, IODIR_A, 0xC0);
-        if (ready) ESP_LOGI(LOG_TAG, "SPI IDE bridge ready at %d Hz", SPI_CLOCK_HZ);
+        // At power-on both chips sit on address 0x40 until the shared write enables HAEN which sets them to the hardware strapped address.
+        ready = write_expander(data_expander_addr, IOCON, IOCON_CONFIG) &&
+                write_expander(control_expander_addr, IOCON, IOCON_CONFIG) &&
+                check_expander(data_expander_addr) && check_expander(control_expander_addr) &&
+                write_expander(data_expander_addr, IODIR_A, 0xFF, 0xFF, 2) &&
+                write_expander(data_expander_addr, IPOL_A, 0, 0, 2) &&
+                write_expander(data_expander_addr, GPPU_A, 0xFF, 0xFF, 2) &&
+                write_expander(control_expander_addr, IPOL_A, 0) &&
+                write_expander(control_expander_addr, OLAT_A, CONTROL_IDLE) &&
+                write_expander(control_expander_addr, IODIR_A, 0xC0);
+
+        if (ready) ESP_LOGI(LOG_TAG, "SPI IDE bridge ready at %d Hz", spi_freq);
         return ready;
     }
 
-    bool SPIBridgedIDEBus::transfer(spi_transaction_t& transaction) {
-        const esp_err_t result = spi_device_polling_transmit(device, &transaction);
+    bool SPIBridgedIDEBus::transfer(spi_transaction_t& transaction, bool queued) {
+        // The result can wake a task on the other core before the completion
+        // ISR has finished using the bus lock (ESP-IDF #18527). Only queue
+        // transfers from tasks pinned to the interrupt core.
+        const bool can_queue = queued && xTaskGetAffinity(nullptr) == spi_interrupt_core;
+        const esp_err_t result = can_queue ? spi_device_transmit(device, &transaction)
+                                           : spi_device_polling_transmit(device, &transaction);
         if (result == ESP_OK) return true;
 
         ESP_LOGE(LOG_TAG, "SPI transfer failed: %s", esp_err_to_name(result));
@@ -154,9 +159,9 @@ namespace Platform {
         if (!ready) return;
         selected_device = 0xFF;
         ESP_LOGI(LOG_TAG, "Resetting drive through U9");
-        if (!write_expander(CONTROL_EXPANDER, OLAT_A, DRIVE_DESELECTED)) return;
+        if (!write_expander(control_expander_addr, OLAT_A, DRIVE_DESELECTED)) return;
         delay(40);
-        if (!write_expander(CONTROL_EXPANDER, OLAT_A, CONTROL_IDLE)) return;
+        if (!write_expander(control_expander_addr, OLAT_A, CONTROL_IDLE)) return;
         delay(20);
         selected_device = IDE::IDE_MASTER; // ATA reset selects device 0.
     }
@@ -174,7 +179,7 @@ namespace Platform {
 
     data16 SPIBridgedIDEBus::read(uint8_t reg) {
         if (!select_device() ||
-            !write_expander(CONTROL_EXPANDER, OLAT_A, DRIVE_RESET_N | (reg & ADDRESS_AND_CS_MASK))) {
+            !write_expander(control_expander_addr, OLAT_A, DRIVE_RESET_N | (reg & ADDRESS_AND_CS_MASK))) {
             return {{0xFF, 0xFF}};
         }
 
@@ -182,12 +187,12 @@ namespace Platform {
         gpio_set_level(pins.write, 0);
         spi_transaction_t transaction = {};
         transaction.flags = SPI_TRANS_USE_RXDATA;
-        transaction.cmd = DATA_EXPANDER | SPI_READ;
+        transaction.cmd = data_expander_addr | SPI_READ;
         transaction.addr = GPIO_A;
         transaction.rxlength = 16;
         const bool received = transfer(transaction);
         gpio_set_level(pins.write, 1);
-        if (!received || !write_expander(CONTROL_EXPANDER, OLAT_A, CONTROL_IDLE)) {
+        if (!received || !write_expander(control_expander_addr, OLAT_A, CONTROL_IDLE)) {
             return {{0xFF, 0xFF}};
         }
         return {{transaction.rx_data[0], transaction.rx_data[1]}};
@@ -210,7 +215,8 @@ namespace Platform {
             gpio_set_level(pins.burst, 0);
             delayMicroseconds(1);
             payload.base.flags |= SPI_TRANS_VARIABLE_CMD | SPI_TRANS_VARIABLE_ADDR;
-            success = transfer(payload.base);
+            // DMA completion wakes the reader task while I2S continues playing.
+            success = transfer(payload.base, payload.base.rx_buffer != nullptr);
             // Hardware has released CS. Hold data/address through the last one-shot.
             delayMicroseconds(ONE_SHOT_SETTLE_US);
             gpio_set_level(pins.burst, 1);
@@ -226,7 +232,7 @@ namespace Platform {
             return false;
         }
         if (!select_device() ||
-            !write_expander(CONTROL_EXPANDER, OLAT_A, DRIVE_RESET_N | (IDE::Data & ADDRESS_AND_CS_MASK))) {
+            !write_expander(control_expander_addr, OLAT_A, DRIVE_RESET_N | (IDE::Data & ADDRESS_AND_CS_MASK))) {
             return false;
         }
 
@@ -237,9 +243,9 @@ namespace Platform {
         // the requested bytes so the bridge does not start another IDE read.
         payload.base.rxlength = (4 * words - 2) * 8;
         payload.base.rx_buffer = dma_buffer;
-        const bool received = clock_payload(DATA_EXPANDER | SPI_READ, payload);
+        const bool received = clock_payload(data_expander_addr | SPI_READ, payload);
         gpio_set_level(pins.write, 1);
-        if (!ready || !write_expander(CONTROL_EXPANDER, OLAT_A, CONTROL_IDLE) || !received) {
+        if (!ready || !write_expander(control_expander_addr, OLAT_A, CONTROL_IDLE) || !received) {
             return false;
         }
         for (size_t word = 0; word < words; ++word) {
@@ -254,8 +260,8 @@ namespace Platform {
     }
 
     bool SPIBridgedIDEBus::write_word(uint8_t reg, data16 data) {
-        if (!write_expander(CONTROL_EXPANDER, OLAT_A, DRIVE_RESET_N | (reg & ADDRESS_AND_CS_MASK)) ||
-            !write_expander(DATA_EXPANDER, IODIR_A, 0, 0, 2)) {
+        if (!write_expander(control_expander_addr, OLAT_A, DRIVE_RESET_N | (reg & ADDRESS_AND_CS_MASK)) ||
+            !write_expander(data_expander_addr, IODIR_A, 0, 0, 2)) {
             return false;
         }
 
@@ -266,10 +272,10 @@ namespace Platform {
         payload.base.length = 16;
         payload.base.tx_data[0] = data.low;
         payload.base.tx_data[1] = data.high;
-        const bool written = clock_payload(DATA_EXPANDER, payload);
+        const bool written = clock_payload(data_expander_addr, payload);
         return ready &&
-               write_expander(DATA_EXPANDER, IODIR_A, 0xFF, 0xFF, 2) &&
-               write_expander(CONTROL_EXPANDER, OLAT_A, CONTROL_IDLE) &&
+               write_expander(data_expander_addr, IODIR_A, 0xFF, 0xFF, 2) &&
+               write_expander(control_expander_addr, OLAT_A, CONTROL_IDLE) &&
                written;
     }
 }

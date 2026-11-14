@@ -735,7 +735,106 @@ namespace ATAPI {
         return res.media_type;
     }
 
+    bool AutonomousPlayerDevice::read_cd_audio(uint32_t lba, uint16_t sectors, uint8_t * pcm) {
+        if (!pcm || sectors == 0) return false;
+        const Requests::ReadCd request = {
+            .opcode = OperationCodes::READ_CD,
+            .sector_type = Requests::ReadCd::SECT_TYPE_CDDA,
+            .lba = {uint8_t(lba >> 24), uint8_t(lba >> 16), uint8_t(lba >> 8), uint8_t(lba)},
+            .transfer_length_blocks = {0, uint8_t(sectors >> 8), uint8_t(sectors)},
+            .user = true,
+        };
+        static_assert(sizeof(request) == 12);
+        static_assert(CDDA_SECTOR_BYTES <= Platform::SPIBridgedIDEBus::MAX_READ_BYTES);
+        static_assert(Platform::SPIBridgedIDEBus::MAX_READ_BYTES <= 0xFFFE);
+        const size_t total = size_t(sectors) * CDDA_SECTOR_BYTES;
+        constexpr size_t max_phase = Platform::SPIBridgedIDEBus::MAX_READ_BYTES /
+                                     CDDA_SECTOR_BYTES * CDDA_SECTOR_BYTES;
+        const auto phase_limit = static_cast<uint16_t>(std::min(total, max_phase));
+
+        xSemaphoreTake(semaphore, portMAX_DELAY);
+        const auto before = read_sts_regi();
+        if (before.BSY || before.DRQ) {
+            ESP_LOGE(LOG_TAG, "Drive busy before READ CD: status=0x%02x", before.value);
+            xSemaphoreGive(semaphore);
+            return false;
+        }
+        // Allow several sectors per PIO phase when they fit in one SPI DMA burst.
+        // The drive can return smaller phases, so use its reported byte count.
+        ide->write(IDE::Feature, {{0, 0xFF}});
+        ide->write(IDE::CylinderLow, {{uint8_t(phase_limit), 0xFF}});
+        ide->write(IDE::CylinderHigh, {{uint8_t(phase_limit >> 8), 0xFF}});
+        bool complete = false;
+        size_t received = 0;
+        if (write_packet(&request, sizeof(request), true)) {
+            const TickType_t started = xTaskGetTickCount();
+            do {
+                const auto status = read_sts_regi();
+                if (status.BSY) {
+                    delay(1);
+                    continue;
+                }
+                if (status.ERR || status.DF) break;
+
+                // Sector Count is Interrupt Reason during a PACKET command.
+                const uint8_t reason = ide->read(IDE::SectorCount).low & 0x03;
+                if (!status.DRQ) {
+                    if (reason == 0x03) {
+                        complete = received == total;
+                        break;
+                    }
+                    delay(1);
+                    continue;
+                }
+
+                const uint8_t low = ide->read(IDE::CylinderLow).low;
+                const uint8_t high = ide->read(IDE::CylinderHigh).low;
+                const size_t count = (size_t(high) << 8) | low;
+                if (reason != 0x02 || !count || (count & 1) ||
+                    count > phase_limit || count > total - received ||
+                    !ide->read_data(pcm + received, count / 2)) {
+                    ESP_LOGE(LOG_TAG, "READ CD data phase: reason=0x%x, bytes=%zu", reason, count);
+                    break;
+                }
+                received += count;
+                delayMicroseconds(1);
+            } while (xTaskGetTickCount() - started < pdMS_TO_TICKS(5000));
+        }
+
+        if (!complete) {
+            auto status = read_sts_regi();
+            ESP_LOGE(LOG_TAG, "READ CD failed at LBA %lu: %zu/%zu bytes, status=0x%02x",
+                     static_cast<unsigned long>(lba), received, total, status.value);
+            if (status.BSY || status.DRQ) {
+                ide->reset();
+                const TickType_t started = xTaskGetTickCount();
+                do {
+                    status = read_sts_regi();
+                    if (!status.BSY && !status.DRQ) break;
+                    delay(10);
+                } while (xTaskGetTickCount() - started < pdMS_TO_TICKS(5000));
+            }
+        }
+        // Restore the byte count limit expected by the existing packet commands
+        // once the task file is writable.
+        const auto status = read_sts_regi();
+        if (!status.BSY && !status.DRQ) {
+            ide->write(IDE::CylinderLow, {{0x00, 0xFF}});
+            ide->write(IDE::CylinderHigh, {{0x02, 0xFF}});
+        }
+        xSemaphoreGive(semaphore);
+        return complete;
+    }
+
     bool AutonomousPlayerDevice::send_packet(const void * buf, size_t bufLen, bool pad) {
+        if (!write_packet(buf, bufLen, pad)) return false;
+        if (quirks.busy_ass) {
+            delay(7);
+        }
+        return wait_not_busy("PACKET completion");
+    }
+
+    bool AutonomousPlayerDevice::write_packet(const void * buf, size_t bufLen, bool pad) {
         delayMicroseconds(100); // either just the C68E is too old and slow to keep up with the ESP even over 100kHz i2c... or my pcb layout bites me in the ass again!!
         // for our use case those occasional delays don't have too much effect but this will limit potential growth for data disc reading if any!
 
@@ -762,11 +861,8 @@ namespace ATAPI {
             }
         }
 
-        if(quirks.busy_ass) {
-            delay(7);
-        }
         delayMicroseconds(1);
-        return wait_not_busy("PACKET completion");
+        return true;
     }
 
     bool AutonomousPlayerDevice::read_response(void * outBuf, size_t bufLen, bool flush) {

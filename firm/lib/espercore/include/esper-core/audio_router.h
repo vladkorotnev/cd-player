@@ -22,6 +22,7 @@ namespace Platform {
             virtual void activate_route(AudioRoute) = 0;
             virtual AudioStream * get_io_port_nub() = 0;
             virtual void initialize() {}
+            virtual void clear_output() {}
     };
 
     class I2SOutputAudioRouter: public AudioRouter {
@@ -32,11 +33,17 @@ namespace Platform {
                 gpio_num_t lrck;
                 gpio_num_t data;
             };
-            I2SOutputAudioRouter(const I2SBus i2s);
+            struct DACBus {
+                gpio_num_t unmute;
+                gpio_num_t demph;
+            };
+            I2SOutputAudioRouter(const DACBus dac, const I2SBus i2s);
             AudioStream * get_io_port_nub() override;
             void activate_route(AudioRoute) override;
+            void clear_output() override;
         protected:
             AudioRoute current_route = ROUTE_NONE_INACTIVE;
+            const DACBus dac_pins;
         private:
             bool bus_active = false;
             const I2SBus i2s_pins;
@@ -49,10 +56,6 @@ namespace Platform {
 #if (BCONF_AUDIOROUTER_TYPE == AUDIOROUTER_TYPE_WOLFSON_WM8805)
     class WM8805AudioRouter: public I2SOutputAudioRouter{
     public:
-        struct DACBus {
-            gpio_num_t unmute;
-            gpio_num_t demph;
-        };
         WM8805AudioRouter(WM8805 * spdif, const DACBus dac, const I2SBus i2s, const gpio_num_t bypass_relay_gpio);
 
         void initialize() override;
@@ -63,7 +66,6 @@ namespace Platform {
 
         AudioInfo cdaInputParams = AudioInfo(44100, 2, 16);
 
-        const DACBus dac_pins;
         const gpio_num_t relay_pin;
 
         void spdif_set_up_muting_hax();
