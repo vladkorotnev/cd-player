@@ -44,12 +44,16 @@ namespace ATAPI {
         QueueHandle_t free_blocks = nullptr;
         QueueHandle_t filled_blocks = nullptr;
         EventGroupHandle_t events = nullptr;
+        SemaphoreHandle_t reader_start = nullptr;
+        SemaphoreHandle_t output_start = nullptr;
         SemaphoreHandle_t workers_done = nullptr;
         std::vector<DiscTrack> tracks;
         int end_lba = 0;
         int start_lba = 0;
         bool session = false;
+        bool playback_active = false;
         std::atomic<bool> cancelled{false};
+        std::atomic<bool> shutdown{false};
         std::atomic<bool> reader_finished{false};
         std::atomic<unsigned> pcm_bytes{0};
         std::atomic<AudioStatus::PlayState> state{AudioStatus::PlayState::Stopped};
@@ -57,6 +61,8 @@ namespace ATAPI {
         BaseType_t interruptCore = tskNO_AFFINITY;
 
         void play_locked(int first, int end);
+        bool start_workers_locked();
+        void cancel_playback_locked();
         void stop_locked();
         int position_lba() const;
         void read_blocks();

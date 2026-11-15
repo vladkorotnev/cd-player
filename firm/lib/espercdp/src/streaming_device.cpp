@@ -23,14 +23,18 @@ namespace ATAPI {
     bool StreamingPlayerDevice::initialize() {
         if (!HardwareATAPIDevice::initialize()) return false;
         quirks.must_use_softscan = false; //<- software playback never uses softscan since technically it's always softscan
+        quirks.alternate_max_speed = 176;
 
         control = xSemaphoreCreateMutex();
+        reader_start = xSemaphoreCreateBinary();
+        output_start = xSemaphoreCreateBinary();
         workers_done = xSemaphoreCreateCounting(2, 0);
         events = xEventGroupCreate();
         free_blocks = xQueueCreate(BLOCK_COUNT, sizeof(uint8_t));
         filled_blocks = xQueueCreate(BLOCK_COUNT, sizeof(Block));
         psram = static_cast<uint8_t *>(heap_caps_malloc(BLOCK_COUNT * BLOCK_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-        if (!control || !workers_done || !events || !free_blocks || !filled_blocks || !psram) {
+        if (!control || !reader_start || !output_start || !workers_done ||
+            !events || !free_blocks || !filled_blocks || !psram) {
             ESP_LOGE(LOG_TAG, "Could not allocate CD audio stream");
             return false;
         }
@@ -42,6 +46,8 @@ namespace ATAPI {
     StreamingPlayerDevice::~StreamingPlayerDevice() {
         if (session) stop_locked();
         if (workers_done) vSemaphoreDelete(workers_done);
+        if (output_start) vSemaphoreDelete(output_start);
+        if (reader_start) vSemaphoreDelete(reader_start);
         if (events) vEventGroupDelete(events);
         if (free_blocks) vQueueDelete(free_blocks);
         if (filled_blocks) vQueueDelete(filled_blocks);
@@ -80,6 +86,7 @@ namespace ATAPI {
         Lock lock(control);
         stop_locked();
         auto toc = HardwareATAPIDevice::read_toc();
+        HardwareATAPIDevice::set_speed();
         tracks = toc.tracks;
         return toc;
     }
@@ -100,13 +107,18 @@ namespace ATAPI {
     }
 
     void StreamingPlayerDevice::play_locked(int first, int end) {
-        stop_locked();
-        if (first >= end) return;
+        cancel_playback_locked();
+        if (first >= end) {
+            state = AudioStatus::PlayState::Stopped;
+            return;
+        }
         auto * sink = output->get_io_port_nub();
         if (!sink || !static_cast<bool>(*sink)) {
             ESP_LOGE(LOG_TAG, "I2S output is inactive");
+            state = AudioStatus::PlayState::Stopped;
             return;
         }
+        if (!start_workers_locked()) return;
 
         start_lba = first;
         end_lba = end;
@@ -119,26 +131,54 @@ namespace ATAPI {
         for (uint8_t slot = 0; slot < BLOCK_COUNT; ++slot) xQueueSend(free_blocks, &slot, 0);
 
         state = AudioStatus::PlayState::Playing;
-        session = true;
+        playback_active = true;
+
+        HardwareATAPIDevice::set_speed();
+        xSemaphoreGive(output_start);
+        xSemaphoreGive(reader_start);
+    }
+
+    bool StreamingPlayerDevice::start_workers_locked() {
+        if (session) return true;
+
+        shutdown = false;
         if (xTaskCreate(output_task, "CD-I2S", 4096, this, 6, nullptr) != pdPASS) {
-            session = false;
-            state = AudioStatus::PlayState::Stopped;
             ESP_LOGE(LOG_TAG, "Could not start I2S output task");
-        } else if (xTaskCreatePinnedToCore(reader_task, "CD-Read", 4096, this, 5, nullptr, interruptCore) != pdPASS) {
-            ESP_LOGE(LOG_TAG, "Could not start CD reader task");
-            xSemaphoreGive(workers_done);
-            stop_locked();
+            state = AudioStatus::PlayState::Stopped;
+            return false;
         }
+        if (xTaskCreatePinnedToCore(reader_task, "CD-Read", 4096, this, 5, nullptr, interruptCore) != pdPASS) {
+            ESP_LOGE(LOG_TAG, "Could not start CD reader task");
+            shutdown = true;
+            xSemaphoreGive(output_start);
+            xSemaphoreTake(workers_done, portMAX_DELAY);
+            state = AudioStatus::PlayState::Stopped;
+            return false;
+        }
+        session = true;
+        return true;
+    }
+
+    void StreamingPlayerDevice::cancel_playback_locked() {
+        if (!playback_active) return;
+
+        cancelled = true;
+        xEventGroupSetBits(events, PREFILLED);
+        xSemaphoreTake(workers_done, portMAX_DELAY);
+        xSemaphoreTake(workers_done, portMAX_DELAY);
+        playback_active = false;
+        output->clear_output();
     }
 
     void StreamingPlayerDevice::stop_locked() {
+        cancel_playback_locked();
         if (session) {
-            cancelled = true;
-            xEventGroupSetBits(events, PREFILLED);
+            shutdown = true;
+            xSemaphoreGive(output_start);
+            xSemaphoreGive(reader_start);
             xSemaphoreTake(workers_done, portMAX_DELAY);
             xSemaphoreTake(workers_done, portMAX_DELAY);
             session = false;
-            output->clear_output();
         }
         state = AudioStatus::PlayState::Stopped;
     }
@@ -152,7 +192,7 @@ namespace ATAPI {
         Lock lock(control);
         if (pause && state == AudioStatus::PlayState::Playing) {
             const int resume_at = position_lba();
-            stop_locked();
+            cancel_playback_locked();
             start_lba = resume_at;
             pcm_bytes = 0;
             state = AudioStatus::PlayState::Paused;
@@ -195,16 +235,26 @@ namespace ATAPI {
 
     void StreamingPlayerDevice::reader_task(void * context) {
         auto& stream = *static_cast<StreamingPlayerDevice *>(context);
-        stream.read_blocks();
-        stream.reader_finished = true;
-        xEventGroupSetBits(stream.events, PREFILLED);
+        while (true) {
+            xSemaphoreTake(stream.reader_start, portMAX_DELAY);
+            if (stream.shutdown) break;
+            stream.read_blocks();
+            stream.reader_finished = true;
+            xEventGroupSetBits(stream.events, PREFILLED);
+            xSemaphoreGive(stream.workers_done);
+        }
         xSemaphoreGive(stream.workers_done);
         vTaskDelete(nullptr);
     }
 
     void StreamingPlayerDevice::output_task(void * context) {
         auto& stream = *static_cast<StreamingPlayerDevice *>(context);
-        stream.output_blocks();
+        while (true) {
+            xSemaphoreTake(stream.output_start, portMAX_DELAY);
+            if (stream.shutdown) break;
+            stream.output_blocks();
+            xSemaphoreGive(stream.workers_done);
+        }
         xSemaphoreGive(stream.workers_done);
         vTaskDelete(nullptr);
     }
