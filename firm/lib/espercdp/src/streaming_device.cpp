@@ -29,11 +29,13 @@ namespace ATAPI {
         reader_start = xSemaphoreCreateBinary();
         output_start = xSemaphoreCreateBinary();
         workers_done = xSemaphoreCreateCounting(2, 0);
+        scan_timer = xTimerCreate("CD-Scan", pdMS_TO_TICKS(SCAN_INTERVAL_MS), pdTRUE,
+                                  this, scan_timer_callback);
         events = xEventGroupCreate();
         free_blocks = xQueueCreate(BLOCK_COUNT, sizeof(uint8_t));
         filled_blocks = xQueueCreate(BLOCK_COUNT, sizeof(Block));
         psram = static_cast<uint8_t *>(heap_caps_malloc(BLOCK_COUNT * BLOCK_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
-        if (!control || !reader_start || !output_start || !workers_done ||
+        if (!control || !reader_start || !output_start || !workers_done || !scan_timer ||
             !events || !free_blocks || !filled_blocks || !psram) {
             ESP_LOGE(LOG_TAG, "Could not allocate CD audio stream");
             return false;
@@ -45,6 +47,7 @@ namespace ATAPI {
 
     StreamingPlayerDevice::~StreamingPlayerDevice() {
         if (session) stop_locked();
+        if (scan_timer) xTimerDelete(scan_timer, portMAX_DELAY);
         if (workers_done) vSemaphoreDelete(workers_done);
         if (output_start) vSemaphoreDelete(output_start);
         if (reader_start) vSemaphoreDelete(reader_start);
@@ -59,6 +62,7 @@ namespace ATAPI {
         Lock lock(control);
         stop_locked();
         tracks.clear();
+        lead_out_lba = 0;
         HardwareATAPIDevice::reset();
     }
 
@@ -72,6 +76,7 @@ namespace ATAPI {
         Lock lock(control);
         stop_locked();
         tracks.clear();
+        lead_out_lba = 0;
         HardwareATAPIDevice::eject(open_tray);
     }
 
@@ -79,6 +84,7 @@ namespace ATAPI {
         Lock lock(control);
         stop_locked();
         tracks.clear();
+        lead_out_lba = 0;
         HardwareATAPIDevice::load_unload(slot);
     }
 
@@ -88,12 +94,13 @@ namespace ATAPI {
         auto toc = HardwareATAPIDevice::read_toc();
         HardwareATAPIDevice::set_speed();
         tracks = toc.tracks;
+        lead_out_lba = MSF_TO_FRAMES(toc.leadOut) - LBA_OFFSET;
         return toc;
     }
 
     void StreamingPlayerDevice::play(MSF start, MSF end) {
         Lock lock(control);
-        int first = std::max(0, MSF_TO_FRAMES(start) - LBA_OFFSET);
+        int first = std::max(-LBA_OFFSET, MSF_TO_FRAMES(start) - LBA_OFFSET);
         int limit = MSF_TO_FRAMES(end) - LBA_OFFSET;
         for (auto track = tracks.rbegin(); track != tracks.rend(); ++track) {
             const int track_start = MSF_TO_FRAMES(track->position) - LBA_OFFSET;
@@ -108,20 +115,25 @@ namespace ATAPI {
 
     void StreamingPlayerDevice::play_locked(int first, int end) {
         cancel_playback_locked();
+        begin_playback_locked(first, end);
+    }
+
+    bool StreamingPlayerDevice::begin_playback_locked(int first, int end) {
         if (first >= end) {
             state = AudioStatus::PlayState::Stopped;
-            return;
+            return false;
         }
         auto * sink = output->get_io_port_nub();
         if (!sink || !static_cast<bool>(*sink)) {
             ESP_LOGE(LOG_TAG, "I2S output is inactive");
             state = AudioStatus::PlayState::Stopped;
-            return;
+            return false;
         }
-        if (!start_workers_locked()) return;
+        if (!start_workers_locked()) return false;
 
         start_lba = first;
         end_lba = end;
+        scan_position_lba = first;
         cancelled = false;
         reader_finished = false;
         pcm_bytes = 0;
@@ -136,6 +148,7 @@ namespace ATAPI {
         HardwareATAPIDevice::set_speed();
         xSemaphoreGive(output_start);
         xSemaphoreGive(reader_start);
+        return true;
     }
 
     bool StreamingPlayerDevice::start_workers_locked() {
@@ -160,6 +173,8 @@ namespace ATAPI {
     }
 
     void StreamingPlayerDevice::cancel_playback_locked() {
+        scanning = false;
+        if (scan_timer) xTimerStop(scan_timer, portMAX_DELAY);
         if (!playback_active) return;
 
         cancelled = true;
@@ -203,12 +218,57 @@ namespace ATAPI {
 
     void StreamingPlayerDevice::scan(bool forward, MSF from) {
         Lock lock(control);
-        const int lba = MSF_TO_FRAMES(from) - LBA_OFFSET;
-        const int step = 5 * MSF::FRAMES_IN_SECOND;
-        play_locked(std::max(0, lba + (forward ? step : -step)), end_lba);
+        cancel_playback_locked();
+
+        int lower = -LBA_OFFSET;
+        int upper = lead_out_lba;
+        if (tracks.empty() || lower >= upper) {
+            state = AudioStatus::PlayState::Stopped;
+            return;
+        }
+        int lba = std::clamp(MSF_TO_FRAMES(from) - LBA_OFFSET, lower, upper - 1);
+        for (size_t i = 0; i < tracks.size(); ++i) {
+            if (!tracks[i].is_data) continue;
+            const int data_start = MSF_TO_FRAMES(tracks[i].position) - LBA_OFFSET;
+            const int data_end = i + 1 < tracks.size()
+                ? MSF_TO_FRAMES(tracks[i + 1].position) - LBA_OFFSET
+                : lead_out_lba;
+            if (lba >= data_start && lba < data_end) {
+                ESP_LOGW(LOG_TAG, "Cannot scan from data track at LBA %d", lba);
+                state = AudioStatus::PlayState::Stopped;
+                return;
+            }
+            if (data_end <= lba) lower = std::max(lower, data_end);
+            if (data_start > lba) {
+                upper = std::min(upper, data_start);
+                break;
+            }
+        }
+        if (lower >= upper) {
+            state = AudioStatus::PlayState::Stopped;
+            return;
+        }
+
+        lba = std::clamp(lba, lower, upper - 1);
+        scan_forward = forward;
+        scan_min_lba = lower;
+        scan_max_lba = upper;
+        scan_target_lba = lba;
+        scan_position_lba = lba;
+        scanning = true;
+        if (!begin_playback_locked(lba, upper)) {
+            scanning = false;
+            return;
+        }
+        if (xTimerStart(scan_timer, portMAX_DELAY) != pdPASS) {
+            ESP_LOGE(LOG_TAG, "Could not start scan timer");
+            cancel_playback_locked();
+            state = AudioStatus::PlayState::Stopped;
+        }
     }
 
     int StreamingPlayerDevice::position_lba() const {
+        if (scanning) return scan_position_lba;
         // Estimate the audible position from bytes queued to I2S, allowing
         // for its DMA ring. The drive's read head can be much farther ahead.
         const unsigned queued = pcm_bytes.load();
@@ -224,6 +284,11 @@ namespace ATAPI {
         position.state = playback;
         position.index = 1;
         position.position_in_disc = FRAMES_TO_MSF(frame);
+        if (!tracks.empty() && frame < MSF_TO_FRAMES(tracks.front().position)) {
+            position.track = tracks.front().number;
+            position.index = 0;
+            return &position;
+        }
         for (const auto& track : tracks) {
             const int track_start = MSF_TO_FRAMES(track.position);
             if (track_start > frame) break;
@@ -231,6 +296,17 @@ namespace ATAPI {
             position.position_in_track = FRAMES_TO_MSF(frame - track_start);
         }
         return &position;
+    }
+
+    void StreamingPlayerDevice::scan_timer_callback(TimerHandle_t timer) {
+        auto& stream = *static_cast<StreamingPlayerDevice *>(pvTimerGetTimerID(timer));
+        if (!stream.scanning) return;
+
+        const int current = stream.scan_target_lba;
+        const int next = stream.scan_forward
+            ? std::min(current + SCAN_STEP_FRAMES, stream.scan_max_lba.load() - 1)
+            : std::max(current - SCAN_STEP_FRAMES, stream.scan_min_lba.load());
+        stream.scan_target_lba = next;
     }
 
     void StreamingPlayerDevice::reader_task(void * context) {
@@ -350,29 +426,45 @@ namespace ATAPI {
 
     void StreamingPlayerDevice::read_blocks() {
         int lba = start_lba;
+        int last_scan_target = scan_min_lba - 1;
         unsigned blocks = 0;
         unsigned bytes = 0;
         unsigned next_log_sector = LOG_INTERVAL_SECTORS;
         int64_t read_us = 0;
-        while (!cancelled && lba < end_lba) {
+        while (!cancelled && (scanning || lba < end_lba)) {
+            const bool scan = scanning.load();
+            if (scan) {
+                const int target = scan_target_lba;
+                if (target == last_scan_target) {
+                    vTaskDelay(pdMS_TO_TICKS(5));
+                    continue;
+                }
+                lba = target;
+            }
+
             Block block = {};
             if (xQueueReceive(free_blocks, &block.slot, BUFFER_WAIT) != pdTRUE) continue;
             if (cancelled) break;
 
+            block.lba = lba;
             block.sectors = std::min<int>(SECTORS_PER_BLOCK, end_lba - lba);
             const int64_t before = esp_timer_get_time();
-            if (!read_cd_audio(lba, block.sectors, psram + block.slot * BLOCK_BYTES)) break;
+            if (!read_cd_audio(static_cast<uint32_t>(lba), block.sectors,
+                               psram + block.slot * BLOCK_BYTES)) break;
             read_us += esp_timer_get_time() - before;
             if (cancelled) break;
-            lba += block.sectors;
+            if (scan) last_scan_target = lba;
+            else lba += block.sectors;
             bytes += block.sectors * CDDA_SECTOR_BYTES;
             xQueueSend(filled_blocks, &block, 0);
-            if (++blocks == PREFILL_BLOCKS) xEventGroupSetBits(events, PREFILLED);
-            const unsigned sectors_read = lba - start_lba;
-            if (sectors_read >= next_log_sector && read_us > 0) {
-                next_log_sector += LOG_INTERVAL_SECTORS;
-                ESP_LOGI(LOG_TAG, "READ CD average %u B/s, queued %u blocks",
-                         unsigned(uint64_t(bytes) * 1000000 / read_us), uxQueueMessagesWaiting(filled_blocks));
+            if (++blocks == (scan ? 1 : PREFILL_BLOCKS)) xEventGroupSetBits(events, PREFILLED);
+            if (!scan) {
+                const unsigned sectors_read = lba - start_lba;
+                if (sectors_read >= next_log_sector && read_us > 0) {
+                    next_log_sector += LOG_INTERVAL_SECTORS;
+                    ESP_LOGI(LOG_TAG, "READ CD average %u B/s, queued %u blocks",
+                             unsigned(uint64_t(bytes) * 1000000 / read_us), uxQueueMessagesWaiting(filled_blocks));
+                }
             }
         }
         if (read_us > 0) {
@@ -415,6 +507,7 @@ namespace ATAPI {
             const uint8_t * pcm = psram + block.slot * BLOCK_BYTES;
             const size_t bytes = block.sectors * CDDA_SECTOR_BYTES;
             size_t written = 0;
+            if (scanning) scan_position_lba = block.lba;
             while (!cancelled && written < bytes) {
                 const size_t count = sink.write(pcm + written, std::min<size_t>(CDDA_SECTOR_BYTES, bytes - written));
                 if (!count) break;
