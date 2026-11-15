@@ -15,6 +15,9 @@ namespace ATAPI {
             bool must_use_softscan;
             /// Indicates that the drive sometimes responds with garbage in the TOC struct, eg the TEAC CD-C68E seems to love to do that
             bool fucky_toc_reads;
+            /// TEAC CD-C68E encodes changer slots as 0x40..0x45 in LOAD/UNLOAD,
+            /// despite the standard slot numbers being 0..5.
+            bool changer_slot_bit6;
             /// @brief Indicates that the drive doesn't assert DRQ when sending TOC
             bool no_drq_in_toc;
             /// @brief Some drives lock up when setting the speed to 600 KBps or become much noisier. Use this to set another speed instead. Leave 0 to use the default.
@@ -143,6 +146,7 @@ namespace ATAPI {
 
     protected:
         explicit HardwareATAPIDevice(Platform::IDEBus * bus);
+        void set_speed();
 
         SemaphoreHandle_t semaphore;
         Platform::IDEBus * ide;
@@ -247,7 +251,6 @@ namespace ATAPI {
 
         CapabilitiesMechStatusModePage mode_sense_capabilities();
 
-        void set_speed();
         bool check_atapi_compatible();
         bool self_test();
     };

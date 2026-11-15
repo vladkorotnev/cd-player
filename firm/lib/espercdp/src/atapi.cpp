@@ -314,7 +314,7 @@ namespace ATAPI {
             .opcode = OperationCodes::LOAD_UNLOAD,
             .start = true,
             .load_unload = true,
-            .slot = slot
+            .slot = (uint8_t) (slot |  (quirks.changer_slot_bit6 ? 0x40 : 0x00))
         };
 
         Lock lock(semaphore);
