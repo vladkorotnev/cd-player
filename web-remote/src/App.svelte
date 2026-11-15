@@ -32,6 +32,13 @@
   };
 
   let canvas: HTMLCanvasElement | undefined;
+  let pipCanvas: HTMLCanvasElement | undefined;
+  let pipVideo: HTMLVideoElement | undefined;
+  let pipStream: MediaStream | undefined;
+  let pipScale = 1;
+  let pipSupported = false;
+  let pipReady = false;
+  let pipActive = false;
   let socket: WebSocket | undefined;
   let retryTimer: number | undefined;
   let active = true;
@@ -82,7 +89,58 @@
       }
     }
     context.putImageData(image, 0, 0);
+    drawPictureInPictureFrame();
     hasFrame = true;
+  }
+
+  function drawPictureInPictureFrame() {
+    if (!canvas || !pipCanvas) return;
+    const context = pipCanvas.getContext('2d', { alpha: false });
+    if (!context) return;
+    const contentWidth = canvas.width * pipScale;
+    const contentHeight = canvas.height * pipScale;
+    const offsetY = Math.floor((pipCanvas.height - contentHeight) / 2);
+    context.imageSmoothingEnabled = false;
+    context.fillStyle = '#000';
+    context.fillRect(0, 0, pipCanvas.width, pipCanvas.height);
+    context.drawImage(canvas, 0, offsetY, contentWidth, contentHeight);
+  }
+
+  async function togglePictureInPicture() {
+    if (!pipVideo || !pipReady) return;
+    try {
+      if (document.pictureInPictureElement === pipVideo) {
+        await document.exitPictureInPicture();
+      } else {
+        await pipVideo.requestPictureInPicture();
+      }
+    } catch (error) {
+      console.warn('Could not toggle picture-in-picture', error);
+    }
+  }
+
+  function preparePictureInPicture() {
+    if (!pipSupported || !canvas) return;
+    const targetWidth = Math.min(320, Math.floor(window.screen.availWidth / 4));
+    pipScale = Math.max(1, Math.floor(targetWidth / canvas.width));
+    const contentWidth = canvas.width * pipScale;
+    const contentHeight = canvas.height * pipScale;
+    pipCanvas ??= document.createElement('canvas');
+    pipCanvas.width = contentWidth;
+    pipCanvas.height = Math.max(contentHeight, Math.ceil(contentWidth / 2));
+    drawPictureInPictureFrame();
+    if (pipVideo) return;
+    pipStream = pipCanvas.captureStream();
+    pipVideo = document.createElement('video');
+    pipVideo.muted = true;
+    pipVideo.playsInline = true;
+    pipVideo.srcObject = pipStream;
+    pipVideo.addEventListener('loadedmetadata', () => pipReady = true);
+    pipVideo.addEventListener('enterpictureinpicture', () => pipActive = true);
+    pipVideo.addEventListener('leavepictureinpicture', () => pipActive = false);
+    void pipVideo.play().catch(() => {
+      pipReady = false;
+    });
   }
 
   function scheduleReconnect() {
@@ -107,6 +165,7 @@
       setMode(status.mode);
       hasFrame = false;
       await tick();
+      preparePictureInPicture();
       const url = new URL(status.websocket ?? '/ws', window.location.href);
       url.protocol = window.location.protocol === 'https:' ? 'wss:' : 'ws:';
       socket = new WebSocket(url);
@@ -192,6 +251,9 @@
   }
 
   onMount(() => {
+    pipSupported = document.pictureInPictureEnabled &&
+      'requestPictureInPicture' in HTMLVideoElement.prototype &&
+      typeof canvas?.captureStream === 'function';
     void connect();
     window.addEventListener('blur', releaseSeek);
     return () => {
@@ -200,6 +262,9 @@
       clearTimeout(retryTimer);
       window.removeEventListener('blur', releaseSeek);
       socket?.close();
+      pipStream?.getTracks().forEach((track) => track.stop());
+      pipVideo?.pause();
+      if (pipVideo) pipVideo.srcObject = null;
     };
   });
 </script>
@@ -209,11 +274,66 @@
   <meta name="description" content="Live display and remote control for ESPer CDP" />
 </svelte:head>
 
+<style>
+  .pip-button {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: grid;
+    place-items: center;
+    width: 34px;
+    height: 28px;
+    padding: 5px;
+    border-color: #4b6d68;
+    border-radius: 7px;
+    background: #0b1c1de6;
+    opacity: 0;
+    pointer-events: none;
+    transform: translateY(-3px);
+    transition: opacity .12s, transform .12s, background .12s, border-color .12s;
+  }
+
+  .pip-button svg {
+    width: 20px;
+    height: 20px;
+    fill: none;
+    stroke: currentColor;
+    stroke-width: 1.8;
+  }
+
+  .pip-button.active {
+    color: #a5f1d2;
+    border-color: #5e9d8c;
+    background: #183934ed;
+  }
+
+  .display-glass:hover .pip-button,
+  .display-glass:focus-within .pip-button {
+    opacity: 1;
+    pointer-events: auto;
+    transform: none;
+  }
+</style>
+
 <main class="remote">
   <section class="display-panel" aria-label="Player display">
     <div class="display-glass">
       <canvas bind:this={canvas} {width} {height}></canvas>
       {#if !hasFrame}<span class="display-wait">Waiting for display</span>{/if}
+      {#if pipSupported}
+        <button
+          class="pip-button"
+          class:active={pipActive}
+          disabled={!pipReady}
+          aria-label={pipActive ? 'Close picture-in-picture' : 'Open picture-in-picture'}
+          title={pipActive ? 'Close picture-in-picture' : 'Open picture-in-picture'}
+          onclick={togglePictureInPicture}
+        >
+          <svg aria-hidden="true" viewBox="0 0 24 24">
+            <path d="M4 5.5h16v13H4zM12.5 12h5v4h-5z" />
+          </svg>
+        </button>
+      {/if}
     </div>
     <p class="display-caption">{detail}</p>
   </section>
