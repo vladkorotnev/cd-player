@@ -477,7 +477,7 @@
       "similar_labels": "warning",
       "similar_power": "warning",
       "simulation_model_issue": "ignore",
-      "single_global_label": "ignore",
+      "single_global_label": "warning",
       "stacked_pin_name": "warning",
       "unannotated": "error",
       "unconnected_wire_endpoint": "warning",
@@ -680,22 +680,13 @@
         "uuid": "18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
       },
       {
-        "filename": "radio.kicad_sch",
-        "name": "Radio",
-        "uuid": "2c9f7ed9-26d3-4e3b-a849-1dc34a22268b"
-      },
-      {
         "filename": "power.kicad_sch",
         "name": "Power",
         "uuid": "e74347bc-960a-4b2d-834d-508ba87d6e91"
       }
     ],
-    "used_designators": "#PWR1-109,ATAPI1-2,C1-37,D1-2,DAC1,DISPTYPE1,J1-4,JP1-3,LCD1-2,MODE1,NEXT1,PLAYPAUSE1,PREV1,Q1-2,R1-16,RCA1-2,RN1-2,RV1-2,SEEKBACK1,SEEKFWD1,SHUFFLE1,STOPEJECT1,SW1-9,U1-21,VFD1-2",
-    "variants": [
-      {
-        "name": "Proto"
-      }
-    ]
+    "used_designators": "#PWR1-126,ATAPI1-2,C1-48,D1-5,DAC1,DISPTYPE1,J1-12,JP1-18,K1-2,L1-2,LCD1-2,MODE1,NEXT1,PLAYPAUSE1,PREV1,Q1-3,R1-20,RCA1-2,RCA_OUT1,RCA_THRU1,RN1-2,RV1-2,SEEKBACK1,SEEKFWD1,SHUFFLE1,STOPEJECT1,SW1-9,TP1-6,U1-21,VFD1-2,Y1-2",
+    "variants": []
   },
   "sheets": [
     [
@@ -713,10 +704,6 @@
     [
       "18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423",
       "Audio"
-    ],
-    [
-      "2c9f7ed9-26d3-4e3b-a849-1dc34a22268b",
-      "Radio"
     ],
     [
       "e74347bc-960a-4b2d-834d-508ba87d6e91",
