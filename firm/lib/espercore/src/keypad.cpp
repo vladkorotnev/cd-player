@@ -1,14 +1,15 @@
 #include <esper-core/keypad.h>
 #include <esper-core/consts.h>
 
-static const char LOG_TAG[] = "KEYPAD";
+static const char LOG_TAG[] = "I2CKeypad";
 
 namespace Platform {
-    Keypad::Keypad(Core::ThreadSafeI2C * bus, uint8_t addr):
+    I2CKeypad::I2CKeypad(Core::ThreadSafeI2C * bus, uint8_t addr):
         _bus(bus),
-        _addr(addr) {}
+        _addr(addr),
+        Keypad() {}
 
-    bool Keypad::update(uint8_t * outVal) {
+    bool I2CKeypad::update(uint8_t * outVal) {
         if(_bus == nullptr || !_bus->lock()) {
             return false;
         }
@@ -38,11 +39,11 @@ namespace Platform {
         return rslt;
     }
 
-    uint8_t Keypad::get_value() {
+    uint8_t I2CKeypad::get_value() {
         return last_value;
     }
 
-    bool Keypad::setup_locked() {
+    bool I2CKeypad::setup_locked() {
         if(did_setup) return true;
 
         auto wire = _bus->get();

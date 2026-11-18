@@ -133,9 +133,9 @@ void setup(void) {
   #ifdef BCONF_HAS_I2C
     Wire.begin(BCONF_I2C_SDA, BCONF_I2C_SCL, BCONF_I2C_FRQ);
     i2c = new Core::ThreadSafeI2C(&Wire);
-    keypad = new Platform::Keypad(i2c);
+    keypad = new Platform::I2CKeypad(i2c);
   #else
-    keypad = new Platform::Keypad(nullptr);
+    keypad = new Platform::NullKeypad();
   #endif
 
   auto * infrared_remote = new Platform::InfraredRemote(keymap, BCONF_INFRARED_PIN);

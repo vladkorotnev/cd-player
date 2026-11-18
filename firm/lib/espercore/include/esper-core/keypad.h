@@ -2,14 +2,32 @@
 #include "thread_safe_i2c.h"
 
 namespace Platform {
-
-    /// @brief 8-bit keypad port located on a PCA9555D normally at address 0x20 (as of Rev1 of ESPer PCB)
     class Keypad {
     public:
-        Keypad(Core::ThreadSafeI2C *, uint8_t address = 0x20);
+        virtual uint8_t get_value() = 0;
+        virtual bool update(uint8_t * result = nullptr) = 0;
+    protected:
+        explicit Keypad() {}
+    };
 
-        uint8_t get_value();
-        bool update(uint8_t * rslt = nullptr);
+    class NullKeypad: public Keypad {
+    public:
+        NullKeypad(): Keypad() {}
+
+        uint8_t get_value() override { return 0; }
+        bool update(uint8_t * rslt = nullptr) override { 
+            *rslt = 0;
+            return true;
+        }
+    };
+
+    /// @brief 8-bit keypad port located on a PCA9555D normally at address 0x20 (as of Rev1 of ESPer PCB)
+    class I2CKeypad: public Keypad {
+    public:
+        I2CKeypad(Core::ThreadSafeI2C *, uint8_t address = 0x20);
+
+        uint8_t get_value() override;
+        bool update(uint8_t * rslt = nullptr) override;
 
     private:
         Core::ThreadSafeI2C * _bus;
