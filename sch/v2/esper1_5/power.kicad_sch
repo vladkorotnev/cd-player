@@ -3267,7 +3267,7 @@
 	)
 	(rectangle
 		(start 111.76 78.74)
-		(end 194.31 105.41)
+		(end 194.31 106.68)
 		(stroke
 			(width 0)
 			(type default)
@@ -3608,6 +3608,16 @@
 			(type default)
 		)
 		(uuid "5018f3d8-488f-4651-a20c-3f82cec24a1e")
+	)
+	(wire
+		(pts
+			(xy 125.73 90.17) (xy 127 90.17)
+		)
+		(stroke
+			(width 0)
+			(type default)
+		)
+		(uuid "557595f7-fa13-4e34-a61c-e76b2efb3607")
 	)
 	(wire
 		(pts
@@ -6553,6 +6563,85 @@
 		)
 	)
 	(symbol
+		(lib_id "power:+3V3")
+		(at 125.73 90.17 90)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "862591c2-c5c0-4e5d-bf7f-2856ff4c6539")
+		(property "Reference" "#PWR097"
+			(at 129.54 90.17 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "+3V3"
+			(at 121.92 90.1699 90)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+		(property "Footprint" ""
+			(at 125.73 90.17 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 125.73 90.17 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"+3V3\""
+			(at 125.73 90.17 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "17ac2b02-f32d-4ae0-a736-abc0a9a24c34")
+		)
+		(instances
+			(project "esper1_5"
+				(path "/e74347bc-960a-4b2d-834d-508ba87d6e91"
+					(reference "#PWR097")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
 		(lib_id "power:GNDD")
 		(at 40.64 113.03 0)
 		(unit 1)
@@ -7907,85 +7996,6 @@
 			(project "esper1_5"
 				(path "/e74347bc-960a-4b2d-834d-508ba87d6e91"
 					(reference "C28")
-					(unit 1)
-				)
-			)
-		)
-	)
-	(symbol
-		(lib_id "power:+3V3")
-		(at 127 90.17 90)
-		(unit 1)
-		(body_style 1)
-		(exclude_from_sim no)
-		(in_bom yes)
-		(on_board yes)
-		(in_pos_files yes)
-		(dnp no)
-		(fields_autoplaced yes)
-		(uuid "d32ad0a9-6a79-481e-868a-8f545549569c")
-		(property "Reference" "#PWR097"
-			(at 130.81 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Value" "+3V3"
-			(at 123.19 90.1699 90)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-				(justify left)
-			)
-		)
-		(property "Footprint" ""
-			(at 127 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Datasheet" ""
-			(at 127 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(property "Description" "Power symbol creates a global label with name \"+3V3\""
-			(at 127 90.17 0)
-			(hide yes)
-			(show_name no)
-			(do_not_autoplace no)
-			(effects
-				(font
-					(size 1.27 1.27)
-				)
-			)
-		)
-		(pin "1"
-			(uuid "c64a754c-a430-4f10-acbb-78a365468773")
-		)
-		(instances
-			(project "esper1_5"
-				(path "/e74347bc-960a-4b2d-834d-508ba87d6e91"
-					(reference "#PWR097")
 					(unit 1)
 				)
 			)
