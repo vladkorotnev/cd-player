@@ -1,0 +1,13 @@
+(version 1)
+
+(rule "SATA TX to RX copper clearance"
+    (condition "((A.NetName == 'Net-(CN1-TX+)' || A.NetName == 'Net-(CN1-TX-)') && (B.NetName == 'Net-(CN1-RX+)' || B.NetName == 'Net-(CN1-RX-)')) || ((A.NetName == 'Net-(CN1-RX+)' || A.NetName == 'Net-(CN1-RX-)') && (B.NetName == 'Net-(CN1-TX+)' || B.NetName == 'Net-(CN1-TX-)'))")
+    (constraint clearance (min 0.55mm)))
+
+(rule "SATA TX intra-pair skew"
+    (condition "A.NetName == 'Net-(CN1-TX+)' || A.NetName == 'Net-(CN1-TX-)'")
+    (constraint skew (max 0.25mm)))
+
+(rule "SATA RX intra-pair skew"
+    (condition "A.NetName == 'Net-(CN1-RX+)' || A.NetName == 'Net-(CN1-RX-)'")
+    (constraint skew (max 0.25mm)))

@@ -2,7 +2,7 @@
 
 This is the ESP32 firmware for the ESPer-CDP CD player board.
 
-## System Requirements
+## Board Variants
 
 ### Board revision 1 (OG8M)
 
@@ -11,8 +11,16 @@ This is the ESP32 firmware for the ESPer-CDP CD player board.
 * ESPer Keypad
 * Futaba GP1232A02 VFD display (take it out of a broken arcade cabinet... or write a driver for something less obscure, but preferably also VFD :-)
 * IR remote receiver + PS2 DVD remote
+* PCM5102 DAC
+* WM8805 SPDIF receiver IC
+
+### Board revision 2
+
+Work in progress!
 
 ### Tested CD drives (in SPDIF mode)
+
+*Note:* In data streaming mode just about any drive worked just fine.
 
 #### The Good
 

@@ -4773,6 +4773,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "R3")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -4852,6 +4858,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "#PWR037")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -4927,6 +4939,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR033")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR033")
 					(unit 1)
 				)
@@ -5013,6 +5031,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C17")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -5091,6 +5115,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "C10")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "C10")
 					(unit 1)
 				)
@@ -5177,6 +5207,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C21")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -5255,6 +5291,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "C22")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "C22")
 					(unit 1)
 				)
@@ -5344,6 +5386,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "J11")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -5422,6 +5470,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "#PWR0115")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -5496,6 +5550,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR035")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR035")
 					(unit 1)
 				)
@@ -5580,6 +5640,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "R5")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -5654,6 +5720,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR039")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR039")
 					(unit 1)
 				)
@@ -5733,6 +5805,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR032")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR032")
 					(unit 1)
 				)
@@ -5819,6 +5897,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C16")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -5895,6 +5979,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "R17")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "R17")
 					(unit 1)
 				)
@@ -5981,6 +6071,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C19")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -6062,6 +6158,96 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C20")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GNDA")
+		(at 93.98 63.5 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "354bd447-bc0f-4147-a219-37b2ab31087e")
+		(property "Reference" "#PWR044"
+			(at 93.98 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GNDA"
+			(at 93.98 68.58 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 93.98 63.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 93.98 63.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GNDA\" , analog ground"
+			(at 93.98 63.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "629ca441-464e-4ffd-b2a9-9128679faefe")
+		)
+		(instances
+			(project "esper1_5"
+				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR044")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "#PWR044")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -6137,6 +6323,96 @@
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
 					(reference "#PWR0113")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "#PWR0113")
+					(unit 1)
+				)
+			)
+		)
+	)
+	(symbol
+		(lib_id "power:GNDA")
+		(at 88.9 63.5 0)
+		(unit 1)
+		(body_style 1)
+		(exclude_from_sim no)
+		(in_bom yes)
+		(on_board yes)
+		(in_pos_files yes)
+		(dnp no)
+		(fields_autoplaced yes)
+		(uuid "36eabe8e-37e6-49c3-b375-e3c28b9536ca")
+		(property "Reference" "#PWR045"
+			(at 88.9 69.85 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Value" "GNDA"
+			(at 88.9 68.58 0)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Footprint" ""
+			(at 88.9 63.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Datasheet" ""
+			(at 88.9 63.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(property "Description" "Power symbol creates a global label with name \"GNDA\" , analog ground"
+			(at 88.9 63.5 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+			)
+		)
+		(pin "1"
+			(uuid "aac9c597-5b78-4308-9546-c201c51d6996")
+		)
+		(instances
+			(project "esper1_5"
+				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR045")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "#PWR045")
 					(unit 1)
 				)
 			)
@@ -6216,6 +6492,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "JP1")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "JP1")
 					(unit 1)
 				)
@@ -6356,6 +6638,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "DAC1")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -6434,6 +6722,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "#PWR094")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -6508,6 +6802,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR043")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR043")
 					(unit 1)
 				)
@@ -6614,6 +6914,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "D3")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -6688,6 +6994,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR031")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR031")
 					(unit 1)
 				)
@@ -6771,6 +7083,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "TP4")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -6845,6 +7163,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR040")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR040")
 					(unit 1)
 				)
@@ -6925,6 +7249,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "R6")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "R6")
 					(unit 1)
 				)
@@ -7014,6 +7344,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "RCA_THRU1")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -7088,6 +7424,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR029")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR029")
 					(unit 1)
 				)
@@ -7174,6 +7516,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C13")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -7256,6 +7604,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C18")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -7332,6 +7686,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "JP3")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "JP3")
 					(unit 1)
 				)
@@ -7418,6 +7778,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C12")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -7496,6 +7862,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "#PWR038")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -7570,6 +7942,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR030")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR030")
 					(unit 1)
 				)
@@ -7656,6 +8034,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C14")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -7730,6 +8114,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR036")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR036")
 					(unit 1)
 				)
@@ -7817,6 +8207,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "U10")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -7891,6 +8287,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR042")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR042")
 					(unit 1)
 				)
@@ -7993,6 +8395,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "K1")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -8067,6 +8475,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR028")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR028")
 					(unit 1)
 				)
@@ -8157,6 +8571,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "Q2")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -8231,6 +8651,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR041")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR041")
 					(unit 1)
 				)
@@ -8317,6 +8743,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "C15")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -8392,6 +8824,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "R8")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "R8")
 					(unit 1)
 				)
@@ -8475,6 +8913,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "R4")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -8549,6 +8993,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR096")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR096")
 					(unit 1)
 				)
@@ -8631,6 +9081,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "R16")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "R16")
 					(unit 1)
 				)
@@ -8721,6 +9177,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "J10")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -8805,6 +9267,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "RCA_OUT1")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -8885,6 +9353,12 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "JP4")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
@@ -8959,6 +9433,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR034")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR034")
 					(unit 1)
 				)
@@ -9044,10 +9524,16 @@
 					(unit 1)
 				)
 			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
+					(reference "R7")
+					(unit 1)
+				)
+			)
 		)
 	)
 	(symbol
-		(lib_id "Device:C_Polarized")
+		(lib_id "Device:C")
 		(at 104.14 62.23 0)
 		(unit 1)
 		(body_style 1)
@@ -9059,7 +9545,7 @@
 		(fields_autoplaced yes)
 		(uuid "f1a41628-a757-4352-9dd9-8ac7f149fbfb")
 		(property "Reference" "C11"
-			(at 107.95 60.0709 0)
+			(at 107.95 60.9599 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -9070,7 +9556,7 @@
 			)
 		)
 		(property "Value" "2.2u"
-			(at 107.95 62.6109 0)
+			(at 107.95 63.4999 0)
 			(show_name no)
 			(do_not_autoplace no)
 			(effects
@@ -9080,7 +9566,7 @@
 				(justify left)
 			)
 		)
-		(property "Footprint" "Capacitor_SMD:CP_Elec_10x7.9"
+		(property "Footprint" "Capacitor_SMD:C_1206_3216Metric_Pad1.33x1.80mm_HandSolder"
 			(at 105.1052 66.04 0)
 			(hide yes)
 			(show_name no)
@@ -9102,7 +9588,7 @@
 				)
 			)
 		)
-		(property "Description" "Polarized capacitor"
+		(property "Description" "Unpolarized capacitor"
 			(at 104.14 62.23 0)
 			(hide yes)
 			(show_name no)
@@ -9122,6 +9608,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "C11")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "C11")
 					(unit 1)
 				)
@@ -9200,6 +9692,12 @@
 		(instances
 			(project "esper1_5"
 				(path "/18a1a0e1-4981-4c3c-9eeb-0c2e2f8c7423"
+					(reference "#PWR095")
+					(unit 1)
+				)
+			)
+			(project "audio"
+				(path "/ebea5ad6-82a4-461e-b516-21c44cb751dc"
 					(reference "#PWR095")
 					(unit 1)
 				)

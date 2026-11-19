@@ -1959,6 +1959,30 @@
 			)
 		)
 	)
+	(global_label "FRONTPANEL_DISP_DC"
+		(shape input)
+		(at 179.07 91.44 0)
+		(fields_autoplaced yes)
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+			(justify left)
+		)
+		(uuid "5d88e98a-0212-4080-9148-49ea999af9ed")
+		(property "Intersheetrefs" "${INTERSHEET_REFS}"
+			(at 202.7381 91.44 0)
+			(hide yes)
+			(show_name no)
+			(do_not_autoplace no)
+			(effects
+				(font
+					(size 1.27 1.27)
+				)
+				(justify left)
+			)
+		)
+	)
 	(global_label "ATAPI_MOSI"
 		(shape input)
 		(at 179.07 99.06 0)

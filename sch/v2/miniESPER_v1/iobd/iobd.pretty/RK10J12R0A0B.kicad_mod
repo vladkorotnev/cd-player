@@ -1,0 +1,244 @@
+(footprint "RK10J12R0A0B"
+	(version 20260206)
+	(generator "pcbnew")
+	(generator_version "10.0")
+	(layer "F.Cu")
+	(descr "Alps Alpine dual-gang 10 kOhm rotary thumbwheel potentiometer, 15A taper, shared terminal 1, SMD. Solder lands and locating cutouts per RK10J catalog drawing No. 4.")
+	(tags "Alps Alpine RK10J thumbwheel dual gang potentiometer 10k SMD")
+	(property "Reference" "REF**"
+		(at 0 10.55 0)
+		(layer "F.SilkS")
+		(uuid "f714245f-44ec-4bfa-bb0b-e82ce48c1d5c")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Value" "RK10J12R0A0B"
+		(at 0 11.75 0)
+		(layer "F.Fab")
+		(uuid "298e2c3f-ea25-4916-8ea8-c92dc1757f79")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Datasheet" "https://tech.alpsalpine.com/e/products/detail/RK10J12R0A0B/"
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "0c2cf60a-dece-4fbd-a47d-ce7cc1875934")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(property "Description" ""
+		(at 0 0 0)
+		(layer "F.Fab")
+		(hide yes)
+		(uuid "13ff017e-b353-4dc9-97dc-4426146c6cab")
+		(effects
+			(font
+				(size 1.27 1.27)
+			)
+		)
+	)
+	(attr smd)
+	(duplicate_pad_numbers_are_jumpers no)
+	(fp_line
+		(start -5.9 7.8)
+		(end -4.7 7.8)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "1f230a6a-1da5-453d-a950-fe3e5a75093b")
+	)
+	(fp_line
+		(start 4.7 7.8)
+		(end 5.25 7.8)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(layer "F.SilkS")
+		(uuid "f9299b52-d01f-4ab0-9885-2d0d0b852aef")
+	)
+	(fp_circle
+		(center -5.12 9)
+		(end -5 9)
+		(stroke
+			(width 0.12)
+			(type solid)
+		)
+		(fill yes)
+		(layer "F.SilkS")
+		(uuid "38ec8f25-062c-433f-ba04-ea997c1ea594")
+	)
+	(fp_rect
+		(start -1.1 -4.7)
+		(end 1.1 -3.7)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "Edge.Cuts")
+		(uuid "2e7b2265-aef6-4091-86b6-74d953a4c126")
+	)
+	(fp_rect
+		(start -1.1 3.7)
+		(end 1.1 4.7)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "Edge.Cuts")
+		(uuid "79218f14-114a-4f7e-9b77-b3791ec17f38")
+	)
+	(fp_rect
+		(start -7.45 -7.35)
+		(end 7.45 9.95)
+		(stroke
+			(width 0.05)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.CrtYd")
+		(uuid "52771156-de94-41de-a83a-63864adcf50e")
+	)
+	(fp_line
+		(start -6 4.2)
+		(end -6 7.7)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "7c45c8d3-05ab-4b27-bae1-2308ffabc3d0")
+	)
+	(fp_line
+		(start -6 7.7)
+		(end 5.35 7.7)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "9fcf044b-deef-4785-a075-ab9b67a2976a")
+	)
+	(fp_line
+		(start -4.45 7.7)
+		(end -4 7.25)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "2b187a03-388b-4136-ac2f-2324122b0002")
+	)
+	(fp_line
+		(start -0.6 0)
+		(end 0.6 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "fa0f929c-8ddf-427e-8c0b-e0d9d235bbc8")
+	)
+	(fp_line
+		(start 0 -0.6)
+		(end 0 0.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "295830be-2ff4-4718-8e7b-5a4f15d37f3a")
+	)
+	(fp_line
+		(start 5.35 7.7)
+		(end 5.35 4.6)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(layer "F.Fab")
+		(uuid "0d3966b9-0d6c-4f72-b882-982bb1cd1553")
+	)
+	(fp_circle
+		(center 0 0)
+		(end 7 0)
+		(stroke
+			(width 0.1)
+			(type solid)
+		)
+		(fill no)
+		(layer "F.Fab")
+		(uuid "22e07e86-7438-40f8-9932-e4b3b2c145ad")
+	)
+	(fp_text user "${REFERENCE}"
+		(at 0 2.1 0)
+		(layer "F.Fab")
+		(uuid "c722caf8-46f9-48eb-95a8-71450814a318")
+		(effects
+			(font
+				(size 1 1)
+				(thickness 0.15)
+			)
+		)
+	)
+	(pad "" smd rect
+		(at -6.1 -2.5)
+		(size 2.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "14e9785e-311f-4fc0-928b-4a763c90d7c0")
+	)
+	(pad "" smd rect
+		(at 6.1 -2.5)
+		(size 2.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "c25cd933-6c78-499e-a8f3-4f15602aac49")
+	)
+	(pad "1" smd rect
+		(at -4 9)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "ea343d84-aaa0-4347-a4c2-010946103e91")
+	)
+	(pad "2" smd rect
+		(at -2 9)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "bc666e77-ec4b-4185-a1d4-7ac408d9dc46")
+	)
+	(pad "3" smd rect
+		(at 0 9)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "fdc8ebc8-c123-4e74-991c-36c162375ddb")
+	)
+	(pad "4" smd rect
+		(at 2 9)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "6c26a39f-2d2a-4789-8820-801e9053b5ec")
+	)
+	(pad "5" smd rect
+		(at 4 9)
+		(size 1.2 1.4)
+		(layers "F.Cu" "F.Mask" "F.Paste")
+		(uuid "117525cb-0b15-4305-89d0-b6055454c598")
+	)
+	(embedded_fonts no)
+)
