@@ -197,7 +197,7 @@ namespace ATAPI {
         DriveInfo info = {
             .model = "", .serial = "", .firmware = ""
         };
-        MechInfo mech_sts = { 0 };
+        MechInfo mech_sts = { .slot_count = 1 };
         int packet_size = 12;
         IDE::DeviceNumber bus_position;
         bool signature_verified = false;
@@ -248,12 +248,10 @@ namespace ATAPI {
 
         const std::vector<uint8_t> read_cd_text_toc_locked();
 
-        void wait_sts_bit_set(StatusRegister bits);
         bool wait_sts_bit_clr(StatusRegister bits, const char * tag, int maxTimeMs = 30000);
 
         bool wait_not_busy(const char * tag,  int maxTimeMs = 30000);
-        bool wait_for_data(const char * tag);
-        void wait_drq();
+        bool wait_for_data(const char * tag, bool packet_response = false);
 
         bool init_task_file();
         bool identify();

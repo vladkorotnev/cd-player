@@ -68,13 +68,13 @@ namespace ATAPI {
     };
 
     enum RequestSenseKey: uint8_t {
-        SENSE_NOT_READY = 0x06
-        // YAGNI
+        SENSE_NOT_READY = 0x02,
+        SENSE_UNIT_ATTENTION = 0x06,
+        SENSE_ABORTED_COMMAND = 0x0B,
     };
 
     enum RequestSenseAsc: uint8_t {
-        ASC_DEVICE_NOT_READY = 0x29
-        // YAGNI
+        ASC_MEDIUM_NOT_PRESENT = 0x3A,
     };
 
     namespace Requests {
@@ -522,7 +522,7 @@ namespace ATAPI {
         };
 
         struct ATAPI_PKT RequestSense {
-            uint8_t error_code: 6;
+            uint8_t error_code: 7;
             bool valid: 1;
             uint8_t segment_no;
 
@@ -531,7 +531,7 @@ namespace ATAPI {
             bool ili: 1;
             uint8_t reserved1: 2;
 
-            uint16_t information;
+            uint32_t information;
 
             uint8_t additional_sense_length;
             uint8_t command_specific_information[4];

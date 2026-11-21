@@ -176,6 +176,7 @@ namespace CD {
                     rel_ts = { .M = 0, .S = 0, .F = 0 };
                     cdrom->start();
                     cdrom->wait_ready();
+                    media_type = cdrom->check_media();
                     if((media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN && media_type != ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN_ALT) || (cdrom->get_quirks().no_media_codes && media_type == ATAPI::MediaTypeCode::MTC_DOOR_CLOSED_UNKNOWN)) {
                         sts = (media_type != ATAPI::MediaTypeCode::MTC_DOOR_OPEN) ? State::LOAD : State::OPEN;
                     } else {
@@ -193,6 +194,7 @@ namespace CD {
                             // The CD is not really useful as we cannot seem to read or play it
                             ESP_LOGE(LOG_TAG, "Empty TOC!");
                             sts = State::BAD_DISC;
+                            delay = 2000;
                             slots[cur_slot].disc = std::make_shared<Album>();
                             want_auto_play = false;
                         } else {

@@ -102,7 +102,8 @@ namespace Platform {
                 check_expander(data_expander_addr) && check_expander(control_expander_addr) &&
                 write_expander(data_expander_addr, IODIR_A, 0xFF, 0xFF, 2) &&
                 write_expander(data_expander_addr, IPOL_A, 0, 0, 2) &&
-                write_expander(data_expander_addr, GPPU_A, 0xFF, 0xFF, 2) &&
+                // Leave DD7 (U3 GPA7) available for the ATA host pull-down.
+                write_expander(data_expander_addr, GPPU_A, 0x7F, 0xFF, 2) &&
                 write_expander(control_expander_addr, IPOL_A, 0) &&
                 write_expander(control_expander_addr, OLAT_A, CONTROL_IDLE) &&
                 write_expander(control_expander_addr, IODIR_A, 0xC0);
