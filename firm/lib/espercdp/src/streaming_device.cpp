@@ -30,17 +30,13 @@ namespace ATAPI {
         if (reader_start == nullptr) reader_start = xSemaphoreCreateBinary();
         if (output_start == nullptr) output_start = xSemaphoreCreateBinary();
         if (workers_done == nullptr) workers_done = xSemaphoreCreateCounting(2, 0);
-        if (scan_timer == nullptr) {
-            scan_timer = xTimerCreate("CD-Scan", pdMS_TO_TICKS(SCAN_INTERVAL_MS), pdTRUE,
-                                      this, scan_timer_callback);
-        }
         if (events == nullptr) events = xEventGroupCreate();
         if (free_blocks == nullptr) free_blocks = xQueueCreate(BLOCK_COUNT, sizeof(uint8_t));
         if (filled_blocks == nullptr) filled_blocks = xQueueCreate(BLOCK_COUNT, sizeof(Block));
         if (psram == nullptr) {
             psram = static_cast<uint8_t *>(heap_caps_malloc(BLOCK_COUNT * BLOCK_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
         }
-        if (!control || !reader_start || !output_start || !workers_done || !scan_timer ||
+        if (!control || !reader_start || !output_start || !workers_done ||
             !events || !free_blocks || !filled_blocks || !psram) {
             ESP_LOGE(LOG_TAG, "Could not allocate CD audio stream");
             return false;
@@ -52,7 +48,6 @@ namespace ATAPI {
 
     StreamingPlayerDevice::~StreamingPlayerDevice() {
         if (session) stop_locked();
-        if (scan_timer) xTimerDelete(scan_timer, portMAX_DELAY);
         if (workers_done) vSemaphoreDelete(workers_done);
         if (output_start) vSemaphoreDelete(output_start);
         if (reader_start) vSemaphoreDelete(reader_start);
@@ -207,9 +202,8 @@ namespace ATAPI {
         return true;
     }
 
-    void StreamingPlayerDevice::cancel_playback_locked() {
+    void StreamingPlayerDevice::cancel_playback_locked(bool clear) {
         scanning = false;
-        if (scan_timer) xTimerStop(scan_timer, portMAX_DELAY);
         if (!playback_active) return;
 
         cancelled = true;
@@ -217,7 +211,7 @@ namespace ATAPI {
         xSemaphoreTake(workers_done, portMAX_DELAY);
         xSemaphoreTake(workers_done, portMAX_DELAY);
         playback_active = false;
-        output->clear_output();
+        if(clear) output->clear_output();
     }
 
     void StreamingPlayerDevice::stop_locked() {
@@ -253,7 +247,7 @@ namespace ATAPI {
 
     void StreamingPlayerDevice::scan(bool forward, MSF from) {
         Lock lock(control);
-        cancel_playback_locked();
+        cancel_playback_locked(false);
 
         int lower = -LBA_OFFSET;
         int upper = lead_out_lba;
@@ -288,17 +282,11 @@ namespace ATAPI {
         scan_forward = forward;
         scan_min_lba = lower;
         scan_max_lba = upper;
-        scan_target_lba = lba;
         scan_position_lba = lba;
         scanning = true;
         if (!begin_playback_locked(lba, upper)) {
             scanning = false;
             return;
-        }
-        if (xTimerStart(scan_timer, portMAX_DELAY) != pdPASS) {
-            ESP_LOGE(LOG_TAG, "Could not start scan timer");
-            cancel_playback_locked();
-            state = AudioStatus::PlayState::Stopped;
         }
     }
 
@@ -331,17 +319,6 @@ namespace ATAPI {
             position.position_in_track = FRAMES_TO_MSF(frame - track_start);
         }
         return &position;
-    }
-
-    void StreamingPlayerDevice::scan_timer_callback(TimerHandle_t timer) {
-        auto& stream = *static_cast<StreamingPlayerDevice *>(pvTimerGetTimerID(timer));
-        if (!stream.scanning) return;
-
-        const int current = stream.scan_target_lba;
-        const int next = stream.scan_forward
-            ? std::min(current + SCAN_STEP_FRAMES, stream.scan_max_lba.load() - 1)
-            : std::max(current - SCAN_STEP_FRAMES, stream.scan_min_lba.load());
-        stream.scan_target_lba = next;
     }
 
     void StreamingPlayerDevice::reader_task(void * context) {
@@ -462,7 +439,6 @@ namespace ATAPI {
 
     void StreamingPlayerDevice::read_blocks() {
         int lba = start_lba;
-        int last_scan_target = scan_min_lba - 1;
         unsigned blocks = 0;
         unsigned bytes = 0;
         unsigned next_log_sector = LOG_INTERVAL_SECTORS;
@@ -470,12 +446,9 @@ namespace ATAPI {
         while (!cancelled && (scanning || lba < end_lba)) {
             const bool scan = scanning.load();
             if (scan) {
-                const int target = scan_target_lba;
-                if (target == last_scan_target) {
-                    vTaskDelay(pdMS_TO_TICKS(5));
-                    continue;
-                }
-                lba = target;
+                const int first = scan_min_lba;
+                const int last = std::max(first, scan_max_lba.load() - int(SECTORS_PER_BLOCK));
+                lba = std::clamp(lba, first, last);
             }
 
             Block block = {};
@@ -489,12 +462,20 @@ namespace ATAPI {
                                psram + block.slot * BLOCK_BYTES)) break;
             read_us += esp_timer_get_time() - before;
             if (cancelled) break;
-            if (scan) last_scan_target = lba;
-            else lba += block.sectors;
             bytes += block.sectors * CDDA_SECTOR_BYTES;
             xQueueSend(filled_blocks, &block, 0);
-            if (++blocks == (scan ? 1 : PREFILL_BLOCKS)) xEventGroupSetBits(events, PREFILLED);
-            if (!scan) {
+            if (++blocks == (scan ? SCAN_PREFILL_BLOCKS : PREFILL_BLOCKS)) xEventGroupSetBits(events, PREFILLED);
+            if (scan) {
+                const int first = scan_min_lba;
+                const int last = std::max(first, scan_max_lba.load() - int(SECTORS_PER_BLOCK));
+                const int next = lba + (scan_forward ? SCAN_STEP_FRAMES : -SCAN_STEP_FRAMES);
+                // Do not clamp the final hop to the boundary: if the remaining
+                // distance is shorter than one block, that would replay part of
+                // the previous preview chunk.
+                if (next < first || next > last) break;
+                lba = next;
+            } else {
+                lba += block.sectors;
                 const unsigned sectors_read = lba - start_lba;
                 if (sectors_read >= next_log_sector && read_us > 0) {
                     next_log_sector += LOG_INTERVAL_SECTORS;
@@ -515,6 +496,57 @@ namespace ATAPI {
         static const uint8_t silence[CDDA_SECTOR_BYTES] = {};
         unsigned underruns = 0;
         bool starving = false;
+
+        auto write_pcm = [&](const uint8_t * pcm, size_t bytes) {
+            size_t written = 0;
+            while (!cancelled && written < bytes) {
+                const size_t count = sink.write(pcm + written,
+                                                std::min<size_t>(CDDA_SECTOR_BYTES, bytes - written));
+                if (!count) break;
+                written += count;
+                pcm_bytes += count;
+            }
+            return written == bytes;
+        };
+
+        if (scanning) {
+            while (!cancelled) {
+                Block block;
+                if (xQueueReceive(filled_blocks, &block, OUTPUT_WAIT) != pdTRUE) {
+                    if (reader_finished) {
+                        if (uxQueueMessagesWaiting(filled_blocks) != 0) continue;
+                        const unsigned drain_ms = I2S_BUFFER_BYTES * 1000 / PCM_BYTES_PER_SECOND + 1;
+                        for (unsigned ms = 0; ms < drain_ms && !cancelled; ms += 5) {
+                            vTaskDelay(pdMS_TO_TICKS(5));
+                        }
+                        break;
+                    }
+                    if (!starving) {
+                        starving = true;
+                        ++underruns;
+                        ESP_LOGW(LOG_TAG, "Scan PCM buffer underrun");
+                    }
+                    continue;
+                }
+
+                starving = false;
+                scan_position_lba = block.lba;
+                const uint8_t * pcm = psram + block.slot * BLOCK_BYTES;
+                const size_t bytes = block.sectors * CDDA_SECTOR_BYTES;
+                const bool written = write_pcm(pcm, bytes);
+                xQueueSend(free_blocks, &block.slot, 0);
+                if (!cancelled && !written) {
+                    ESP_LOGE(LOG_TAG, "I2S write stopped during scan");
+                    break;
+                }
+            }
+
+            cancelled = true;
+            state = AudioStatus::PlayState::Stopped;
+            ESP_LOGI(LOG_TAG, "Played %u scan PCM bytes, %u buffer underruns", pcm_bytes.load(), underruns);
+            return;
+        }
+
         while (!cancelled) {
             Block block;
             if (xQueueReceive(filled_blocks, &block, OUTPUT_WAIT) != pdTRUE) {
@@ -542,17 +574,10 @@ namespace ATAPI {
             starving = false;
             const uint8_t * pcm = psram + block.slot * BLOCK_BYTES;
             const size_t bytes = block.sectors * CDDA_SECTOR_BYTES;
-            size_t written = 0;
-            if (scanning) scan_position_lba = block.lba;
-            while (!cancelled && written < bytes) {
-                const size_t count = sink.write(pcm + written, std::min<size_t>(CDDA_SECTOR_BYTES, bytes - written));
-                if (!count) break;
-                written += count;
-                pcm_bytes += count;
-            }
+            const bool written = write_pcm(pcm, bytes);
             xQueueSend(free_blocks, &block.slot, 0);
-            if (!cancelled && written != bytes) {
-                ESP_LOGE(LOG_TAG, "I2S write stopped after %zu/%zu bytes", written, bytes);
+            if (!cancelled && !written) {
+                ESP_LOGE(LOG_TAG, "I2S write stopped");
                 break;
             }
         }
