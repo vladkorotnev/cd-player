@@ -16,7 +16,7 @@ namespace Platform {
 
         uint8_t get_value() override { return 0; }
         bool update(uint8_t * rslt = nullptr) override { 
-            *rslt = 0;
+            if (rslt != nullptr) *rslt = 0;
             return true;
         }
     };

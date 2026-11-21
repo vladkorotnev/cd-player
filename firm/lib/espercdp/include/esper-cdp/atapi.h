@@ -146,7 +146,7 @@ namespace ATAPI {
 
     protected:
         explicit HardwareATAPIDevice(Platform::IDEBus * bus);
-        void set_speed();
+        virtual void set_speed();
 
         SemaphoreHandle_t semaphore;
         Platform::IDEBus * ide;

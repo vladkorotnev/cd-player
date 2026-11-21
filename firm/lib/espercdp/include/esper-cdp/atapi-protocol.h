@@ -25,6 +25,7 @@ namespace ATAPI {
         MODE_SELECT = 0x55,
         MODE_SENSE = 0x5A,
         LOAD_UNLOAD = 0xA6,
+        SET_STREAMING = 0xB6,
         MECHANISM_STATUS = 0xBD,
         SCAN = 0xBA,
         SET_CD_SPEED = 0xBB,
@@ -357,6 +358,29 @@ namespace ATAPI {
             uint8_t reserved0;
             uint16_t read_speed;
             uint16_t write_speed;
+        };
+
+        struct ATAPI_PKT SetStreaming {
+            uint8_t opcode;
+            uint8_t reserved0[7];
+            uint8_t type;
+            uint16_t parameter_list_length;
+            ReqPktFooter footer;
+        };
+
+        struct ATAPI_PKT StreamingPerformanceDescriptor {
+            bool random_access: 1;
+            bool exact: 1;
+            bool restore_defaults: 1;
+            uint8_t write_rotation_control: 2;
+            uint8_t reserved0: 3;
+            uint8_t reserved1[3];
+            uint32_t start_lba;
+            uint32_t end_lba;
+            uint32_t read_size;
+            uint32_t read_time;
+            uint32_t write_size;
+            uint32_t write_time;
         };
     }
 

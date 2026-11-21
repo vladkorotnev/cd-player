@@ -5,6 +5,7 @@
 #include <algorithm>
 #include <esp_heap_caps.h>
 #include <esp_timer.h>
+#include <endian.h>
 
 namespace {
     constexpr char LOG_TAG[] = "CD_STREAM";
@@ -92,9 +93,9 @@ namespace ATAPI {
         Lock lock(control);
         stop_locked();
         auto toc = HardwareATAPIDevice::read_toc();
-        HardwareATAPIDevice::set_speed();
         tracks = toc.tracks;
         lead_out_lba = MSF_TO_FRAMES(toc.leadOut) - LBA_OFFSET;
+        set_speed();
         return toc;
     }
 
@@ -145,10 +146,39 @@ namespace ATAPI {
         state = AudioStatus::PlayState::Playing;
         playback_active = true;
 
-        HardwareATAPIDevice::set_speed();
+        set_speed();
         xSemaphoreGive(output_start);
         xSemaphoreGive(reader_start);
         return true;
+    }
+
+    void StreamingPlayerDevice::set_speed() {
+        const uint32_t read_speed = (quirks.alternate_max_speed == 0) ? 600 : quirks.alternate_max_speed;
+        const uint32_t end_lba = (lead_out_lba > 0) ? lead_out_lba - 1 : UINT32_MAX;
+        const struct ATAPI_PKT {
+            Requests::SetStreaming request;
+            Requests::StreamingPerformanceDescriptor descriptor;
+        } command = {
+            .request = {
+                .opcode = OperationCodes::SET_STREAMING,
+                .parameter_list_length = htobe16(sizeof(Requests::StreamingPerformanceDescriptor))
+            },
+            .descriptor = {
+                .exact = true,
+                .start_lba = 0,
+                .end_lba = htobe32(end_lba),
+                .read_size = htobe32(read_speed),
+                .read_time = htobe32(1000)
+            }
+        };
+        static_assert(sizeof(Requests::SetStreaming) == 12);
+        static_assert(sizeof(Requests::StreamingPerformanceDescriptor) == 28);
+
+        {
+            Lock lock(semaphore);
+            send_packet(&command, sizeof(command), true);
+        }
+        HardwareATAPIDevice::set_speed();
     }
 
     bool StreamingPlayerDevice::start_workers_locked() {

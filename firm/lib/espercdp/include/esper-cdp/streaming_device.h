@@ -78,6 +78,7 @@ namespace ATAPI {
         bool start_workers_locked();
         void cancel_playback_locked();
         void stop_locked();
+        void set_speed() override;
         int position_lba() const;
         void read_blocks();
         /// Read CD-DA main-channel PCM (little-endian stereo) starting at an LBA.

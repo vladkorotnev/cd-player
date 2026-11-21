@@ -167,8 +167,13 @@ namespace ATAPI {
 
     bool HardwareATAPIDevice::self_test() {
         Lock lock(semaphore);
-        ESP_LOGI(LOG_TAG, "Self-test");
-        ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
+        // EXECUTE DEVICE DIAGNOSTIC seems to conflict with the master/slave selection
+        if (ide->active_device == IDE::IDE_MASTER) {
+            ESP_LOGI(LOG_TAG, "Self-test");
+            ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
+        } else {
+            ESP_LOGW(LOG_TAG, "SLAVE mode, not sending EXECUTE_DEVICE_DIAGNOSTIC");
+        }
         if (!wait_not_busy("self-test")) {
             return false;
         }
