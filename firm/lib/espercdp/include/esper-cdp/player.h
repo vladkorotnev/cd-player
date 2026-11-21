@@ -4,6 +4,7 @@
 #include <memory>
 #include <queue>
 #include <set>
+#include <atomic>
 
 /// Defines the CD Player model as seen to the end user.
 /// You'd normally call this a "view model" but is it really in this context?
@@ -101,7 +102,7 @@ namespace CD {
         const MSF get_current_absolute_time() { return abs_ts; }
         const MSF get_current_track_time() { return rel_ts; }
         const TrackNo get_current_track_number() { return cur_track; }
-        bool is_processing_metadata() { return !_metaQueue.empty(); }
+        bool is_processing_metadata() { return _metadataBusy.load() || _metadataQueued.load() > 0; }
         PlayMode get_play_mode() { return play_mode; }
         void set_play_mode(PlayMode mode);
 
@@ -117,12 +118,20 @@ namespace CD {
         ATAPI::Device * cdrom;
         MetadataProvider * meta;
 
-        TaskHandle_t _pollTask;
-        SemaphoreHandle_t _cmdSemaphore;
+        TaskHandle_t _pollTask = nullptr;
+        SemaphoreHandle_t _cmdSemaphore = nullptr;
 
-        TaskHandle_t _metaTask;
-        SemaphoreHandle_t _metaSemaphore;
-        std::queue<std::shared_ptr<Album>> _metaQueue;
+        struct MetadataJob {
+            std::shared_ptr<Album> album;
+            uint32_t generation;
+        };
+
+        TaskHandle_t _metaTask = nullptr;
+        SemaphoreHandle_t _metaSemaphore = nullptr;
+        std::queue<MetadataJob> _metaQueue;
+        std::atomic<uint32_t> _metadataGeneration {0};
+        std::atomic<size_t> _metadataQueued {0};
+        std::atomic<bool> _metadataBusy {false};
 
         TickType_t softscan_start = 0;
         TickType_t last_softscan_tick = 0;
@@ -154,6 +163,7 @@ namespace CD {
         PlayMode play_mode = PlayMode::PLAYMODE_CONTINUE;
 
         void setup_tasks();
+        void cancel_metadata();
         void start_seeking(bool ffwd);
         bool change_discs(bool forward, bool include_empty = false);
         void change_tracks(bool ffwd);

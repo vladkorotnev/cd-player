@@ -31,7 +31,16 @@ const std::string MBJsonToArtistName(const JsonObject& info) {
 }
 
 namespace CD {
+    void MusicBrainzMetadataProvider::cancel() {
+        cancel_requested.store(true);
+    }
+
+    void MusicBrainzMetadataProvider::reset_cancel() {
+        cancel_requested.store(false);
+    }
+
     void MusicBrainzMetadataProvider::fetch_album(Album& album) {
+        if(cancel_requested.load()) return;
         auto disc_id = generate_id(album);
         ESP_LOGI(LOG_TAG, "Disc ID = %s", disc_id.c_str());
 
@@ -44,8 +53,8 @@ namespace CD {
 
         http.begin(client, url.c_str());
         ESP_LOGV(LOG_TAG, "Query: %s", url.c_str());
-        int response = http.GET();
-        if(response == HTTP_CODE_OK) {
+        int response = cancel_requested.load() ? HTTPC_ERROR_CONNECTION_REFUSED : http.GET();
+        if(!cancel_requested.load() && response == HTTP_CODE_OK) {
             JsonDocument response;
             DeserializationError error = deserializeJson(response, http.getStream(), DeserializationOption::NestingLimit(50));
 

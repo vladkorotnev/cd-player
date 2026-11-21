@@ -55,7 +55,8 @@ namespace CD {
         }
         if(_metaTask != NULL) {
             ESP_LOGI(LOG_TAG, "Deleting metadata task");
-            xSemaphoreTake(_metaSemaphore, portMAX_DELAY);
+            cancel_metadata();
+            while(_metadataBusy.load()) vTaskDelay(pdMS_TO_TICKS(10));
             vTaskDelete(_metaTask);
             _metaTask = NULL;
         }
@@ -70,13 +71,36 @@ namespace CD {
     }
 
     void Player::process_metadata_queue() {
-        Lock lock(_metaSemaphore);
-        if(!_metaQueue.empty()) {
-            std::shared_ptr<Album> album_ptr = _metaQueue.front();
+        MetadataJob job;
+        {
+            Lock lock(_metaSemaphore);
+            if(_metaQueue.empty()) return;
+            job = _metaQueue.front();
+            _metaQueue.pop();
+            _metadataQueued.fetch_sub(1);
+        }
 
-            meta->fetch_album(*album_ptr);
+        // Reset before checking the generation so cancellation racing with
+        // this job cannot be cleared immediately before the fetch begins.
+        meta->reset_cancel();
+        if(job.generation != _metadataGeneration.load()) return;
+
+        _metadataBusy.store(true);
+        if(job.generation == _metadataGeneration.load()) {
+            meta->fetch_album(*job.album);
+        }
+        _metadataBusy.store(false);
+    }
+
+    void Player::cancel_metadata() {
+        _metadataGeneration.fetch_add(1);
+        meta->cancel();
+
+        Lock lock(_metaSemaphore);
+        while(!_metaQueue.empty()) {
             _metaQueue.pop();
         }
+        _metadataQueued.store(0);
     }
 
     void Player::poll_state() {
@@ -177,7 +201,8 @@ namespace CD {
                             // NB: std::queue is not thread safe, can this lead to a problem? realistically we shouldn't have more than one in the pipeline anyway...
                             {
                                 Lock lock(_metaSemaphore);
-                                _metaQueue.push(slots[cur_slot].disc);
+                                _metaQueue.push({slots[cur_slot].disc, _metadataGeneration.load()});
+                                _metadataQueued.fetch_add(1);
                             }
 
                             cur_track.track = 1;
@@ -626,6 +651,7 @@ namespace CD {
         // selected drive is empty, do not immediately auto-advance back to a
         // populated drive before the user has a chance to eject its tray.
         stay_on_empty_slot = include_empty && !slots[i].disc_present;
+        cancel_metadata();
         
         next_expected_slot = i;
 

@@ -8,6 +8,23 @@
 #include <mbedtls/base64.h>
 
 namespace CD {
+    void LyricProvider::fetch_album(Album& album) {
+        for(auto &track: album.tracks) {
+            if(is_cancelled()) return;
+            if(track.lyrics.empty() && !track.title.empty()) {
+                fetch_track(track, album);
+            }
+        }
+    }
+
+    void LyricProvider::cancel() {
+        cancel_requested.store(true);
+    }
+
+    void LyricProvider::reset_cancel() {
+        cancel_requested.store(false);
+    }
+
     void LyricProvider::process_lrc_line(const std::string& line, std::vector<Lyric>& lyrics) {
         ESP_LOGD(LOG_TAG,"Line = %s", line.c_str());
 
@@ -131,7 +148,7 @@ namespace CD {
     }
 
     void LrcLibLyricProvider::fetch_track(Track& track, const Album& album) {
-        if(!track.lyrics.empty()) return;
+        if(!track.lyrics.empty() || is_cancelled()) return;
         EXT_RAM_ATTR static WiFiClientSecure client;
         EXT_RAM_ATTR static HTTPClient http;
 
@@ -151,8 +168,8 @@ namespace CD {
         client.setTimeout(5000);
 
         ESP_LOGI(LOG_TAG, "Query: %s", url);
-        int response = http.GET();
-        if(response == HTTP_CODE_OK) {
+        int response = is_cancelled() ? HTTPC_ERROR_CONNECTION_REFUSED : http.GET();
+        if(!is_cancelled() && response == HTTP_CODE_OK) {
             EXT_RAM_ATTR static JsonDocument response;
             DeserializationError error = deserializeJson(response, http.getStream());
 
@@ -165,7 +182,7 @@ namespace CD {
                     ESP_LOGI(LOG_TAG, "no synced lyrics");
                 }
             }
-        } else {
+        } else if(!is_cancelled()) {
             ESP_LOGW(LOG_TAG, "HTTP error %i", response);
         }
 
@@ -174,7 +191,7 @@ namespace CD {
 
     void QQMusicLyricProvider::fetch_track(Track& track, const Album& album) {
         // Thanks to: https://github.com/jacquesh/foo_openlyrics/blob/main/src/sources/qqmusic.cpp
-        if(!track.lyrics.empty()) return;
+        if(!track.lyrics.empty() || is_cancelled()) return;
         EXT_RAM_ATTR static WiFiClient client;
         EXT_RAM_ATTR static HTTPClient http;
         const char * referer = "http://y.qq.com/portal/player.html";
@@ -189,8 +206,8 @@ namespace CD {
         http.begin(client, url);
 
         ESP_LOGI(LOG_TAG, "Query: %s", url);
-        int response = http.GET();
-        if(response == HTTP_CODE_OK) {
+        int response = is_cancelled() ? HTTPC_ERROR_CONNECTION_REFUSED : http.GET();
+        if(!is_cancelled() && response == HTTP_CODE_OK) {
             EXT_RAM_ATTR static JsonDocument json;
             DeserializationError error = deserializeJson(json, http.getStream());
 
@@ -201,14 +218,14 @@ namespace CD {
                     if(json["data"]["song"]["itemlist"].is<JsonArray>()) {
                         const JsonArray arr = json["data"]["song"]["itemlist"].as<JsonArray>();
                         if(arr.size() == 1) {
-                            if(arr[0]["mid"].is<JsonString>()) {
+                            if(!is_cancelled() && arr[0]["mid"].is<JsonString>()) {
                                 const JsonString mid = arr[0]["mid"].as<JsonString>();
                                 snprintf(url, 512, "http://c.y.qq.com/lyric/fcgi-bin/fcg_query_lyric_new.fcg?g_tk=5381&format=json&inCharset=utf-8&outCharset=utf-8&songmid=%s", mid.c_str());
                                 http.end();
                                 http.addHeader("Referer", referer);
                                 http.begin(client, url);
-                                response = http.GET();
-                                if(response == HTTP_CODE_OK) {
+                                response = is_cancelled() ? HTTPC_ERROR_CONNECTION_REFUSED : http.GET();
+                                if(!is_cancelled() && response == HTTP_CODE_OK) {
                                     DeserializationError error = deserializeJson(json, http.getStream());
                                     if (error) {
                                         ESP_LOGE(LOG_TAG, "Parse error in fcg_query_lyric_new: %s", error.c_str());
@@ -252,7 +269,7 @@ namespace CD {
                     ESP_LOGI(LOG_TAG, "no song object in response");
                 }
             }
-        } else {
+        } else if(!is_cancelled()) {
             ESP_LOGW(LOG_TAG, "HTTP error %i", response);
         }
 
@@ -261,7 +278,7 @@ namespace CD {
 
     void NeteaseLyricProvider::fetch_track(Track& track, const Album& album) {
         // Ref: https://github.com/jacquesh/foo_openlyrics/blob/45546bdb5d567b04ed10e99b723147e128efbd8a/src/sources/netease.cpp
-        if (!track.lyrics.empty()) return;
+        if (!track.lyrics.empty() || is_cancelled()) return;
 
         EXT_RAM_ATTR static WiFiClient client;
         EXT_RAM_ATTR static HTTPClient http;
@@ -280,8 +297,8 @@ namespace CD {
         http.addHeader("X-Real-IP", "202.96.0.0");
 
         ESP_LOGI(LOG_TAG, "Query: %s", query_url.c_str());
-        int response = http.GET();
-        if (response == HTTP_CODE_OK) {
+        int response = is_cancelled() ? HTTPC_ERROR_CONNECTION_REFUSED : http.GET();
+        if (!is_cancelled() && response == HTTP_CODE_OK) {
             EXT_RAM_ATTR static JsonDocument json;
             DeserializationError error = deserializeJson(json, http.getStream());
 
@@ -295,7 +312,7 @@ namespace CD {
                         if (song_arr.size() > 0 && song_arr[0].is<JsonObject>()) {
                             const JsonObject first_song = song_arr[0].as<JsonObject>();
 
-                            if(first_song["id"].is<long>()) {
+                            if(!is_cancelled() && first_song["id"].is<long>()) {
                                 const long song_id = first_song["id"].as<long>();
                                 http.end();
                                 char lyric_url[256];
@@ -308,9 +325,9 @@ namespace CD {
                                 http.addHeader("X-Real-IP", "202.96.0.0");
 
                                 ESP_LOGV(LOG_TAG, "Lyric url: %s", lyric_url);
-                                response = http.GET();
+                                response = is_cancelled() ? HTTPC_ERROR_CONNECTION_REFUSED : http.GET();
 
-                                if (response == HTTP_CODE_OK){
+                                if (!is_cancelled() && response == HTTP_CODE_OK){
                                     DeserializationError error = deserializeJson(json, http.getStream());
                                     if (error){
                                         ESP_LOGE(LOG_TAG, "Parse error in lyric: %s", error.c_str());
@@ -338,7 +355,7 @@ namespace CD {
                     ESP_LOGW(LOG_TAG,"No result object");
                 }
             }
-        } else {
+        } else if(!is_cancelled()) {
             ESP_LOGE(LOG_TAG, "HTTP error %i in search", response);
         }
         http.end();

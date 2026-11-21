@@ -74,20 +74,35 @@ namespace CD {
         if(!path.empty()) mk_dir_if_needed(path.c_str());
     }
 
+    void CachingMetadataAggregateProvider::cancel() {
+        cancel_requested.store(true);
+        for(auto * provider: providers) provider->cancel();
+    }
+
+    void CachingMetadataAggregateProvider::reset_cancel() {
+        cancel_requested.store(false);
+        for(auto * provider: providers) provider->reset_cancel();
+    }
+
     void CachingMetadataAggregateProvider::fetch_album(Album& album) {
+        if(cancel_requested.load()) return;
         std::string id = MusicBrainzMetadataProvider::generate_id(album);
 
         if(populate_from_cache(album, id)) {
             ESP_LOGI(LOG_TAG, "Loaded from cache: %s", id.c_str());
         } else {
             for(auto &provider: providers) {
+                if(cancel_requested.load()) return;
                 if(!provider->cacheable()) continue;
                 provider->fetch_album(album);
                 if(album.is_metadata_complete()) break;
             }
 
+            if(cancel_requested.load()) return;
             if(album.is_metadata_good_for_caching()) save_to_cache(album, id);
         }
+
+        if(cancel_requested.load()) return;
 
         if(album.artist != "") {
             for(auto& trk: album.tracks) {
@@ -99,6 +114,7 @@ namespace CD {
 
         // in the end query non cacheable providers such as CDTEXT or lyrics
         for(auto &provider: providers) {
+            if(cancel_requested.load()) return;
             if(provider->cacheable()) continue;
 
             provider->fetch_album(album);

@@ -5,6 +5,7 @@
 #include <vector>
 #include <fstream>
 #include <algorithm>
+#include <atomic>
 
 namespace CD {
     struct Lyric {
@@ -96,6 +97,11 @@ namespace CD {
     public:
         virtual ~MetadataProvider() = default;
         virtual void fetch_album(Album&) {}
+        /// Request cooperative cancellation of the current fetch. Providers
+        /// finish their current blocking operation, then stop before the next.
+        virtual void cancel() {}
+        /// Prepare the provider for a new fetch after a cancellation.
+        virtual void reset_cancel() {}
         virtual bool cacheable() { return false; }
     };
 
@@ -103,10 +109,13 @@ namespace CD {
     public:
         CachingMetadataAggregateProvider(const char * cache_path);
         void fetch_album(Album&) override;
+        void cancel() override;
+        void reset_cancel() override;
         std::vector<MetadataProvider *> providers = {};
         bool cache_enabled = true;
     private:
         std::string path;
+        std::atomic<bool> cancel_requested {false};
 
         bool populate_from_cache(Album&, const std::string);
         void save_to_cache(const Album&, const std::string);
@@ -119,8 +128,12 @@ namespace CD {
     public:
         MusicBrainzMetadataProvider() {}
         void fetch_album(Album&) override;
+        void cancel() override;
+        void reset_cancel() override;
         bool cacheable() override { return true; }
         static const std::string generate_id(const Album&); // <- we will use it for cache key, thus exposing it
+    private:
+        std::atomic<bool> cancel_requested {false};
     };
 
     class CDDBMetadataProvider: public MetadataProvider {
