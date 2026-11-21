@@ -6,7 +6,7 @@
 namespace ATAPI {
     class AutonomousPlayerDevice: public HardwareATAPIDevice {
     public:
-        AutonomousPlayerDevice(Platform::IDEBus * bus): HardwareATAPIDevice(bus) {}
+        AutonomousPlayerDevice(Platform::IDEBus * bus, IDE::DeviceNumber position): HardwareATAPIDevice(bus, position) {}
 
         void play(const MSF start, const MSF end) override;
         void pause(bool pause) override;

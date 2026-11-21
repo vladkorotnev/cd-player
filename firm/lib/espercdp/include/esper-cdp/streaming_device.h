@@ -11,7 +11,7 @@
 namespace ATAPI {
     class StreamingPlayerDevice final : public HardwareATAPIDevice {
     public:
-        StreamingPlayerDevice(Platform::IDEBus * bus, Platform::AudioRouter * output, BaseType_t interruptCore);
+        StreamingPlayerDevice(Platform::IDEBus * bus, IDE::DeviceNumber position, Platform::AudioRouter * output, BaseType_t interruptCore);
         ~StreamingPlayerDevice() override;
         bool initialize() override;
 

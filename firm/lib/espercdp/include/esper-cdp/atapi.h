@@ -145,7 +145,7 @@ namespace ATAPI {
         const MechInfo * query_state() override;
 
     protected:
-        explicit HardwareATAPIDevice(Platform::IDEBus * bus);
+        explicit HardwareATAPIDevice(Platform::IDEBus * bus, IDE::DeviceNumber position);
         virtual void set_speed();
 
         SemaphoreHandle_t semaphore;
@@ -191,6 +191,7 @@ namespace ATAPI {
         };
         MechInfo mech_sts = { 0 };
         int packet_size = 12;
+        IDE::DeviceNumber bus_position;
 
         union ErrorRegister {
             struct __attribute__((packed)) {
@@ -239,9 +240,9 @@ namespace ATAPI {
         const std::vector<uint8_t> read_cd_text_toc_locked();
 
         void wait_sts_bit_set(StatusRegister bits);
-        bool wait_sts_bit_clr(StatusRegister bits, const char * tag);
+        bool wait_sts_bit_clr(StatusRegister bits, const char * tag, int maxTimeMs = 30000);
 
-        bool wait_not_busy(const char * tag);
+        bool wait_not_busy(const char * tag,  int maxTimeMs = 30000);
         bool wait_for_data(const char * tag);
         void wait_drq();
 

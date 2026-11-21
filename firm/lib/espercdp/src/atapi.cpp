@@ -25,8 +25,8 @@ namespace ATAPI {
         return value;
     }
 
-    HardwareATAPIDevice::HardwareATAPIDevice(Platform::IDEBus * bus):
-        ide(bus),
+    HardwareATAPIDevice::HardwareATAPIDevice(Platform::IDEBus * bus, IDE::DeviceNumber pos):
+        ide(bus), bus_position(pos),
         Device()
     {
         // compile time sanity checks
@@ -52,8 +52,7 @@ namespace ATAPI {
             _diags = {};
             quirks = {};
             packet_size = 12;
-            ide->reset();
-            reset_complete = wait_not_busy("reset");
+            reset_complete = wait_not_busy("reset", 2000);
         }
 
         if (!reset_complete) return false;
@@ -626,20 +625,20 @@ namespace ATAPI {
         } while ((read_sts_regi().value & bits.value) == 0);
     }
 
-    bool HardwareATAPIDevice::wait_sts_bit_clr(StatusRegister bits, const char * tag) {
+    bool HardwareATAPIDevice::wait_sts_bit_clr(StatusRegister bits, const char * tag, int maxTimeMs) {
         const TickType_t start_wait = xTaskGetTickCount();
         StatusRegister status;
         do {
             status = read_sts_regi();
             if ((status.value & bits.value) == 0) return true;
             delay(10);
-        } while (xTaskGetTickCount() - start_wait < pdMS_TO_TICKS(30000));
+        } while (xTaskGetTickCount() - start_wait < pdMS_TO_TICKS(maxTimeMs));
         ESP_LOGE(LOG_TAG, "%s timed out, status=0x%02x", tag, status.value);
         return false;
     }
 
-    bool HardwareATAPIDevice::wait_not_busy(const char * tag) {
-        return wait_sts_bit_clr({{.BSY = true}}, tag);
+    bool HardwareATAPIDevice::wait_not_busy(const char * tag,  int maxTimeMs) {
+        return wait_sts_bit_clr({{.BSY = true}}, tag, maxTimeMs);
     }
 
     bool HardwareATAPIDevice::wait_for_data(const char * tag) {

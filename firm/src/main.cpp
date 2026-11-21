@@ -176,7 +176,8 @@ void setup(void) {
 
   #if IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE)
     ide = new Platform::I2CBridgedIDEBus(i2c);
-    cdrom = new ATAPI::AutonomousPlayerDevice(ide);
+    ide->reset();
+    cdrom = new ATAPI::AutonomousPlayerDevice(ide, IDE::DeviceNumber::IDE_MASTER);
   #elif (BCONF_IDE_TYPE == IDEBUS_TYPE_CURSED_SPI)
     static_assert(BCONF_IDE_SPI_NUM == VSPI || BCONF_IDE_SPI_NUM == HSPI);
     static Platform::SPIBridgedIDEBus spi_ide(
@@ -193,7 +194,8 @@ void setup(void) {
     );
     if (spi_ide.begin()) {
       ide = &spi_ide;
-      static ATAPI::StreamingPlayerDevice drive(ide, router, spi_ide.interrupt_core());
+      ide->reset();
+      static ATAPI::StreamingPlayerDevice drive(ide, IDE::DeviceNumber::IDE_MASTER, router, spi_ide.interrupt_core());
       if (drive.initialize()) cdrom = &drive;
     }
     if (!cdrom) {

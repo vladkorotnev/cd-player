@@ -18,8 +18,8 @@ namespace {
 }
 
 namespace ATAPI {
-    StreamingPlayerDevice::StreamingPlayerDevice(Platform::IDEBus * bus_, Platform::AudioRouter * output, BaseType_t core):
-        HardwareATAPIDevice(bus_), output(output), interruptCore(core) {}
+    StreamingPlayerDevice::StreamingPlayerDevice(Platform::IDEBus * bus_, IDE::DeviceNumber pos, Platform::AudioRouter * output, BaseType_t core):
+        HardwareATAPIDevice(bus_, pos), output(output), interruptCore(core) {}
 
     bool StreamingPlayerDevice::initialize() {
         if (!HardwareATAPIDevice::initialize()) return false;
