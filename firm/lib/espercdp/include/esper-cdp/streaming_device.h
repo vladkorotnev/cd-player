@@ -34,7 +34,7 @@ namespace ATAPI {
         static constexpr EventBits_t PREFILLED = 1 << 0;
         static constexpr int LBA_OFFSET = 150;
 
-        static constexpr unsigned SCAN_INTERVAL_MS = 500;
+        static constexpr unsigned SCAN_INTERVAL_MS = 250;
         static constexpr int SCAN_STEP_FRAMES = 2*MSF::FRAMES_IN_SECOND;
 
         struct Block {

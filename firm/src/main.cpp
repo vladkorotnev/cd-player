@@ -177,7 +177,18 @@ void setup(void) {
   #if IDEBUS_RELIES_ON_DRIVE_TO_PLAY(BCONF_IDE_TYPE)
     ide = new Platform::I2CBridgedIDEBus(i2c);
     ide->reset();
-    cdrom = new ATAPI::AutonomousPlayerDevice(ide, IDE::DeviceNumber::IDE_MASTER);
+    static ATAPI::AutonomousPlayerDevice master(ide, IDE::IDE_MASTER);
+    static ATAPI::AutonomousPlayerDevice slave(ide, IDE::IDE_SLAVE);
+    const bool master_ready = master.initialize();
+    const bool slave_ready = slave.initialize();
+    if (master_ready && slave_ready) {
+      static ATAPI::VirtualChangerDevice changer(ide, &master, &slave);
+      cdrom = &changer;
+    } else if (master_ready) {
+      cdrom = &master;
+    } else if (slave_ready) {
+      cdrom = &slave;
+    }
   #elif (BCONF_IDE_TYPE == IDEBUS_TYPE_CURSED_SPI)
     static_assert(BCONF_IDE_SPI_NUM == VSPI || BCONF_IDE_SPI_NUM == HSPI);
     static Platform::SPIBridgedIDEBus spi_ide(
@@ -195,17 +206,28 @@ void setup(void) {
     if (spi_ide.begin()) {
       ide = &spi_ide;
       ide->reset();
-      static ATAPI::StreamingPlayerDevice drive(ide, IDE::DeviceNumber::IDE_MASTER, router, spi_ide.interrupt_core());
-      if (drive.initialize()) cdrom = &drive;
-    }
-    if (!cdrom) {
-      ESP_LOGE(LOG_TAG, "SPI ATAPI drive initialization failed");
-      static ATAPI::NullDevice no_drive;
-      cdrom = &no_drive;
+      static ATAPI::StreamingPlayerDevice master(ide, IDE::IDE_MASTER, router, spi_ide.interrupt_core());
+      static ATAPI::StreamingPlayerDevice slave(ide, IDE::IDE_SLAVE, router, spi_ide.interrupt_core());
+      const bool master_ready = master.initialize();
+      const bool slave_ready = slave.initialize();
+      if (master_ready && slave_ready) {
+        static ATAPI::VirtualChangerDevice changer(ide, &master, &slave);
+        cdrom = &changer;
+      } else if (master_ready) {
+        cdrom = &master;
+      } else if (slave_ready) {
+        cdrom = &slave;
+      }
     }
   #else
     #error "Unknown IDE bus type"
   #endif
+
+  if (!cdrom) {
+    ESP_LOGE(LOG_TAG, "No ATAPI drives initialized");
+    static ATAPI::NullDevice no_drive;
+    cdrom = &no_drive;
+  }
 
   const PlatformSharedResources rsrc = {
     .keypad = keypad,
@@ -237,9 +259,6 @@ void setup(void) {
     i2c->log_all_devices();
   #endif
   router->initialize();
-  #if (BCONF_IDE_TYPE == IDEBUS_TYPE_ATAPIDUINO_ISH_I2C)
-    cdrom->reset();
-  #endif
   xTaskCreatePinnedToCore(
     keypadTask,
     "KEYP",

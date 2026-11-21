@@ -130,6 +130,10 @@ namespace ATAPI {
         const Quirks& get_quirks() override { return quirks; }
         const Diags * get_diags() override { return &_diags; }
 
+        /// Check the selected unit's reset signature. Probe every position
+        /// before initializing either one, because task-file setup can replace
+        /// the reset signature visible in Cylinder Low/High.
+        bool probe();
         virtual bool initialize();
         void reset() override;
         void wait_ready() override;
@@ -152,6 +156,10 @@ namespace ATAPI {
         Platform::IDEBus * ide;
         Diags _diags = {};
         Quirks quirks;
+
+        /// Select this physical unit. Call only while holding semaphore,
+        /// which is shared by every ATAPI device on the IDE bus.
+        void select_bus_position();
 
         union StatusRegister {
             struct __attribute__((packed)) {
@@ -192,6 +200,7 @@ namespace ATAPI {
         MechInfo mech_sts = { 0 };
         int packet_size = 12;
         IDE::DeviceNumber bus_position;
+        bool signature_verified = false;
 
         union ErrorRegister {
             struct __attribute__((packed)) {

@@ -146,6 +146,7 @@ namespace CD {
         int next_expected_slot = 0;
         int cur_slot = 0;
         bool want_auto_play = false;
+        bool stay_on_empty_slot = false;
         bool did_see_actual_playback = false;
         MSF auto_play_start_pos = {.M = 0, .S = 0, .F = 0};
 
@@ -154,7 +155,7 @@ namespace CD {
 
         void setup_tasks();
         void start_seeking(bool ffwd);
-        bool change_discs(bool forward);
+        bool change_discs(bool forward, bool include_empty = false);
         void change_tracks(bool ffwd);
         bool play_next_shuffled_track();
     };

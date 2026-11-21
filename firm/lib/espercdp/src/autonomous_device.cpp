@@ -19,6 +19,7 @@ namespace ATAPI {
         };
 
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req), true);
     }
 
@@ -28,6 +29,7 @@ namespace ATAPI {
             .resume = !pause
         };
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req), true);
     }
 
@@ -42,6 +44,7 @@ namespace ATAPI {
         ModeSenseCDAControlModePage cdactl;
         {
             Lock lock(semaphore);
+            select_bus_position();
             send_packet(&msrq, sizeof(msrq), true);
             read_response(&mph, sizeof(mph), false);
             read_response(&cdactl, sizeof(cdactl), true);
@@ -94,6 +97,7 @@ namespace ATAPI {
         ModeSenseCDAControlModePage cdactl2;
         {
             Lock lock(semaphore);
+            select_bus_position();
             send_packet(&tmp, sizeof(tmp), true);
             send_packet(&msrq, sizeof(msrq), true);
             read_response(&mph2, sizeof(mph2), false);
@@ -123,6 +127,7 @@ namespace ATAPI {
         Responses::ModeSensePowerConditionModePage pwrctl;
         {
             Lock lock(semaphore);
+            select_bus_position();
             send_packet(&msrq, sizeof(msrq), true);
             read_response(&mph, sizeof(mph), false);
             read_response(&pwrctl, sizeof(pwrctl), true);
@@ -159,6 +164,7 @@ namespace ATAPI {
         Responses::ModeSensePowerConditionModePage pwrctl2;
         {
             Lock lock(semaphore);
+            select_bus_position();
             send_packet(&tmp, sizeof(tmp), true);
             send_packet(&msrq, sizeof(msrq), true);
             read_response(&mph2, sizeof(mph2), false);
@@ -186,6 +192,7 @@ namespace ATAPI {
             .end_position = end,
         };
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req), true);
     }
 
@@ -197,6 +204,7 @@ namespace ATAPI {
             .addr_type = Requests::Scan::ScanAddrType::ScanAddr_AbsMSF
         };
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req), false);
     }
 
@@ -213,6 +221,7 @@ namespace ATAPI {
 
         {
             Lock lock(semaphore);
+            select_bus_position();
             send_packet(&req, sizeof(req), true);
             read_response(&res, sizeof(res), true);
         }

@@ -33,21 +33,38 @@ namespace ATAPI {
         const StatusRegister tmp = StatusRegister { .value = (1 << 7) };
         assert(tmp.BSY);
 
-        semaphore = xSemaphoreCreateBinary();
-        xSemaphoreGive(semaphore);
+        semaphore = ide->transaction_mutex();
 
         quirks = {0};
+    }
+
+    void HardwareATAPIDevice::select_bus_position() {
+        ide->active_device = bus_position;
     }
 
     void HardwareATAPIDevice::reset() {
         initialize();
     }
 
+    bool HardwareATAPIDevice::probe() {
+        {
+            Lock lock(semaphore);
+            select_bus_position();
+            if (!wait_not_busy("probe", 5000)) {
+                signature_verified = false;
+                return false;
+            }
+        }
+        signature_verified = check_atapi_compatible();
+        return signature_verified;
+    }
+
     bool HardwareATAPIDevice::initialize() {
         bool reset_complete;
         {
             Lock lock(semaphore);
-            ESP_LOGI(LOG_TAG, "Reset");
+            select_bus_position();
+            ESP_LOGI(LOG_TAG, "Initialize device %d", bus_position);
             info = {};
             _diags = {};
             quirks = {};
@@ -56,7 +73,7 @@ namespace ATAPI {
         }
 
         if (!reset_complete) return false;
-        _diags.is_atapi = check_atapi_compatible();
+        _diags.is_atapi = signature_verified || check_atapi_compatible();
         _diags.is_autonomous = false;
         if (!_diags.is_atapi) {
             ESP_LOGE(LOG_TAG, "Expected ATAPI signature 0xeb14");
@@ -69,7 +86,7 @@ namespace ATAPI {
         query_state();
         _diags.capas = mode_sense_capabilities();
         set_speed();
-        ESP_LOGI(LOG_TAG, "end of Reset");
+        ESP_LOGI(LOG_TAG, "Device %d initialized", bus_position);
         return true;
     }
 
@@ -85,6 +102,7 @@ namespace ATAPI {
         };
 
         Lock lock(semaphore);
+        select_bus_position();
 
         send_packet(&req, sizeof(req));
         read_response(&hdr, sizeof(hdr), false);
@@ -140,6 +158,7 @@ namespace ATAPI {
         uint8_t high;
         {
             Lock lock(semaphore);
+            select_bus_position();
             low = ide->read(IDE::Register::CylinderLow).low;
             high = ide->read(IDE::Register::CylinderHigh).low;
         }
@@ -150,6 +169,7 @@ namespace ATAPI {
 
     bool HardwareATAPIDevice::init_task_file() {
         Lock lock(semaphore);
+        select_bus_position();
         ESP_LOGI(LOG_TAG, "init task file");
         ide->write(IDE::Register::Feature, {{ .low = (FeatureRegister {{ .DMA = false, .overlap = false }}).value, .high = 0xFF }});
 
@@ -166,14 +186,12 @@ namespace ATAPI {
 
     bool HardwareATAPIDevice::self_test() {
         Lock lock(semaphore);
-        // EXECUTE DEVICE DIAGNOSTIC seems to conflict with the master/slave selection
-        if (ide->active_device == IDE::IDE_MASTER) {
-            ESP_LOGI(LOG_TAG, "Self-test");
-            ide->write(IDE::Register::Command, {{ .low = Command::EXECUTE_DEVICE_DIAGNOSTIC, .high = 0xFF }});
-        } else {
-            ESP_LOGW(LOG_TAG, "SLAVE mode, not sending EXECUTE_DEVICE_DIAGNOSTIC");
-        }
-        if (!wait_not_busy("self-test")) {
+        select_bus_position();
+        // EXECUTE DEVICE DIAGNOSTIC is a bus-wide command and can leave the
+        // other unit unable to be selected. The hardware reset performed
+        // before probing already supplies a diagnostic result in Error.
+        ESP_LOGI(LOG_TAG, "Reset diagnostic result");
+        if (!wait_not_busy("reset diagnostic")) {
             return false;
         }
         data16 rslt = ide->read(IDE::Register::Error);
@@ -189,6 +207,7 @@ namespace ATAPI {
         StatusRegister status;
         {
             Lock lock(semaphore);
+            select_bus_position();
             ide->write(IDE::Register::Command, {{ .low = Command::IDENTIFY_PACKET_DEVICE, .high = 0xFF }});
             delayMicroseconds(1);
             received = wait_for_data("IDENTIFY PACKET DEVICE") &&
@@ -257,6 +276,7 @@ namespace ATAPI {
         bool received;
         {
             Lock lock(semaphore);
+            select_bus_position();
             received = send_packet(&request, sizeof(request)) && wait_for_data("INQUIRY");
             if (received) {
                 const uint8_t low = ide->read(IDE::Register::CylinderLow).low;
@@ -290,6 +310,7 @@ namespace ATAPI {
             .load_eject = false
         };
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req));
     }
 
@@ -300,6 +321,7 @@ namespace ATAPI {
             .load_eject = true
         };
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req));
     }
 
@@ -310,6 +332,7 @@ namespace ATAPI {
             .persistent = false
         };
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req));
     }
 
@@ -322,6 +345,7 @@ namespace ATAPI {
         };
 
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&lul, sizeof(lul), false);
     }
 
@@ -335,6 +359,7 @@ namespace ATAPI {
 
         {
             Lock lock(semaphore);
+            select_bus_position();
             send_packet(&msrq0, sizeof(msrq0), true);
             Responses::ModeSense mph0;
             read_response(&mph0, sizeof(mph0), false);
@@ -362,6 +387,7 @@ namespace ATAPI {
             .write_speed = 0xFFFF
         };
         Lock lock(semaphore);
+        select_bus_position();
         send_packet(&req, sizeof(req), true);
     }
 
@@ -433,6 +459,7 @@ namespace ATAPI {
 
         {
             Lock lock(semaphore);
+            select_bus_position();
 
             do {
                 tracks.clear();
@@ -499,6 +526,7 @@ namespace ATAPI {
 
         {
             Lock lock(semaphore);
+            select_bus_position();
             send_packet(&req, sizeof(req), true);
             read_response(&res, sizeof(res), true);
         }
@@ -662,6 +690,7 @@ namespace ATAPI {
         TickType_t start_wait = xTaskGetTickCount();
         {
             Lock lock(semaphore);
+            select_bus_position();
             wait_sts_bit_set({{.DRDY = true}}); 
 
             const Requests::RequestSense req = {

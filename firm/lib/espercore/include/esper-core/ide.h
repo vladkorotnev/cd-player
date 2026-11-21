@@ -46,12 +46,17 @@ namespace Platform {
         using DeviceNumber = IDE::DeviceNumber;
         DeviceNumber active_device = DeviceNumber::IDE_MASTER; // <- dont seem to be able to address other device but still
 
-        virtual ~IDEBus() = default;
+        IDEBus();
+        virtual ~IDEBus();
+        SemaphoreHandle_t transaction_mutex() const { return _transaction_mutex; }
         virtual data16 read(uint8_t reg) = 0;
         /// Read a known-length PIO data phase, low byte first in each word.
         virtual bool read_data(uint8_t * buffer, size_t words);
         virtual void write(uint8_t reg, data16 data) = 0;
         virtual void reset() = 0;
+
+    private:
+        SemaphoreHandle_t _transaction_mutex;
     };
 
     /// @brief IDE Bus accessor. Not thread safe!

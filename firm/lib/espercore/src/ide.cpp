@@ -16,6 +16,12 @@ static const uint8_t CTL_MASK = (CTL_DIOW | CTL_DIOR | CTL_RST);
 
 namespace Platform {
 
+    IDEBus::IDEBus(): _transaction_mutex(xSemaphoreCreateMutex()) {}
+
+    IDEBus::~IDEBus() {
+        if (_transaction_mutex != nullptr) vSemaphoreDelete(_transaction_mutex);
+    }
+
     bool IDEBus::read_data(uint8_t * buffer, size_t words) {
         if (buffer == nullptr && words != 0) return false;
         for (size_t word = 0; word < words; ++word) {
@@ -94,6 +100,10 @@ namespace Platform {
 
     void I2CBridgedIDEBus::reset() {
         ESP_LOGI(LOG_TAG, "Reset");
+
+        // A hardware reset selects device 0. Force the next access to issue
+        // an explicit selection so the software and drive cannot disagree.
+        last_sel_device = 0xFF;
 
         transact_out(_addr_flags, PCA_CFG_REGI_B, 0x00); // all outputs
         transact_out(_addr_flags, PCA_DATA_OUT_REGI_B, ~CTL_RST);

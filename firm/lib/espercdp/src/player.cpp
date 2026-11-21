@@ -214,11 +214,7 @@ namespace CD {
                     break;
 
                 case State::NO_DISC:
-                    // nothing to do, but if changer, advance to next disc if any
-                    if(slots.size() > 1) {
-                        ESP_LOGW(LOG_TAG, "Nothing to do, advance to next disc!");
-                        change_discs(true);
-                    }
+                    // nothing to do
                     break;
                 case State::BAD_DISC:
                     if(ATAPI::MediaTypeCodeIsAudioCD(media_type)) {
@@ -358,10 +354,10 @@ namespace CD {
             case State::BAD_DISC:
                 // can't do shit other than eject it really
                 if(cmd == Command::NEXT_DISC) {
-                    change_discs(true);
+                    change_discs(true, true);
                 }
                 else if(cmd == Command::PREV_DISC) {
-                    change_discs(false);
+                    change_discs(false, true);
                 }
             break;
 
@@ -417,11 +413,11 @@ namespace CD {
                     break;
                     
                     case Command::NEXT_DISC:
-                        change_discs(true);
+                        change_discs(true, true);
                     break;
 
                     case Command::PREV_DISC:
-                        change_discs(false);
+                        change_discs(false, true);
                     break;
 
                     default:
@@ -460,11 +456,11 @@ namespace CD {
                     break;
 
                     case Command::NEXT_DISC:
-                        change_discs(true);
+                        change_discs(true, false); // during playback only switch between discs not slots
                     break;
 
                     case Command::PREV_DISC:
-                        change_discs(false);
+                        change_discs(false, false);
                     break;
 
                     default:
@@ -504,11 +500,11 @@ namespace CD {
                     break;
 
                     case Command::NEXT_DISC:
-                        change_discs(true);
+                        change_discs(true, true);
                     break;
 
                     case Command::PREV_DISC:
-                        change_discs(false);
+                        change_discs(false, true);
                     break;
 
                     default:
@@ -612,17 +608,24 @@ namespace CD {
         }
     }
 
-    bool Player::change_discs(bool forward) {
+    bool Player::change_discs(bool forward, bool include_empty) {
         if(slots.size() < 2) return false;
 
-        int disc_count = std::count_if(slots.cbegin(), slots.cend(), [](const Slot &x) { return x.disc_present; });
-        if(disc_count == 0) return false;
-        
         int i = forward ? ((cur_slot + 1) % slots.size()) : (cur_slot == 0 ? (slots.size()-1) : cur_slot - 1);
-        while(!slots[i].disc_present)
-            i = forward ? ((i + 1) % slots.size()) : (i == 0 ? (slots.size()-1) : (i - 1));
+        if(!include_empty) {
+            int disc_count = std::count_if(slots.cbegin(), slots.cend(), [](const Slot &x) { return x.disc_present; });
+            if(disc_count == 0) return false;
+
+            while(!slots[i].disc_present)
+                i = forward ? ((i + 1) % slots.size()) : (i == 0 ? (slots.size()-1) : (i - 1));
+        }
 
         if(i == cur_slot) return false;
+
+        // Manual disc navigation is also physical drive selection. If the
+        // selected drive is empty, do not immediately auto-advance back to a
+        // populated drive before the user has a chance to eject its tray.
+        stay_on_empty_slot = include_empty && !slots[i].disc_present;
         
         next_expected_slot = i;
 

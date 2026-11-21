@@ -26,16 +26,20 @@ namespace ATAPI {
         quirks.must_use_softscan = false; //<- software playback never uses softscan since technically it's always softscan
         quirks.alternate_max_speed = 176;
 
-        control = xSemaphoreCreateMutex();
-        reader_start = xSemaphoreCreateBinary();
-        output_start = xSemaphoreCreateBinary();
-        workers_done = xSemaphoreCreateCounting(2, 0);
-        scan_timer = xTimerCreate("CD-Scan", pdMS_TO_TICKS(SCAN_INTERVAL_MS), pdTRUE,
-                                  this, scan_timer_callback);
-        events = xEventGroupCreate();
-        free_blocks = xQueueCreate(BLOCK_COUNT, sizeof(uint8_t));
-        filled_blocks = xQueueCreate(BLOCK_COUNT, sizeof(Block));
-        psram = static_cast<uint8_t *>(heap_caps_malloc(BLOCK_COUNT * BLOCK_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+        if (control == nullptr) control = xSemaphoreCreateMutex();
+        if (reader_start == nullptr) reader_start = xSemaphoreCreateBinary();
+        if (output_start == nullptr) output_start = xSemaphoreCreateBinary();
+        if (workers_done == nullptr) workers_done = xSemaphoreCreateCounting(2, 0);
+        if (scan_timer == nullptr) {
+            scan_timer = xTimerCreate("CD-Scan", pdMS_TO_TICKS(SCAN_INTERVAL_MS), pdTRUE,
+                                      this, scan_timer_callback);
+        }
+        if (events == nullptr) events = xEventGroupCreate();
+        if (free_blocks == nullptr) free_blocks = xQueueCreate(BLOCK_COUNT, sizeof(uint8_t));
+        if (filled_blocks == nullptr) filled_blocks = xQueueCreate(BLOCK_COUNT, sizeof(Block));
+        if (psram == nullptr) {
+            psram = static_cast<uint8_t *>(heap_caps_malloc(BLOCK_COUNT * BLOCK_BYTES, MALLOC_CAP_SPIRAM | MALLOC_CAP_8BIT));
+        }
         if (!control || !reader_start || !output_start || !workers_done || !scan_timer ||
             !events || !free_blocks || !filled_blocks || !psram) {
             ESP_LOGE(LOG_TAG, "Could not allocate CD audio stream");
@@ -153,31 +157,32 @@ namespace ATAPI {
     }
 
     void StreamingPlayerDevice::set_speed() {
-        const uint32_t read_speed = (quirks.alternate_max_speed == 0) ? 600 : quirks.alternate_max_speed;
-        const uint32_t end_lba = (lead_out_lba > 0) ? lead_out_lba - 1 : UINT32_MAX;
-        const struct ATAPI_PKT {
-            Requests::SetStreaming request;
-            Requests::StreamingPerformanceDescriptor descriptor;
-        } command = {
-            .request = {
-                .opcode = OperationCodes::SET_STREAMING,
-                .parameter_list_length = htobe16(sizeof(Requests::StreamingPerformanceDescriptor))
-            },
-            .descriptor = {
-                .exact = true,
-                .start_lba = 0,
-                .end_lba = htobe32(end_lba),
-                .read_size = htobe32(read_speed),
-                .read_time = htobe32(1000)
-            }
-        };
-        static_assert(sizeof(Requests::SetStreaming) == 12);
-        static_assert(sizeof(Requests::StreamingPerformanceDescriptor) == 28);
+        // const uint32_t read_speed = ((quirks.alternate_max_speed == 0) ? 176 : quirks.alternate_max_speed);
+        // const uint32_t end_lba = (lead_out_lba > 0) ? lead_out_lba - 1 : UINT32_MAX;
+        // const struct ATAPI_PKT {
+        //     Requests::SetStreaming request;
+        //     Requests::StreamingPerformanceDescriptor descriptor;
+        // } command = {
+        //     .request = {
+        //         .opcode = OperationCodes::SET_STREAMING,
+        //         .parameter_list_length = htobe16(sizeof(Requests::StreamingPerformanceDescriptor))
+        //     },
+        //     .descriptor = {
+        //         .exact = false,
+        //         .start_lba = 0,
+        //         .end_lba = htobe32(end_lba),
+        //         .read_size = htobe32(read_speed),
+        //         .read_time = htobe32(1000)
+        //     }
+        // };
+        // static_assert(sizeof(Requests::SetStreaming) == 12);
+        // static_assert(sizeof(Requests::StreamingPerformanceDescriptor) == 28);
 
-        {
-            Lock lock(semaphore);
-            send_packet(&command, sizeof(command), true);
-        }
+        // {
+        //     Lock lock(semaphore);
+        //     select_bus_position();
+        //     send_packet(&command, sizeof(command), true);
+        // }
         HardwareATAPIDevice::set_speed();
     }
 
@@ -383,6 +388,7 @@ namespace ATAPI {
         const auto phase_limit = static_cast<uint16_t>(std::min(total, max_phase));
 
         Lock lock(semaphore);
+        select_bus_position();
         const auto before = read_sts_regi();
         if (before.BSY || before.DRQ) {
             ESP_LOGE(LOG_TAG, "Drive busy before READ CD: status=0x%02x", before.value);
