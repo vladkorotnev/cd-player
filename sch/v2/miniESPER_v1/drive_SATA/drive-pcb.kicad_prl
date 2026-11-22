@@ -63,11 +63,13 @@
     "ssh_key": ""
   },
   "meta": {
-    "filename": "iobd_new.kicad_prl",
+    "filename": "drive-pcb.kicad_prl",
     "version": 5
   },
   "net_inspector_panel": {
     "col_hidden": [
+      false,
+      false,
       false,
       false,
       false,
@@ -89,7 +91,9 @@
       6,
       7,
       8,
-      9
+      9,
+      10,
+      11
     ],
     "col_widths": [
       156,
@@ -101,7 +105,9 @@
       103,
       74,
       103,
-      103
+      103,
+      103,
+      638
     ],
     "custom_group_rules": [],
     "expanded_rows": [],

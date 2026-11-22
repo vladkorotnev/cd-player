@@ -60,7 +60,7 @@
           "hatch_smoothing_level": 0,
           "hatch_smoothing_value": 0.1,
           "hatch_thickness": 1.0,
-          "min_clearance": 0.5,
+          "min_clearance": 0.0,
           "min_island_area": 10.0,
           "min_thickness": 0.25,
           "pad_connection": 1,
@@ -159,7 +159,7 @@
         "min_text_height": 0.8,
         "min_text_thickness": 0.08,
         "min_through_hole_diameter": 0.3,
-        "min_track_width": 0.2,
+        "min_track_width": 0.14,
         "min_via_annular_width": 0.1,
         "min_via_diameter": 0.5,
         "solder_mask_to_copper_clearance": 0.0,
@@ -214,10 +214,8 @@
       ],
       "track_widths": [
         0.0,
-        0.4,
         0.6,
-        0.8,
-        1.0
+        0.8
       ],
       "tuning_pattern_settings": {
         "diff_pair_defaults": {
@@ -509,14 +507,14 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "iobd.kicad_pro",
+    "filename": "drive-pcb.kicad_pro",
     "version": 3
   },
   "net_settings": {
     "classes": [
       {
         "bus_width": 12,
-        "clearance": 0.2,
+        "clearance": 0.16,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -527,7 +525,26 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": 2147483647,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.2,
+        "track_width": 0.16,
+        "tuning_profile": "",
+        "via_diameter": 0.55,
+        "via_drill": 0.3,
+        "wire_width": 6
+      },
+      {
+        "bus_width": 12,
+        "clearance": 0.2,
+        "diff_pair_gap": 0.36,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.14,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "SATA 100 ohm",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "priority": 0,
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.14,
         "tuning_profile": "",
         "via_diameter": 0.6,
         "via_drill": 0.3,
@@ -539,13 +556,46 @@
     },
     "net_colors": {},
     "netclass_assignments": {},
-    "netclass_patterns": []
+    "netclass_patterns": [
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_TXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_TXN"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_RXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_RXN"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_TXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_TXN"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_RXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_RXN"
+      }
+    ]
   },
   "pcbnew": {
     "last_paths": {
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "/Users/akasaka/.tmpdisk/tmpfs/test/",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""
@@ -677,18 +727,18 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "iobd.kicad_sch",
-        "name": "iobd",
-        "uuid": "fd87ce61-12e3-4ec6-b42f-6e98010af8ed"
+        "filename": "drive-pcb.kicad_sch",
+        "name": "drive-pcb",
+        "uuid": "15c2f4c0-552a-4f97-89cf-e5bae911265b"
       }
     ],
-    "used_designators": "#PWR1-19,#PWR25-59,#PWR121,#PWR124,#PWR127-131,C1-15,C18,C21-22,D1-2,DAC1,DBG1,J1-6,JP1-4,Q1-3,R1-13,RV1-3,TP1-6,U1-6,Y1-2",
+    "used_designators": "#PWR1-36,#PWR39-41,#PWR50-63,#PWR65-73,#PWR97-111,#PWR118-121,#PWR123,C1-9,C23,C35-44,C46-47,CN1-2,D4,J1-2,J7,R1-3,R9,R18-21,U3-6,U9,U16-18,Y1",
     "variants": []
   },
   "sheets": [
     [
-      "fd87ce61-12e3-4ec6-b42f-6e98010af8ed",
-      "iobd"
+      "15c2f4c0-552a-4f97-89cf-e5bae911265b",
+      "drive-pcb"
     ]
   ],
   "text_variables": {},

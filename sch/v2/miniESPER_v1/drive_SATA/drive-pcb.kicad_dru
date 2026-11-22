@@ -1,0 +1,21 @@
+(version 1)
+
+(rule "SATA TX to RX trace clearance"
+  (condition "(((A.NetName == '/JM_TXP' || A.NetName == '/JM_TXN' || A.NetName == '/SATA_TXP' || A.NetName == '/SATA_TXN') && (B.NetName == '/JM_RXP' || B.NetName == '/JM_RXN' || B.NetName == '/SATA_RXP' || B.NetName == '/SATA_RXN')) || ((B.NetName == '/JM_TXP' || B.NetName == '/JM_TXN' || B.NetName == '/SATA_TXP' || B.NetName == '/SATA_TXN') && (A.NetName == '/JM_RXP' || A.NetName == '/JM_RXN' || A.NetName == '/SATA_RXP' || A.NetName == '/SATA_RXN'))) && A.Type == 'Track' && B.Type == 'Track'")
+  (constraint clearance (min 0.55mm)))
+
+(rule "JM_TX intra-pair skew"
+  (condition "(A.NetName == '/JM_TXP' || A.NetName == '/JM_TXN')")
+  (constraint skew (max 0.08mm)))
+
+(rule "JM_RX intra-pair skew"
+  (condition "(A.NetName == '/JM_RXP' || A.NetName == '/JM_RXN')")
+  (constraint skew (max 0.08mm)))
+
+(rule "SATA_TX intra-pair skew"
+  (condition "(A.NetName == '/SATA_TXP' || A.NetName == '/SATA_TXN')")
+  (constraint skew (max 0.08mm)))
+
+(rule "SATA_RX intra-pair skew"
+  (condition "(A.NetName == '/SATA_RXP' || A.NetName == '/SATA_RXN')")
+  (constraint skew (max 0.08mm)))

@@ -159,7 +159,7 @@
         "min_text_height": 0.8,
         "min_text_thickness": 0.08,
         "min_through_hole_diameter": 0.3,
-        "min_track_width": 0.2,
+        "min_track_width": 0.14,
         "min_via_annular_width": 0.1,
         "min_via_diameter": 0.5,
         "solder_mask_to_copper_clearance": 0.0,
@@ -514,7 +514,7 @@
     "classes": [
       {
         "bus_width": 12,
-        "clearance": 0.2,
+        "clearance": 0.16,
         "diff_pair_gap": 0.25,
         "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.2,
@@ -525,7 +525,26 @@
         "pcb_color": "rgba(0, 0, 0, 0.000)",
         "priority": 2147483647,
         "schematic_color": "rgba(0, 0, 0, 0.000)",
-        "track_width": 0.2,
+        "track_width": 0.16,
+        "tuning_profile": "",
+        "via_diameter": 0.55,
+        "via_drill": 0.3,
+        "wire_width": 6
+      },
+      {
+        "bus_width": 12,
+        "clearance": 0.2,
+        "diff_pair_gap": 0.36,
+        "diff_pair_via_gap": 0.25,
+        "diff_pair_width": 0.14,
+        "line_style": 0,
+        "microvia_diameter": 0.3,
+        "microvia_drill": 0.1,
+        "name": "SATA 100 ohm",
+        "pcb_color": "rgba(0, 0, 0, 0.000)",
+        "priority": 0,
+        "schematic_color": "rgba(0, 0, 0, 0.000)",
+        "track_width": 0.14,
         "tuning_profile": "",
         "via_diameter": 0.6,
         "via_drill": 0.3,
@@ -537,13 +556,46 @@
     },
     "net_colors": {},
     "netclass_assignments": {},
-    "netclass_patterns": []
+    "netclass_patterns": [
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_TXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_TXN"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_RXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/JM_RXN"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_TXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_TXN"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_RXP"
+      },
+      {
+        "netclass": "SATA 100 ohm",
+        "pattern": "/SATA_RXN"
+      }
+    ]
   },
   "pcbnew": {
     "last_paths": {
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "/Users/akasaka/.tmpdisk/tmpfs/test/",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""
@@ -680,7 +732,7 @@
         "uuid": "15c2f4c0-552a-4f97-89cf-e5bae911265b"
       }
     ],
-    "used_designators": "#PWR1-33,#PWR50-52,#PWR54-60,#PWR65-70,#PWR97-111,#PWR118-120,#PWR123,C1-9,C23,C35-44,C46-47,CN1-2,D4,J1-2,J7,R1-3,R9,R18-20,U3-6,U9,U16-18,Y1",
+    "used_designators": "#PWR1-41,#PWR50-61,#PWR65-72,#PWR97-113,#PWR118-120,#PWR123,ATAPI1-2,C1-9,C23,C35-44,C46-47,CN1-4,D1-2,D4,J1-2,J7,R1-6,R9,R18-21,RN1-3,U3-6,U8-9,U16-18,Y1",
     "variants": []
   },
   "sheets": [

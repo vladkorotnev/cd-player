@@ -63,7 +63,7 @@
           "min_clearance": 0.5,
           "min_island_area": 10.0,
           "min_thickness": 0.25,
-          "pad_connection": 1,
+          "pad_connection": 2,
           "remove_islands": 0,
           "thermal_relief_gap": 0.5,
           "thermal_relief_spoke_width": 0.5
@@ -217,7 +217,8 @@
         0.4,
         0.6,
         0.8,
-        1.0
+        1.0,
+        2.0
       ],
       "tuning_pattern_settings": {
         "diff_pair_defaults": {
@@ -545,7 +546,7 @@
     "last_paths": {
       "idf": "",
       "netlist": "",
-      "plot": "",
+      "plot": "/Users/akasaka/.tmpdisk/tmpfs/test/",
       "specctra_dsn": "",
       "step": "",
       "vrml": ""
@@ -682,7 +683,7 @@
         "uuid": "fd87ce61-12e3-4ec6-b42f-6e98010af8ed"
       }
     ],
-    "used_designators": "#PWR1-19,#PWR25-59,#PWR121,#PWR124,#PWR127-131,C1-15,C18,C21-22,D1-2,DAC1,DBG1,J1-6,JP1-4,Q1-3,R1-13,RV1-3,TP1-6,U1-6,Y1-2",
+    "used_designators": "#PWR1-19,#PWR25-59,#PWR121,#PWR124,#PWR127-134,C1-15,C18,C21-22,D1-2,DAC1,DBG1,J1-6,JP1-4,Q1-3,R1-13,RV1-3,TP1-6,U1-6,Y1-2",
     "variants": []
   },
   "sheets": [
