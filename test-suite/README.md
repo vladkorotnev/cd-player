@@ -4,6 +4,7 @@ Test suite for CD player project.
 
 ## Track listing
 
+```
 +-----+-----+-------------------------------------+------------+
 | Trk | Idx |  Description                        | Flags      |
 +-----+-----+-------------------------------------+------------+
@@ -27,6 +28,7 @@ Test suite for CD player project.
 | 9   | 1   | End Of Test Announcement            |            |
 | ... | ... | (any music of choice for testing)   |            |
 +-----+-----+-------------------------------------+------------+
+```
 
 ## Gear required
 
