@@ -507,7 +507,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "drive-pcb.kicad_pro",
+    "filename": "drive-pcb-IDC.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -535,7 +535,6 @@
         "bus_width": 12,
         "clearance": 0.2,
         "diff_pair_gap": 0.36,
-        "diff_pair_via_gap": 0.25,
         "diff_pair_width": 0.14,
         "line_style": 0,
         "microvia_diameter": 0.3,
@@ -727,8 +726,8 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "drive-pcb.kicad_sch",
-        "name": "drive-pcb",
+        "filename": "drive-pcb-IDC.kicad_sch",
+        "name": "drive-pcb-IDC",
         "uuid": "15c2f4c0-552a-4f97-89cf-e5bae911265b"
       }
     ],
@@ -738,7 +737,7 @@
   "sheets": [
     [
       "15c2f4c0-552a-4f97-89cf-e5bae911265b",
-      "drive-pcb"
+      "drive-pcb-IDC"
     ]
   ],
   "text_variables": {},

@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "sata") (type "KiCad") (uri "${KIPRJMOD}/sata.kicad_sym") (options "") (descr ""))
+)

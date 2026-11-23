@@ -1,0 +1,4 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "atapi_jae") (type "KiCad") (uri "${KIPRJMOD}/atapi_jae.pretty") (options "") (descr ""))
+)

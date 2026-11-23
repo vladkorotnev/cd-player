@@ -1,0 +1,5 @@
+(fp_lib_table
+	(version 7)
+	(lib (name "sata") (type "KiCad") (uri "${KIPRJMOD}/sata.pretty") (options "") (descr ""))
+	(lib (name "atapi_jae") (type "KiCad") (uri "${KIPRJMOD}/atapi_jae.pretty") (options "") (descr ""))
+)
