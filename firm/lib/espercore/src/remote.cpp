@@ -106,8 +106,8 @@ Core::Remote::RemoteKeyMap Platform::PS2_REMOTE_KEYMAP = {
     {0x49D65,       RVK_INFO},   // "Angle"
     {0x49D63,       RVK_LYRICS}, // "Lyrics"
     {0x49D35,       RVK_SHUFFLE}, // "Shuffle"
-    {0x49D1F,       RVK_PROGRAM}, // "Program"
-    {0x49D2C,       RVK_REPEAT}, // "Repeat"
+    // {0x49D1F,       RVK_PROGRAM}, // "Program"
+    // {0x49D2C,       RVK_REPEAT}, // "Repeat"
 
     {0x49D60,       RVK_DISK_PREV}, // "Slow <<"
     {0x49D61,       RVK_DISK_NEXT}, // "Slow >>"
@@ -115,7 +115,7 @@ Core::Remote::RemoteKeyMap Platform::PS2_REMOTE_KEYMAP = {
     {0x49D34,       RVK_SEEK_FWD},  // "Scan >>"
     {0x49D30,       RVK_TRACK_PREV}, // "Prev"
     {0x49D31,       RVK_TRACK_NEXT}, // "Next"
-    {0x49D2A,       RVK_AB_REPEAT}, // "A-B"
+    // {0x49D2A,       RVK_AB_REPEAT}, // "A-B"
 
     {0x49D54,       RVK_MODE_CD}, // "Display"
     {0x49D1A,       RVK_MODE_RADIO}, // "Title"
@@ -142,4 +142,47 @@ Core::Remote::RemoteKeyMap Platform::PS2_REMOTE_KEYMAP = {
     // 0x5AD5B: R1
     // 0x5AD59: R2
     // 0x5AD52: R3
+};
+
+Core::Remote::RemoteKeyMap Platform::RM_D335_KEYMAP = {
+    // Mode keys: top row of 3
+    // TODO: decide if direct mode access or stby/mode/dimmer
+    {0x9D,        RVK_MODE_STANDBY}, // originally CONTINUE
+    {0xB5,        RVK_MODE_SWITCH}, // orig. SHUFFLE
+    {0x9F,        RVK_DIMMER}, // orig. PROGRAM
+
+    // Number keys: matching original, except 10 is now 0
+    {0xA0,        RVK_NUM_0},
+    {0x80,        RVK_NUM_1},
+    {0x81,        RVK_NUM_2},
+    {0x82,        RVK_NUM_3},
+    {0x83,        RVK_NUM_4},
+    {0x84,        RVK_NUM_5},
+    {0x85,        RVK_NUM_6},
+    {0x86,        RVK_NUM_7},
+    {0x87,        RVK_NUM_8},
+    {0x88,        RVK_NUM_9},
+    
+    {0xA7,        RVK_DISP}, // originally >10
+    {0x8F,        RVK_SHUFFLE}, // originally CLEAR
+
+    {0xC0,        RVK_MODE_SETTINGS},
+    {0xC2,        RVK_DEL},
+
+    {0xC1,        RVK_CURS_UP},
+    {0xC3,        RVK_CURS_LEFT},
+    {0xC4,        RVK_CURS_ENTER},
+    {0xBE,        RVK_CURS_RIGHT},
+    {0xB9,        RVK_CURS_DOWN},
+
+    {0xB2,        RVK_EJECT},
+    {0xB8,        RVK_STOP},
+
+    {0xB0,        RVK_TRACK_PREV},
+    {0xB1,        RVK_TRACK_NEXT},
+    {0xB3,        RVK_SEEK_BACK},
+    {0xB4,        RVK_SEEK_FWD},
+
+    {0xBC,        RVK_PLAY},
+    {0xDF,        RVK_PAUSE}
 };

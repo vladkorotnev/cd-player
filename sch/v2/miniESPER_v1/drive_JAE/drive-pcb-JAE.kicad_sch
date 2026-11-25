@@ -10161,7 +10161,7 @@
 			(uuid "154304fa-59e5-4238-8269-d9af4164c5ca")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR071")
 					(unit 1)
@@ -10277,7 +10277,7 @@
 			(uuid "da728b10-a23d-415a-9a04-9cf9b6bb78c9")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U4")
 					(unit 2)
@@ -10359,7 +10359,7 @@
 			(uuid "b65a59ab-e9cd-49a4-8b12-895ca9243fec")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C44")
 					(unit 1)
@@ -10369,7 +10369,8 @@
 	)
 	(symbol
 		(lib_id "Device:R_Pack08")
-		(at 195.58 162.56 270)
+		(at 195.58 162.56 90)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -10480,7 +10481,7 @@
 			(uuid "c80570fc-1dd0-43d3-9e67-d53695be594b")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "RN1")
 					(unit 1)
@@ -10559,7 +10560,7 @@
 			(uuid "f323556d-1ed2-4edc-b938-a8f4467870c3")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR039")
 					(unit 1)
@@ -10639,7 +10640,7 @@
 			(uuid "31f709cc-e0a9-4dde-a1ec-a47d40a5b54a")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C9")
 					(unit 1)
@@ -10717,7 +10718,7 @@
 			(uuid "aa9e79a8-4a1e-4c75-ad0d-8f5e5ef3db9a")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR025")
 					(unit 1)
@@ -10833,7 +10834,7 @@
 			(uuid "da728b10-a23d-415a-9a04-9cf9b6bb78ca")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U4")
 					(unit 1)
@@ -10911,7 +10912,7 @@
 			(uuid "63ab3f35-5edb-4163-931c-bc893b5089de")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR0112")
 					(unit 1)
@@ -10989,7 +10990,7 @@
 			(uuid "26968dd9-ee26-49df-ab84-166d540de2fa")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR037")
 					(unit 1)
@@ -11067,7 +11068,7 @@
 			(uuid "cca0801d-d2aa-4337-a36d-0a051bfead14")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR06")
 					(unit 1)
@@ -11196,7 +11197,7 @@
 			(uuid "5f68128f-a906-4f01-989a-ff42d07bd284")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "J1")
 					(unit 1)
@@ -11278,7 +11279,7 @@
 			(uuid "d2fa4011-00af-4988-a051-71250f878e00")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "R4")
 					(unit 1)
@@ -11356,7 +11357,7 @@
 			(uuid "7a1c5cd0-5452-4eab-93dd-0be8d5787053")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR050")
 					(unit 1)
@@ -11435,7 +11436,7 @@
 			(uuid "89930d1c-8464-4284-82f1-99102d63f456")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR0108")
 					(unit 1)
@@ -11513,7 +11514,7 @@
 			(uuid "8e6c8c1d-34c7-468f-853c-d66ee056a1ae")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR015")
 					(unit 1)
@@ -11591,7 +11592,7 @@
 			(uuid "0045fe03-69a6-4be6-b4de-51a63f2e101f")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR034")
 					(unit 1)
@@ -11669,7 +11670,7 @@
 			(uuid "fe2b9fab-29ac-46df-8fdc-a14030fb97d6")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR023")
 					(unit 1)
@@ -11748,7 +11749,7 @@
 			(uuid "a90b5516-d4b0-4d58-a564-fa78625eef57")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR056")
 					(unit 1)
@@ -11870,7 +11871,7 @@
 			(uuid "18e54062-14b8-4482-840a-5063b9420c8e")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U6")
 					(unit 3)
@@ -11948,7 +11949,7 @@
 			(uuid "0ce4e16c-b227-4bed-b4c6-01bfc512e404")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR016")
 					(unit 1)
@@ -12026,7 +12027,7 @@
 			(uuid "e22b9083-3a53-4b8b-a8a3-588e716e9b01")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR021")
 					(unit 1)
@@ -12104,7 +12105,7 @@
 			(uuid "f7b3111a-6ac8-497c-a6a9-8c2f7eacccff")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR032")
 					(unit 1)
@@ -12220,7 +12221,7 @@
 			(uuid "da728b10-a23d-415a-9a04-9cf9b6bb78cb")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U4")
 					(unit 3)
@@ -12299,7 +12300,7 @@
 			(uuid "672b77a8-e0f4-41a8-88cb-ab40cf8a6dd1")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR028")
 					(unit 1)
@@ -12390,7 +12391,7 @@
 			(uuid "63ade916-9e47-4c72-861a-c6a18b7386f4")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "D1")
 					(unit 1)
@@ -12468,7 +12469,7 @@
 			(uuid "1a4f7ec9-148e-4887-af03-f1706685458b")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR02")
 					(unit 1)
@@ -12548,7 +12549,7 @@
 			(uuid "2cbd1613-de97-4465-b157-a2bfa5833436")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C3")
 					(unit 1)
@@ -12628,7 +12629,7 @@
 			(uuid "57b8f823-7c65-4d41-abb5-f98459296b06")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C23")
 					(unit 1)
@@ -12790,7 +12791,7 @@
 			(uuid "3692fbf3-0bf0-45af-9550-15b25a8de644")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U3")
 					(unit 1)
@@ -12868,7 +12869,7 @@
 			(uuid "ab0ea6dd-02bd-45de-b900-687329d0f444")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR04")
 					(unit 1)
@@ -12990,7 +12991,7 @@
 			(uuid "5a3b9999-ae80-4d51-a37a-f1882968d658")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U6")
 					(unit 1)
@@ -13112,7 +13113,7 @@
 			(uuid "50e04d10-466c-45de-986d-45544b974bc7")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U6")
 					(unit 2)
@@ -13190,7 +13191,7 @@
 			(uuid "6aeb1b83-5757-4b45-a1e9-a99b0fee5dd6")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR0113")
 					(unit 1)
@@ -13268,7 +13269,7 @@
 			(uuid "cd68b0c9-96aa-4d72-85f0-661934b1bd13")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR022")
 					(unit 1)
@@ -13348,7 +13349,7 @@
 			(uuid "44de5766-f260-411f-9316-80183c7426c6")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C4")
 					(unit 1)
@@ -13428,7 +13429,7 @@
 			(uuid "c412d220-eb31-4372-b97c-8bdb9102c2ed")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "R3")
 					(unit 1)
@@ -13506,7 +13507,7 @@
 			(uuid "6271bc96-ccfd-443f-b66c-94359985e17f")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR038")
 					(unit 1)
@@ -13584,7 +13585,7 @@
 			(uuid "59587fee-7b54-4ba6-887c-ae7d9d2b14ee")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR051")
 					(unit 1)
@@ -13805,7 +13806,7 @@
 			(uuid "d55f2c5f-7a57-4114-ad7d-e6ad846b1d13")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U8")
 					(unit 1)
@@ -13887,7 +13888,7 @@
 			(uuid "f7bb4559-ed58-4ca6-87cb-58ed937dc133")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C2")
 					(unit 1)
@@ -13965,7 +13966,7 @@
 			(uuid "4ebbdf3d-c4b0-4577-a72f-d912ecaa2362")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR054")
 					(unit 1)
@@ -14043,7 +14044,7 @@
 			(uuid "ca77021f-fb2a-4fe7-8210-ec126fc8f3ca")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR033")
 					(unit 1)
@@ -14125,7 +14126,7 @@
 			(uuid "d0361ba6-105b-4848-b31e-84719913305f")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "R5")
 					(unit 1)
@@ -14203,7 +14204,7 @@
 			(uuid "17bf6ce3-aa4a-4084-a1ef-bde9a5b86aec")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR017")
 					(unit 1)
@@ -14282,7 +14283,7 @@
 			(uuid "744b8100-b7cb-4475-b9bc-5d899e24367a")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR061")
 					(unit 1)
@@ -14361,7 +14362,7 @@
 			(uuid "b95ad50c-c61a-4dde-882a-bb9d419b0ee0")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR072")
 					(unit 1)
@@ -14439,7 +14440,7 @@
 			(uuid "11088387-e328-45d8-87c1-f792c2216eef")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR019")
 					(unit 1)
@@ -14518,7 +14519,7 @@
 			(uuid "d9252830-b072-4338-8d2b-405101bcd31b")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR0120")
 					(unit 1)
@@ -14597,7 +14598,7 @@
 			(uuid "a7a24687-a25b-4223-853d-b4bb63794250")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR036")
 					(unit 1)
@@ -14675,7 +14676,7 @@
 			(uuid "1a4f7ec9-148e-4887-af03-f1706685458c")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR01")
 					(unit 1)
@@ -14799,7 +14800,7 @@
 			(uuid "188cb80c-1204-4f37-95cb-5824f3f269f9")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U5")
 					(unit 1)
@@ -14881,7 +14882,7 @@
 			(uuid "7b5bc769-13b0-419b-ad51-9a1fbc80af78")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "R2")
 					(unit 1)
@@ -14959,7 +14960,7 @@
 			(uuid "49e33ee6-1eb3-412a-ac8f-db55fb2fe1ef")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR020")
 					(unit 1)
@@ -15041,7 +15042,7 @@
 			(uuid "e2e4ea43-7981-47a9-9624-ee8782d5636d")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C5")
 					(unit 1)
@@ -15121,7 +15122,7 @@
 			(uuid "4e9cc7e6-1017-4c73-b306-3ebf78a25553")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C8")
 					(unit 1)
@@ -15199,7 +15200,7 @@
 			(uuid "25a70900-2686-49b4-9d3f-41bf896f4459")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR052")
 					(unit 1)
@@ -15401,7 +15402,7 @@
 			(uuid "5bf879c4-0504-439c-a9f8-407e379092fa")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "CN2")
 					(unit 1)
@@ -15563,7 +15564,7 @@
 			(uuid "eec6e9d6-00b5-4ff7-9ca9-b7f0ff9aef93")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U9")
 					(unit 1)
@@ -15679,7 +15680,7 @@
 			(uuid "422e9eba-9045-41a2-a7e8-11f9d8d926e1")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U4")
 					(unit 4)
@@ -15689,7 +15690,8 @@
 	)
 	(symbol
 		(lib_id "Device:R_Pack08")
-		(at 195.58 142.24 270)
+		(at 195.58 142.24 90)
+		(mirror x)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
@@ -15697,7 +15699,6 @@
 		(on_board yes)
 		(in_pos_files yes)
 		(dnp no)
-		(fields_autoplaced yes)
 		(uuid "cd59f25b-bf4f-4cce-9f1a-b2d9e7b541b0")
 		(property "Reference" "RN2"
 			(at 195.58 125.73 90)
@@ -15801,7 +15802,7 @@
 			(uuid "c80570fc-1dd0-43d3-9e67-d53695be594c")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "RN2")
 					(unit 1)
@@ -15880,7 +15881,7 @@
 			(uuid "e0346721-a43e-42ce-823e-f3a9cba28043")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR027")
 					(unit 1)
@@ -15958,7 +15959,7 @@
 			(uuid "c6648d67-d8b9-41e5-b011-297b46e115df")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR055")
 					(unit 1)
@@ -16074,7 +16075,7 @@
 			(uuid "da728b10-a23d-415a-9a04-9cf9b6bb78c8")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "U4")
 					(unit 5)
@@ -16154,7 +16155,7 @@
 			(uuid "bd69ae54-67c6-4aa6-a578-b618b9e45a73")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "C7")
 					(unit 1)
@@ -16233,7 +16234,7 @@
 			(uuid "6604d060-bcc1-437e-803d-41f93464ab1d")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR070")
 					(unit 1)
@@ -16312,7 +16313,7 @@
 			(uuid "9a894168-b5a2-45fe-9b4f-abe79943d2b3")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR031")
 					(unit 1)
@@ -16391,7 +16392,7 @@
 			(uuid "f23445a2-2334-496a-a385-3743609ecb6d")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR057")
 					(unit 1)
@@ -16470,7 +16471,7 @@
 			(uuid "be808e97-11f4-4c39-9d5f-7cbcf5311c2c")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR058")
 					(unit 1)
@@ -16552,7 +16553,7 @@
 			(uuid "dcf7db86-dd6e-4224-858d-8b11129287ab")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "R1")
 					(unit 1)
@@ -16630,7 +16631,7 @@
 			(uuid "8f348614-2420-45d7-a5bc-542bfc76601c")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR018")
 					(unit 1)
@@ -16709,7 +16710,7 @@
 			(uuid "8c0ccc81-9009-4537-bce4-0d77a56f7a64")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR060")
 					(unit 1)
@@ -16787,7 +16788,7 @@
 			(uuid "81b1cd44-5aad-4e9e-a90f-187ca19917e6")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR029")
 					(unit 1)
@@ -16866,7 +16867,7 @@
 			(uuid "1de4229f-a983-4201-ad4d-405b0b410269")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR041")
 					(unit 1)
@@ -16944,7 +16945,7 @@
 			(uuid "e65b9a33-fb76-4099-8951-9c2b002957cd")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR024")
 					(unit 1)
@@ -17023,7 +17024,7 @@
 			(uuid "f19ac03f-42c7-453d-a16b-4ea656e29c48")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR03")
 					(unit 1)
@@ -17102,7 +17103,7 @@
 			(uuid "eddaa5ee-c87f-44ca-95e9-6dee84d119d0")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR040")
 					(unit 1)
@@ -17180,7 +17181,7 @@
 			(uuid "65ad969f-b382-43e0-a704-806ec3e61cfa")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR035")
 					(unit 1)
@@ -17259,7 +17260,7 @@
 			(uuid "63d85220-aea9-4ac2-9724-372019f94833")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR030")
 					(unit 1)
@@ -17338,7 +17339,7 @@
 			(uuid "f59cfb37-36b8-48f4-88a2-8e56bc94a646")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR059")
 					(unit 1)
@@ -17417,7 +17418,7 @@
 			(uuid "1f4fbe58-b397-4787-bb40-044dc75e0fb3")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR053")
 					(unit 1)
@@ -17496,7 +17497,7 @@
 			(uuid "0840eaac-938a-441c-94bd-a61070afad7d")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "#PWR026")
 					(unit 1)
@@ -17577,7 +17578,7 @@
 			(uuid "6d0e8335-6525-468c-bbbc-155735100cbf")
 		)
 		(instances
-			(project "drive-pcb"
+			(project "drive-pcb-JAE"
 				(path "/15c2f4c0-552a-4f97-89cf-e5bae911265b"
 					(reference "R6")
 					(unit 1)

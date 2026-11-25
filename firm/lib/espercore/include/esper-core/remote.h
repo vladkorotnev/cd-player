@@ -2,6 +2,7 @@
 #include <esp32-hal-gpio.h>
 #include <driver/rmt.h>
 #include <unordered_map>
+#include <vector>
 
 enum VirtualKey: uint32_t {
     RVK_START_OF_NUMBERS = 1,
@@ -21,9 +22,7 @@ enum VirtualKey: uint32_t {
     RVK_DIMMER,
     RVK_SHUFFLE,
     RVK_INFO,
-    RVK_PROGRAM,
     RVK_LYRICS,
-    RVK_REPEAT,
     RVK_DISK_NEXT,
     RVK_DISK_PREV,
     RVK_SEEK_FWD,
@@ -31,7 +30,6 @@ enum VirtualKey: uint32_t {
     RVK_TRACK_PREV,
     RVK_TRACK_NEXT,
     RVK_DISP,
-    RVK_AB_REPEAT,
     RVK_PLAY,
     RVK_PAUSE,
     RVK_STOP,
@@ -89,18 +87,23 @@ namespace Core {
 
         class KeymapDecoder: public Decoder {
         public:
-            explicit KeymapDecoder(Decoder& decoder, const RemoteKeyMap map): _decoder{decoder}, _map{map}, Decoder() {}
+            explicit KeymapDecoder(Decoder& decoder, const std::vector<RemoteKeyMap> maps): _decoder{decoder}, _maps{maps}, Decoder() {}
 
             bool feed(const rmt_item32_t * items, int count, RemoteCode * code) override { 
                 RemoteCode untranslated_code = 0;
                 ESP_LOGD(LOG_TAG, "Code length %i", count);
                 bool rslt = _decoder.feed(items, count, &untranslated_code);
                 if(rslt) {
-                    auto const code_ptr = _map.find(untranslated_code);
-                    if(code_ptr != _map.cend()) {
-                        *code = (uint32_t) code_ptr->second;
-                        ESP_LOGV(LOG_TAG, "Raw code 0x%08x -> Virtual code 0x%08x", untranslated_code, *code);
-                    } else {
+                    bool found = false;
+                    for(const RemoteKeyMap& _map: _maps) {
+                        auto const code_ptr = _map.find(untranslated_code);
+                        if(code_ptr != _map.cend()) {
+                            *code = (uint32_t) code_ptr->second;
+                            ESP_LOGV(LOG_TAG, "Raw code 0x%08x -> Virtual code 0x%08x", untranslated_code, *code);
+                            found = true;
+                        }
+                    }
+                    if (!found) {
                         ESP_LOGE(LOG_TAG, "Unmapped code 0x%08x", untranslated_code);
                     }
                 }  
@@ -109,7 +112,7 @@ namespace Core {
 
         protected:
             Decoder& _decoder;
-            const RemoteKeyMap _map;
+            const std::vector<RemoteKeyMap> _maps;
             const char * LOG_TAG = "KEYMAP";
         };
     }
@@ -145,5 +148,8 @@ namespace Platform {
         const char * LOG_TAG = "IRRC";
     };
 
+    /// @brief Keymap for the PS2 DVD remote, which was bundled with some of the first ESPer boards
     extern Core::Remote::RemoteKeyMap PS2_REMOTE_KEYMAP;
+    /// @brief Keymap for a knockoff RM-D335 remote with a custom sticker instead of the original (thus the mappings don't match the stock label on purpose)
+    extern Core::Remote::RemoteKeyMap RM_D335_KEYMAP;
 };

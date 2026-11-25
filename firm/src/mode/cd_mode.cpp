@@ -435,9 +435,13 @@ void CDMode::on_remote_key_pressed(VirtualKey key) {
         show_toast(localized_string("Lyrics: ON"));
     }
     else if(key == RVK_DISP) {
-        lyrics_enabled = false;
-        rootView->set_lyric_show(false, 0);
-        show_toast(localized_string("Lyrics: OFF"));
+        lyrics_enabled = !lyrics_enabled;
+        if (!lyrics_enabled) {
+            rootView->set_lyric_show(false, 0);
+            show_toast(localized_string("Lyrics: OFF"));
+        } else {
+            show_toast(localized_string("Lyrics: ON"));
+        }
     }
     else if(RVK_IS_DIGIT(key)) {
         int digit = RVK_TO_DIGIT(key);

@@ -87,7 +87,10 @@ void keypadTask(void *) {
 
 #if (BCONF_RC_TYPE == RC_TYPE_SONY_PS2_REMOTE)
   static Core::Remote::Sony20bitDecoder sony;
-  static Core::Remote::KeymapDecoder keymap(sony, Platform::PS2_REMOTE_KEYMAP);
+  static Core::Remote::KeymapDecoder keymap(sony, {
+    Platform::PS2_REMOTE_KEYMAP,
+    Platform::RM_D335_KEYMAP
+  });
 #else
   #error "IR RC type not set or unknown, check board config"
 #endif
