@@ -507,7 +507,7 @@
     "pinned_symbol_libs": []
   },
   "meta": {
-    "filename": "drive-pcb.kicad_pro",
+    "filename": "drive-pcb-SATA.kicad_pro",
     "version": 3
   },
   "net_settings": {
@@ -727,8 +727,8 @@
     "subpart_id_separator": 0,
     "top_level_sheets": [
       {
-        "filename": "drive-pcb.kicad_sch",
-        "name": "drive-pcb",
+        "filename": "drive-pcb-SATA.kicad_sch",
+        "name": "drive-pcb-SATA",
         "uuid": "15c2f4c0-552a-4f97-89cf-e5bae911265b"
       }
     ],
