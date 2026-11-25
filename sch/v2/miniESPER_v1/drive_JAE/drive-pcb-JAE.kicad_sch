@@ -10369,8 +10369,7 @@
 	)
 	(symbol
 		(lib_id "Device:R_Pack08")
-		(at 195.58 162.56 90)
-		(mirror x)
+		(at 195.58 162.56 270)
 		(unit 1)
 		(body_style 1)
 		(exclude_from_sim no)
