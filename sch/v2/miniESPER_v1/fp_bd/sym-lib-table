@@ -1,0 +1,4 @@
+(sym_lib_table
+	(version 7)
+	(lib (name "esper") (type "KiCad") (uri "/Users/akasaka/code/cd-player/sch/v2/miniESPER_v1/main/esper.kicad_sym") (options "") (descr ""))
+)

@@ -665,17 +665,12 @@
         "uuid": "5b2cb61c-5321-41bf-9d8a-557c30a848fb"
       },
       {
-        "filename": "ide_bus.kicad_sch",
-        "name": "ATAPI",
-        "uuid": "34f66b87-d1f5-43cd-b656-f57e8559b326"
-      },
-      {
-        "filename": "frontpanel.kicad_sch",
-        "name": "UI",
-        "uuid": "629d652e-a4c1-46e0-9be9-3e693d055f04"
+        "filename": "audio.kicad_sch",
+        "name": "Audio",
+        "uuid": "7eeab944-6744-452c-9e4c-0b9e94b3091b"
       }
     ],
-    "used_designators": "#PWR1-136,#SYM1-2,ATAPI1-2,BACK1,C1-48,D1-25,DAC1,DISPTYPE1,FF1,J1-12,JP1-18,K1-2,L1-2,LCD1-2,MODE1,NEXT1,OLED1-3,PLAY1,PLAYPAUSE1,PREV1,Q1-3,R1-21,RCA1-2,RCA_OUT1,RCA_THRU1,REW1,RN1-3,RV1-2,SEEKBACK1,SEEKFWD1,SHUFFLE1,STOP1,STOPEJECT1,SW1-9,TP1-6,U1-21,VFD1-2,Y1-2",
+    "used_designators": "#PWR1-136,#SYM1-2,ATAPI1-2,BACK1,C1-48,D1-25,DAC1,DISPTYPE1,FF1,J1-12,JP1-18,K1-2,L1-2,LCD1-2,MODE1,NEXT1,OLED1-3,PLAY1,PLAYPAUSE1,PREV1,Q1-4,R1-21,RCA1-2,RCA_OUT1,RCA_THRU1,REW1,RN1-3,RV1-2,SEEKBACK1,SEEKFWD1,SHUFFLE1,STOP1,STOPEJECT1,SW1-9,TP1-6,U1-21,VFD1-2,Y1-2",
     "variants": []
   },
   "sheets": [
@@ -684,12 +679,8 @@
       "CPU"
     ],
     [
-      "34f66b87-d1f5-43cd-b656-f57e8559b326",
-      "ATAPI"
-    ],
-    [
-      "629d652e-a4c1-46e0-9be9-3e693d055f04",
-      "UI"
+      "7eeab944-6744-452c-9e4c-0b9e94b3091b",
+      "Audio"
     ]
   ],
   "text_variables": {},
